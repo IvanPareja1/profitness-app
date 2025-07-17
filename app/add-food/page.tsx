@@ -4,8 +4,16 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 
+// Tipo para los valores nutricionales
+type NutritionInfo = {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+};
+
 // Base de datos de alimentos con sus valores nutricionales por 100g
-const foodDatabase = {
+const foodDatabase: Record<string, NutritionInfo> = {
   // Carnes y pescados
   'pollo': { calories: 165, protein: 31, carbs: 0, fats: 3.6 },
   'pechuga de pollo': { calories: 165, protein: 31, carbs: 0, fats: 3.6 },
@@ -90,7 +98,7 @@ export default function AddFood() {
   });
 
   // Función para buscar alimento en la base de datos
-  const findFoodInDatabase = (foodName: string) => {
+  const findFoodInDatabase = (foodName: string): NutritionInfo | null => {
     const normalizedName = foodName.toLowerCase().trim();
 
     // Busqueda exacta
@@ -109,7 +117,7 @@ export default function AddFood() {
   };
 
   // Función para calcular macronutrientes basado en cantidad
-  const calculateMacros = (baseNutrition: any, quantity: string, unit: string) => {
+  const calculateMacros = (baseNutrition: NutritionInfo, quantity: string, unit: string): NutritionInfo | null => {
     if (!baseNutrition || !quantity) return null;
 
     let multiplier = 1;
@@ -139,12 +147,13 @@ export default function AddFood() {
       case 'unidades':
       case 'pieza':
       case 'piezas':
-        // Estimaciones promedio por unidad
-        if (newFood.name.toLowerCase().includes('huevo')) {
+        // Estimaciones promedio por unidad usando el nombre del campo correcto
+        const foodName = newFood.name.toLowerCase();
+        if (foodName.includes('huevo')) {
           multiplier = qty * 0.5; // 50g por huevo
-        } else if (newFood.name.toLowerCase().includes('plátano') || newFood.name.toLowerCase().includes('banana')) {
+        } else if (foodName.includes('plátano') || foodName.includes('banana')) {
           multiplier = qty * 1.2; // 120g por plátano
-        } else if (newFood.name.toLowerCase().includes('manzana')) {
+        } else if (foodName.includes('manzana')) {
           multiplier = qty * 1.8; // 180g por manzana
         } else {
           multiplier = qty * 1; // Por defecto 100g por unidad
@@ -167,7 +176,7 @@ export default function AddFood() {
     if (newFood.name && newFood.quantity) {
       const foundFood = findFoodInDatabase(newFood.name);
       if (foundFood) {
-        // Extraer cantidad y unidad del campo serving
+        // Extraer cantidad y unidad del campo quantity
         const servingParts = newFood.quantity.split(' ');
         const quantity = servingParts[0];
         const unit = servingParts.slice(1).join(' ') || 'g';
