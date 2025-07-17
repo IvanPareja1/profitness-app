@@ -237,14 +237,14 @@ export default function AddFood() {
     }
   };
 
-  const addFoodToMeal = (food) => {
+  const addFoodToMeal = (food: any) => {
     console.log(`Agregando ${food.name} a ${selectedMeal}`);
 
     setShowSuccess(true);
     setTimeout(() => setShowSuccess(false), 2000);
   };
 
-  const handleInputChange = (field, value) => {
+  const handleInputChange = (field: string, value: string) => {
     setNewFood(prev => ({ ...prev, [field]: value }));
   };
 
