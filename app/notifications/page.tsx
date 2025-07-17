@@ -113,199 +113,515 @@ export default function Notifications() {
   const unreadCount = recentNotifications.filter(n => !n.read).length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #f0f9ff 0%, #e0e7ff 100%)'
+    }}>
       {/* Header */}
-      <header className="fixed top-0 w-full bg-white/90 backdrop-blur-sm border-b border-gray-200 z-50">
-        <div className="flex items-center justify-between px-4 py-3">
-          <Link href="/profile" className="w-8 h-8 flex items-center justify-center">
-            <i className="ri-arrow-left-line text-gray-600 text-xl"></i>
+      <header style={{
+        position: 'fixed',
+        top: 0,
+        width: '100%',
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        backdropFilter: 'blur(8px)',
+        borderBottom: '1px solid #e5e7eb',
+        zIndex: 50
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '12px 16px'
+        }}>
+          <Link href="/profile" style={{
+            width: '32px',
+            height: '32px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            textDecoration: 'none'
+          }}>
+            <i className="ri-arrow-left-line" style={{ color: '#6b7280', fontSize: '20px' }}></i>
           </Link>
-          <h1 className="text-lg font-semibold">Notificaciones</h1>
+          <h1 style={{
+            fontSize: '18px',
+            fontWeight: '600',
+            color: '#1f2937',
+            margin: 0
+          }}>Notificaciones</h1>
           <button 
             onClick={() => setShowMarkAllModal(true)}
-            className="text-blue-600 text-sm font-medium"
             disabled={unreadCount === 0}
+            style={{
+              color: unreadCount === 0 ? '#9ca3af' : '#3b82f6',
+              fontSize: '14px',
+              fontWeight: '500',
+              border: 'none',
+              backgroundColor: 'transparent',
+              cursor: unreadCount === 0 ? 'not-allowed' : 'pointer'
+            }}
           >
             Marcar leídas
           </button>
         </div>
       </header>
 
-      <main className="pt-16 pb-20 px-4">
+      <main style={{
+        paddingTop: '64px',
+        paddingBottom: '80px',
+        padding: '64px 16px 80px 16px'
+      }}>
         {/* Notification Settings */}
-        <div className="bg-white rounded-2xl p-6 shadow-lg mb-6 mt-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Configuración de Notificaciones</h3>
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '16px',
+          padding: '24px',
+          boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+          marginBottom: '24px',
+          marginTop: '24px'
+        }}>
+          <h3 style={{
+            fontSize: '18px',
+            fontWeight: '600',
+            color: '#1f2937',
+            marginBottom: '16px',
+            margin: '0 0 16px 0'
+          }}>Configuración de Notificaciones</h3>
           
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
               <div>
-                <p className="font-medium text-gray-800">Notificaciones Push</p>
-                <p className="text-sm text-gray-500">Recibe alertas en tu dispositivo</p>
+                <p style={{
+                  fontWeight: '500',
+                  color: '#1f2937',
+                  margin: '0 0 4px 0'
+                }}>Notificaciones Push</p>
+                <p style={{
+                  fontSize: '14px',
+                  color: '#6b7280',
+                  margin: 0
+                }}>Recibe alertas en tu dispositivo</p>
               </div>
               <button
                 onClick={() => handleToggle('pushNotifications')}
-                className={`relative w-12 h-6 rounded-full transition-colors ${
-                  notificationSettings.pushNotifications ? 'bg-blue-600' : 'bg-gray-300'
-                }`}
+                style={{
+                  position: 'relative',
+                  width: '48px',
+                  height: '24px',
+                  borderRadius: '24px',
+                  transition: 'background-color 0.2s',
+                  backgroundColor: notificationSettings.pushNotifications ? '#3b82f6' : '#d1d5db',
+                  border: 'none',
+                  cursor: 'pointer'
+                }}
               >
-                <div
-                  className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
-                    notificationSettings.pushNotifications ? 'translate-x-6' : 'translate-x-0.5'
-                  }`}
-                />
+                <div style={{
+                  position: 'absolute',
+                  top: '2px',
+                  width: '20px',
+                  height: '20px',
+                  backgroundColor: 'white',
+                  borderRadius: '50%',
+                  transition: 'transform 0.2s',
+                  transform: notificationSettings.pushNotifications ? 'translateX(24px)' : 'translateX(2px)'
+                }}></div>
               </button>
             </div>
 
-            <div className="flex items-center justify-between">
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
               <div>
-                <p className="font-medium text-gray-800">Recordatorios de comida</p>
-                <p className="text-sm text-gray-500">Alertas para registrar comidas</p>
+                <p style={{
+                  fontWeight: '500',
+                  color: '#1f2937',
+                  margin: '0 0 4px 0'
+                }}>Recordatorios de comida</p>
+                <p style={{
+                  fontSize: '14px',
+                  color: '#6b7280',
+                  margin: 0
+                }}>Alertas para registrar comidas</p>
               </div>
               <button
                 onClick={() => handleToggle('mealReminders')}
-                className={`relative w-12 h-6 rounded-full transition-colors ${
-                  notificationSettings.mealReminders ? 'bg-blue-600' : 'bg-gray-300'
-                }`}
+                style={{
+                  position: 'relative',
+                  width: '48px',
+                  height: '24px',
+                  borderRadius: '24px',
+                  transition: 'background-color 0.2s',
+                  backgroundColor: notificationSettings.mealReminders ? '#3b82f6' : '#d1d5db',
+                  border: 'none',
+                  cursor: 'pointer'
+                }}
               >
-                <div
-                  className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
-                    notificationSettings.mealReminders ? 'translate-x-6' : 'translate-x-0.5'
-                  }`}
-                />
+                <div style={{
+                  position: 'absolute',
+                  top: '2px',
+                  width: '20px',
+                  height: '20px',
+                  backgroundColor: 'white',
+                  borderRadius: '50%',
+                  transition: 'transform 0.2s',
+                  transform: notificationSettings.mealReminders ? 'translateX(24px)' : 'translateX(2px)'
+                }}></div>
               </button>
             </div>
 
-            <div className="flex items-center justify-between">
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
               <div>
-                <p className="font-medium text-gray-800">Recordatorio de pesaje</p>
-                <p className="text-sm text-gray-500">Alerta diaria para registrar peso</p>
+                <p style={{
+                  fontWeight: '500',
+                  color: '#1f2937',
+                  margin: '0 0 4px 0'
+                }}>Recordatorio de pesaje</p>
+                <p style={{
+                  fontSize: '14px',
+                  color: '#6b7280',
+                  margin: 0
+                }}>Alerta diaria para registrar peso</p>
               </div>
               <button
                 onClick={() => handleToggle('weightReminders')}
-                className={`relative w-12 h-6 rounded-full transition-colors ${
-                  notificationSettings.weightReminders ? 'bg-blue-600' : 'bg-gray-300'
-                }`}
+                style={{
+                  position: 'relative',
+                  width: '48px',
+                  height: '24px',
+                  borderRadius: '24px',
+                  transition: 'background-color 0.2s',
+                  backgroundColor: notificationSettings.weightReminders ? '#3b82f6' : '#d1d5db',
+                  border: 'none',
+                  cursor: 'pointer'
+                }}
               >
-                <div
-                  className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
-                    notificationSettings.weightReminders ? 'translate-x-6' : 'translate-x-0.5'
-                  }`}
-                />
+                <div style={{
+                  position: 'absolute',
+                  top: '2px',
+                  width: '20px',
+                  height: '20px',
+                  backgroundColor: 'white',
+                  borderRadius: '50%',
+                  transition: 'transform 0.2s',
+                  transform: notificationSettings.weightReminders ? 'translateX(24px)' : 'translateX(2px)'
+                }}></div>
               </button>
             </div>
 
-            <div className="flex items-center justify-between">
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
               <div>
-                <p className="font-medium text-gray-800">Logros y metas</p>
-                <p className="text-sm text-gray-500">Celebra tus objetivos cumplidos</p>
+                <p style={{
+                  fontWeight: '500',
+                  color: '#1f2937',
+                  margin: '0 0 4px 0'
+                }}>Logros y metas</p>
+                <p style={{
+                  fontSize: '14px',
+                  color: '#6b7280',
+                  margin: 0
+                }}>Celebra tus objetivos cumplidos</p>
               </div>
               <button
                 onClick={() => handleToggle('goalAchievements')}
-                className={`relative w-12 h-6 rounded-full transition-colors ${
-                  notificationSettings.goalAchievements ? 'bg-blue-600' : 'bg-gray-300'
-                }`}
+                style={{
+                  position: 'relative',
+                  width: '48px',
+                  height: '24px',
+                  borderRadius: '24px',
+                  transition: 'background-color 0.2s',
+                  backgroundColor: notificationSettings.goalAchievements ? '#3b82f6' : '#d1d5db',
+                  border: 'none',
+                  cursor: 'pointer'
+                }}
               >
-                <div
-                  className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
-                    notificationSettings.goalAchievements ? 'translate-x-6' : 'translate-x-0.5'
-                  }`}
-                />
+                <div style={{
+                  position: 'absolute',
+                  top: '2px',
+                  width: '20px',
+                  height: '20px',
+                  backgroundColor: 'white',
+                  borderRadius: '50%',
+                  transition: 'transform 0.2s',
+                  transform: notificationSettings.goalAchievements ? 'translateX(24px)' : 'translateX(2px)'
+                }}></div>
               </button>
             </div>
 
-            <div className="flex items-center justify-between">
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
               <div>
-                <p className="font-medium text-gray-800">Reportes semanales</p>
-                <p className="text-sm text-gray-500">Resumen de tu progreso</p>
+                <p style={{
+                  fontWeight: '500',
+                  color: '#1f2937',
+                  margin: '0 0 4px 0'
+                }}>Reportes semanales</p>
+                <p style={{
+                  fontSize: '14px',
+                  color: '#6b7280',
+                  margin: 0
+                }}>Resumen de tu progreso</p>
               </div>
               <button
                 onClick={() => handleToggle('weeklyReports')}
-                className={`relative w-12 h-6 rounded-full transition-colors ${
-                  notificationSettings.weeklyReports ? 'bg-blue-600' : 'bg-gray-300'
-                }`}
+                style={{
+                  position: 'relative',
+                  width: '48px',
+                  height: '24px',
+                  borderRadius: '24px',
+                  transition: 'background-color 0.2s',
+                  backgroundColor: notificationSettings.weeklyReports ? '#3b82f6' : '#d1d5db',
+                  border: 'none',
+                  cursor: 'pointer'
+                }}
               >
-                <div
-                  className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
-                    notificationSettings.weeklyReports ? 'translate-x-6' : 'translate-x-0.5'
-                  }`}
-                />
+                <div style={{
+                  position: 'absolute',
+                  top: '2px',
+                  width: '20px',
+                  height: '20px',
+                  backgroundColor: 'white',
+                  borderRadius: '50%',
+                  transition: 'transform 0.2s',
+                  transform: notificationSettings.weeklyReports ? 'translateX(24px)' : 'translateX(2px)'
+                }}></div>
               </button>
             </div>
           </div>
         </div>
 
         {/* Reminder Times */}
-        <div className="bg-white rounded-2xl p-6 shadow-lg mb-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Horarios de Recordatorios</h3>
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '16px',
+          padding: '24px',
+          boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+          marginBottom: '24px'
+        }}>
+          <h3 style={{
+            fontSize: '18px',
+            fontWeight: '600',
+            color: '#1f2937',
+            marginBottom: '16px',
+            margin: '0 0 16px 0'
+          }}>Horarios de Recordatorios</h3>
           
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
-                  <i className="ri-sun-line text-yellow-600 text-lg"></i>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px'
+              }}>
+                <div style={{
+                  width: '40px',
+                  height: '40px',
+                  backgroundColor: '#fef3c7',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <i className="ri-sun-line" style={{ color: '#f59e0b', fontSize: '18px' }}></i>
                 </div>
                 <div>
-                  <p className="font-medium text-gray-800">Desayuno</p>
-                  <p className="text-sm text-gray-500">Recordatorio matutino</p>
+                  <p style={{
+                    fontWeight: '500',
+                    color: '#1f2937',
+                    margin: '0 0 4px 0'
+                  }}>Desayuno</p>
+                  <p style={{
+                    fontSize: '14px',
+                    color: '#6b7280',
+                    margin: 0
+                  }}>Recordatorio matutino</p>
                 </div>
               </div>
               <button
                 onClick={() => openTimeSelector('breakfast')}
-                className="text-blue-600 font-medium"
+                style={{
+                  color: '#3b82f6',
+                  fontWeight: '500',
+                  fontSize: '14px',
+                  border: 'none',
+                  backgroundColor: 'transparent',
+                  cursor: 'pointer'
+                }}
               >
                 {reminderTimes.breakfast}
               </button>
             </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
-                  <i className="ri-sun-fill text-orange-600 text-lg"></i>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px'
+              }}>
+                <div style={{
+                  width: '40px',
+                  height: '40px',
+                  backgroundColor: '#fed7aa',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <i className="ri-sun-fill" style={{ color: '#ea580c', fontSize: '18px' }}></i>
                 </div>
                 <div>
-                  <p className="font-medium text-gray-800">Almuerzo</p>
-                  <p className="text-sm text-gray-500">Recordatorio del mediodía</p>
+                  <p style={{
+                    fontWeight: '500',
+                    color: '#1f2937',
+                    margin: '0 0 4px 0'
+                  }}>Almuerzo</p>
+                  <p style={{
+                    fontSize: '14px',
+                    color: '#6b7280',
+                    margin: 0
+                  }}>Recordatorio del mediodía</p>
                 </div>
               </div>
               <button
                 onClick={() => openTimeSelector('lunch')}
-                className="text-blue-600 font-medium"
+                style={{
+                  color: '#3b82f6',
+                  fontWeight: '500',
+                  fontSize: '14px',
+                  border: 'none',
+                  backgroundColor: 'transparent',
+                  cursor: 'pointer'
+                }}
               >
                 {reminderTimes.lunch}
               </button>
             </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                  <i className="ri-moon-line text-purple-600 text-lg"></i>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px'
+              }}>
+                <div style={{
+                  width: '40px',
+                  height: '40px',
+                  backgroundColor: '#e9d5ff',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <i className="ri-moon-line" style={{ color: '#8b5cf6', fontSize: '18px' }}></i>
                 </div>
                 <div>
-                  <p className="font-medium text-gray-800">Cena</p>
-                  <p className="text-sm text-gray-500">Recordatorio nocturno</p>
+                  <p style={{
+                    fontWeight: '500',
+                    color: '#1f2937',
+                    margin: '0 0 4px 0'
+                  }}>Cena</p>
+                  <p style={{
+                    fontSize: '14px',
+                    color: '#6b7280',
+                    margin: 0
+                  }}>Recordatorio nocturno</p>
                 </div>
               </div>
               <button
                 onClick={() => openTimeSelector('dinner')}
-                className="text-blue-600 font-medium"
+                style={{
+                  color: '#3b82f6',
+                  fontWeight: '500',
+                  fontSize: '14px',
+                  border: 'none',
+                  backgroundColor: 'transparent',
+                  cursor: 'pointer'
+                }}
               >
                 {reminderTimes.dinner}
               </button>
             </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                  <i className="ri-scales-3-line text-blue-600 text-lg"></i>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px'
+              }}>
+                <div style={{
+                  width: '40px',
+                  height: '40px',
+                  backgroundColor: '#dbeafe',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <i className="ri-scales-3-line" style={{ color: '#3b82f6', fontSize: '18px' }}></i>
                 </div>
                 <div>
-                  <p className="font-medium text-gray-800">Pesaje diario</p>
-                  <p className="text-sm text-gray-500">Registro de peso</p>
+                  <p style={{
+                    fontWeight: '500',
+                    color: '#1f2937',
+                    margin: '0 0 4px 0'
+                  }}>Pesaje diario</p>
+                  <p style={{
+                    fontSize: '14px',
+                    color: '#6b7280',
+                    margin: 0
+                  }}>Registro de peso</p>
                 </div>
               </div>
               <button
                 onClick={() => openTimeSelector('weigh')}
-                className="text-blue-600 font-medium"
+                style={{
+                  color: '#3b82f6',
+                  fontWeight: '500',
+                  fontSize: '14px',
+                  border: 'none',
+                  backgroundColor: 'transparent',
+                  cursor: 'pointer'
+                }}
               >
                 {reminderTimes.weigh}
               </button>
@@ -314,51 +630,114 @@ export default function Notifications() {
         </div>
 
         {/* Recent Notifications */}
-        <div className="bg-white rounded-2xl p-6 shadow-lg">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-800">Notificaciones Recientes</h3>
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '16px',
+          padding: '24px',
+          boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '16px'
+          }}>
+            <h3 style={{
+              fontSize: '18px',
+              fontWeight: '600',
+              color: '#1f2937',
+              margin: 0
+            }}>Notificaciones Recientes</h3>
             {unreadCount > 0 && (
-              <span className="bg-red-100 text-red-600 text-xs px-2 py-1 rounded-full">
+              <span style={{
+                backgroundColor: '#fee2e2',
+                color: '#dc2626',
+                fontSize: '12px',
+                padding: '2px 8px',
+                borderRadius: '12px',
+                fontWeight: '500'
+              }}>
                 {unreadCount} nuevas
               </span>
             )}
           </div>
           
-          <div className="space-y-4">
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px'
+          }}>
             {recentNotifications.map((notification) => (
               <div
                 key={notification.id}
-                className={`flex items-start space-x-3 p-3 rounded-xl transition-colors ${
-                  !notification.read ? 'bg-blue-50 border border-blue-100' : 'hover:bg-gray-50'
-                }`}
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '12px',
+                  padding: '12px',
+                  borderRadius: '12px',
+                  transition: 'background-color 0.2s',
+                  backgroundColor: !notification.read ? '#eff6ff' : 'transparent',
+                  border: !notification.read ? '1px solid #dbeafe' : 'none'
+                }}
               >
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                  notification.type === 'meal' ? 'bg-green-100' :
-                  notification.type === 'achievement' ? 'bg-yellow-100' :
-                  notification.type === 'weight' ? 'bg-blue-100' :
-                  'bg-purple-100'
-                }`}>
-                  <i className={`${getNotificationIcon(notification.type)} ${
-                    notification.type === 'meal' ? 'text-green-600' :
-                    notification.type === 'achievement' ? 'text-yellow-600' :
-                    notification.type === 'weight' ? 'text-blue-600' :
-                    'text-purple-600'
-                  } text-lg`}></i>
+                <div style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: 
+                    notification.type === 'meal' ? '#dcfce7' :
+                    notification.type === 'achievement' ? '#fef3c7' :
+                    notification.type === 'weight' ? '#dbeafe' :
+                    '#e9d5ff'
+                }}>
+                  <i className={getNotificationIcon(notification.type)} style={{
+                    fontSize: '18px',
+                    color: 
+                      notification.type === 'meal' ? '#16a34a' :
+                      notification.type === 'achievement' ? '#f59e0b' :
+                      notification.type === 'weight' ? '#3b82f6' :
+                      '#8b5cf6'
+                  }}></i>
                 </div>
                 
-                <div className="flex-1">
-                  <div className="flex items-start justify-between">
+                <div style={{ flex: 1 }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    justifyContent: 'space-between'
+                  }}>
                     <div>
-                      <p className={`font-medium ${!notification.read ? 'text-blue-800' : 'text-gray-800'}`}>
+                      <p style={{
+                        fontWeight: '500',
+                        color: !notification.read ? '#1e40af' : '#1f2937',
+                        margin: '0 0 4px 0'
+                      }}>
                         {notification.title}
                       </p>
-                      <p className="text-sm text-gray-600 mt-1">{notification.message}</p>
-                      <p className="text-xs text-gray-400 mt-2">
+                      <p style={{
+                        fontSize: '14px',
+                        color: '#6b7280',
+                        margin: '0 0 8px 0'
+                      }}>{notification.message}</p>
+                      <p style={{
+                        fontSize: '12px',
+                        color: '#9ca3af',
+                        margin: 0
+                      }}>
                         {notification.date} • {notification.time}
                       </p>
                     </div>
                     {!notification.read && (
-                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      <div style={{
+                        width: '8px',
+                        height: '8px',
+                        backgroundColor: '#3b82f6',
+                        borderRadius: '50%'
+                      }}></div>
                     )}
                   </div>
                 </div>
@@ -370,26 +749,89 @@ export default function Notifications() {
 
       {/* Mark All as Read Modal */}
       {showMarkAllModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center">
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <i className="ri-notification-line text-blue-600 text-xl"></i>
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          zIndex: 50,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '16px'
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '16px',
+            padding: '24px',
+            width: '100%',
+            maxWidth: '400px',
+            textAlign: 'center'
+          }}>
+            <div style={{
+              width: '48px',
+              height: '48px',
+              backgroundColor: '#dbeafe',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 16px auto'
+            }}>
+              <i className="ri-notification-line" style={{ color: '#3b82f6', fontSize: '20px' }}></i>
             </div>
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">Marcar como Leídas</h3>
-            <p className="text-gray-600 mb-6">
+            <h3 style={{
+              fontSize: '18px',
+              fontWeight: '600',
+              color: '#1f2937',
+              marginBottom: '8px',
+              margin: '0 0 8px 0'
+            }}>Marcar como Leídas</h3>
+            <p style={{
+              color: '#6b7280',
+              marginBottom: '24px',
+              margin: '0 0 24px 0'
+            }}>
               ¿Quieres marcar todas las notificaciones como leídas? Esta acción no se puede deshacer.
             </p>
             
-            <div className="flex space-x-3">
+            <div style={{
+              display: 'flex',
+              gap: '12px'
+            }}>
               <button
                 onClick={() => setShowMarkAllModal(false)}
-                className="flex-1 py-3 px-4 border border-gray-300 rounded-xl text-gray-700 font-medium !rounded-button"
+                className="!rounded-button"
+                style={{
+                  flex: 1,
+                  padding: '12px 16px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '12px',
+                  color: '#374151',
+                  fontWeight: '500',
+                  backgroundColor: 'white',
+                  cursor: 'pointer',
+                  fontSize: '14px'
+                }}
               >
                 Cancelar
               </button>
               <button
                 onClick={handleMarkAllAsRead}
-                className="flex-1 py-3 px-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium rounded-xl !rounded-button"
+                className="!rounded-button"
+                style={{
+                  flex: 1,
+                  padding: '12px 16px',
+                  background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+                  color: 'white',
+                  fontWeight: '500',
+                  borderRadius: '12px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '14px'
+                }}
               >
                 Marcar Todas
               </button>
@@ -400,43 +842,132 @@ export default function Notifications() {
 
       {/* Time Selector Modal */}
       {showCustomTime && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-800">Seleccionar Hora</h3>
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          zIndex: 50,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '16px'
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '16px',
+            padding: '24px',
+            width: '100%',
+            maxWidth: '400px'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '16px'
+            }}>
+              <h3 style={{
+                fontSize: '18px',
+                fontWeight: '600',
+                color: '#1f2937',
+                margin: 0
+              }}>Seleccionar Hora</h3>
               <button 
                 onClick={() => setShowCustomTime(false)}
-                className="w-8 h-8 flex items-center justify-center"
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: 'none',
+                  backgroundColor: 'transparent',
+                  cursor: 'pointer'
+                }}
               >
-                <i className="ri-close-line text-gray-600 text-lg"></i>
+                <i className="ri-close-line" style={{ color: '#6b7280', fontSize: '18px' }}></i>
               </button>
             </div>
             
-            <div className="mb-6">
+            <div style={{ marginBottom: '24px' }}>
               <input
                 type="time"
                 value={reminderTimes[selectedReminder as keyof typeof reminderTimes]}
                 onChange={(e) => handleTimeChange(selectedReminder, e.target.value)}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center text-lg"
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '12px',
+                  outline: 'none',
+                  textAlign: 'center',
+                  fontSize: '18px',
+                  fontWeight: '500'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#3b82f6';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = '#e5e7eb';
+                  e.target.style.boxShadow = 'none';
+                }}
               />
             </div>
 
-            <div className="grid grid-cols-3 gap-2 mb-6">
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: '8px',
+              marginBottom: '24px'
+            }}>
               <button
                 onClick={() => handleTimeChange(selectedReminder, '07:00')}
-                className="py-2 px-3 bg-blue-50 text-blue-600 rounded-lg text-sm font-medium !rounded-button"
+                className="!rounded-button"
+                style={{
+                  padding: '8px 12px',
+                  backgroundColor: '#eff6ff',
+                  color: '#3b82f6',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  border: 'none',
+                  cursor: 'pointer'
+                }}
               >
                 07:00
               </button>
               <button
                 onClick={() => handleTimeChange(selectedReminder, '13:00')}
-                className="py-2 px-3 bg-blue-50 text-blue-600 rounded-lg text-sm font-medium !rounded-button"
+                className="!rounded-button"
+                style={{
+                  padding: '8px 12px',
+                  backgroundColor: '#eff6ff',
+                  color: '#3b82f6',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  border: 'none',
+                  cursor: 'pointer'
+                }}
               >
                 13:00
               </button>
               <button
                 onClick={() => handleTimeChange(selectedReminder, '19:00')}
-                className="py-2 px-3 bg-blue-50 text-blue-600 rounded-lg text-sm font-medium !rounded-button"
+                className="!rounded-button"
+                style={{
+                  padding: '8px 12px',
+                  backgroundColor: '#eff6ff',
+                  color: '#3b82f6',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  border: 'none',
+                  cursor: 'pointer'
+                }}
               >
                 19:00
               </button>
@@ -444,7 +975,18 @@ export default function Notifications() {
 
             <button
               onClick={() => setShowCustomTime(false)}
-              className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 rounded-xl font-medium !rounded-button"
+              className="!rounded-button"
+              style={{
+                width: '100%',
+                background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+                color: 'white',
+                padding: '12px',
+                borderRadius: '12px',
+                fontWeight: '500',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '14px'
+              }}
             >
               Confirmar
             </button>
@@ -453,37 +995,119 @@ export default function Notifications() {
       )}
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 w-full bg-white border-t border-gray-200">
-        <div className="grid grid-cols-5 py-2">
-          <Link href="/" className="flex flex-col items-center justify-center py-2 px-1">
-            <div className="w-6 h-6 flex items-center justify-center mb-1">
-              <i className="ri-home-line text-gray-400 text-lg"></i>
+      <nav style={{
+        position: 'fixed',
+        bottom: 0,
+        width: '100%',
+        backgroundColor: 'white',
+        borderTop: '1px solid #e5e7eb'
+      }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(5, 1fr)',
+          padding: '8px 0'
+        }}>
+          <Link href="/" style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '8px 4px',
+            textDecoration: 'none'
+          }}>
+            <div style={{
+              width: '24px',
+              height: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '4px'
+            }}>
+              <i className="ri-home-line" style={{ color: '#9ca3af', fontSize: '18px' }}></i>
             </div>
-            <span className="text-xs text-gray-400">Inicio</span>
+            <span style={{ fontSize: '12px', color: '#9ca3af' }}>Inicio</span>
           </Link>
-          <Link href="/nutrition" className="flex flex-col items-center justify-center py-2 px-1">
-            <div className="w-6 h-6 flex items-center justify-center mb-1">
-              <i className="ri-pie-chart-line text-gray-400 text-lg"></i>
+          <Link href="/nutrition" style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '8px 4px',
+            textDecoration: 'none'
+          }}>
+            <div style={{
+              width: '24px',
+              height: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '4px'
+            }}>
+              <i className="ri-pie-chart-line" style={{ color: '#9ca3af', fontSize: '18px' }}></i>
             </div>
-            <span className="text-xs text-gray-400">Nutrición</span>
+            <span style={{ fontSize: '12px', color: '#9ca3af' }}>Nutrición</span>
           </Link>
-          <Link href="/add-food" className="flex flex-col items-center justify-center py-2 px-1">
-            <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mb-1">
-              <i className="ri-add-line text-white text-lg"></i>
+          <Link href="/add-food" style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '8px 4px',
+            textDecoration: 'none'
+          }}>
+            <div style={{
+              width: '32px',
+              height: '32px',
+              background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '4px'
+            }}>
+              <i className="ri-add-line" style={{ color: 'white', fontSize: '18px' }}></i>
             </div>
-            <span className="text-xs text-gray-400">Agregar</span>
+            <span style={{ fontSize: '12px', color: '#9ca3af' }}>Agregar</span>
           </Link>
-          <Link href="/progress" className="flex flex-col items-center justify-center py-2 px-1">
-            <div className="w-6 h-6 flex items-center justify-center mb-1">
-              <i className="ri-line-chart-line text-gray-400 text-lg"></i>
+          <Link href="/progress" style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '8px 4px',
+            textDecoration: 'none'
+          }}>
+            <div style={{
+              width: '24px',
+              height: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '4px'
+            }}>
+              <i className="ri-line-chart-line" style={{ color: '#9ca3af', fontSize: '18px' }}></i>
             </div>
-            <span className="text-xs text-gray-400">Progreso</span>
+            <span style={{ fontSize: '12px', color: '#9ca3af' }}>Progreso</span>
           </Link>
-          <Link href="/profile" className="flex flex-col items-center justify-center py-2 px-1">
-            <div className="w-6 h-6 flex items-center justify-center mb-1">
-              <i className="ri-user-line text-blue-600 text-lg"></i>
+          <Link href="/profile" style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '8px 4px',
+            textDecoration: 'none'
+          }}>
+            <div style={{
+              width: '24px',
+              height: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '4px'
+            }}>
+              <i className="ri-user-line" style={{ color: '#3b82f6', fontSize: '18px' }}></i>
             </div>
-            <span className="text-xs text-blue-600 font-medium">Perfil</span>
+            <span style={{ fontSize: '12px', color: '#3b82f6', fontWeight: '500' }}>Perfil</span>
           </Link>
         </div>
       </nav>

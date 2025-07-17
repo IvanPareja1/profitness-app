@@ -4,12 +4,23 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useUserProfile } from '../../hooks/useUserProfile';
+import { useAuth } from '../../hooks/useAuth';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import BottomNavigation from '../../components/ui/BottomNavigation';
 import Modal from '../../components/ui/Modal';
+import AuthGuard from '../../components/ui/AuthGuard';
 
 export default function Profile() {
+  return (
+    <AuthGuard>
+      <ProfilePage />
+    </AuthGuard>
+  );
+}
+
+function ProfilePage() {
   const { userProfile, profilePhoto, mounted } = useUserProfile();
+  const { signOut } = useAuth();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showCopySuccess, setShowCopySuccess] = useState(false);
@@ -45,18 +56,6 @@ export default function Profile() {
       case 'whatsapp':
         window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
         break;
-      case 'facebook':
-        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(downloadLink)}`, '_blank');
-        break;
-      case 'twitter':
-        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(message)}`, '_blank');
-        break;
-      case 'email':
-        window.open(`mailto:?subject=${encodeURIComponent(`Te recomiendo ${appName}`)}&body=${encodeURIComponent(message)}`, '_blank');
-        break;
-      case 'sms':
-        window.open(`sms:?body=${encodeURIComponent(message)}`, '_blank');
-        break;
       case 'copy':
         navigator.clipboard.writeText(downloadLink).then(() => {
           setShowCopySuccess(true);
@@ -67,40 +66,127 @@ export default function Profile() {
     setShowShareModal(false);
   };
 
+  const handleLogout = () => {
+    signOut();
+    setShowLogoutModal(false);
+  };
+
   if (!mounted) {
     return <LoadingSpinner />;
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <header className="fixed top-0 w-full bg-white/90 backdrop-blur-sm border-b border-gray-200 z-50">
-        <div className="flex items-center justify-between px-4 py-3">
-          <h1 className="text-lg font-semibold">Perfil</h1>
-          <Link href="/settings" className="w-8 h-8 flex items-center justify-center">
-            <i className="ri-settings-line text-gray-600 text-lg"></i>
+    <div style={{ minHeight: '100vh', backgroundColor: 'white' }}>
+      {/* Header */}
+      <header style={{
+        position: 'fixed',
+        top: 0,
+        width: '100%',
+        backgroundColor: 'white',
+        borderBottom: '1px solid #f3f4f6',
+        zIndex: 50
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '16px'
+        }}>
+          <h1 style={{
+            fontSize: '20px',
+            fontWeight: 'bold',
+            color: '#1f2937',
+            margin: 0
+          }}>Perfil</h1>
+          <Link href="/settings" style={{
+            width: '40px',
+            height: '40px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: '#f9fafb',
+            borderRadius: '50%',
+            textDecoration: 'none',
+            transition: 'background-color 0.2s'
+          }}>
+            <i className="ri-settings-line" style={{ color: '#6b7280', fontSize: '18px' }}></i>
           </Link>
         </div>
       </header>
 
-      <main className="pt-16 pb-20 px-4">
-        <div className="bg-white rounded-2xl p-6 shadow-lg mb-6 mt-6">
-          <div className="flex items-center space-x-4 mb-4">
-            <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center overflow-hidden">
+      <main style={{
+        paddingTop: '80px',
+        paddingBottom: '96px',
+        padding: '80px 16px 96px 16px'
+      }}>
+        {/* Profile Card */}
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '24px',
+          padding: '24px',
+          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)',
+          border: '1px solid #f3f4f6',
+          marginBottom: '24px'
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '16px',
+            marginBottom: '24px'
+          }}>
+            <div style={{
+              width: '80px',
+              height: '80px',
+              background: profilePhoto ? 'none' : 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+              borderRadius: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              overflow: 'hidden'
+            }}>
               {profilePhoto ? (
                 <img
                   src={profilePhoto}
                   alt="Foto de perfil"
-                  className="w-full h-full object-cover"
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover'
+                  }}
                 />
               ) : (
-                <span className="text-2xl font-bold text-white">MG</span>
+                <span style={{
+                  fontSize: '24px',
+                  fontWeight: 'bold',
+                  color: 'white'
+                }}>MG</span>
               )}
             </div>
-            <div className="flex-1">
-              <h2 className="text-xl font-bold text-gray-800">{userProfile.name}</h2>
-              <p className="text-gray-600">{userProfile.email}</p>
-              <div className="flex items-center space-x-2 mt-1">
-                <span className="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+            <div style={{ flex: 1 }}>
+              <h2 style={{
+                fontSize: '20px',
+                fontWeight: 'bold',
+                color: '#1f2937',
+                margin: '0 0 4px 0'
+              }}>{userProfile.name}</h2>
+              <p style={{
+                color: '#6b7280',
+                margin: '0 0 8px 0',
+                fontSize: '14px'
+              }}>{userProfile.email}</p>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <span style={{
+                  fontSize: '12px',
+                  backgroundColor: '#eff6ff',
+                  color: '#2563eb',
+                  padding: '4px 12px',
+                  borderRadius: '20px',
+                  fontWeight: '600'
+                }}>
                   {getGoalText(userProfile.goal)}
                 </span>
               </div>
@@ -108,144 +194,422 @@ export default function Profile() {
           </div>
 
           <Link href="/edit-profile">
-            <button className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 rounded-xl font-semibold !rounded-button">
+            <button className="!rounded-button" style={{
+              width: '100%',
+              background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+              color: 'white',
+              padding: '16px',
+              borderRadius: '16px',
+              fontWeight: 'bold',
+              fontSize: '16px',
+              border: 'none',
+              cursor: 'pointer'
+            }}>
               Editar Perfil
             </button>
           </Link>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div className="bg-white rounded-xl p-4 shadow-md text-center">
-            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
-              <i className="ri-calendar-check-line text-blue-600 text-lg"></i>
+        {/* Stats Grid */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '12px',
+          marginBottom: '24px'
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '16px',
+            padding: '20px',
+            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)',
+            border: '1px solid #f3f4f6',
+            textAlign: 'center'
+          }}>
+            <div style={{
+              width: '48px',
+              height: '48px',
+              backgroundColor: '#eff6ff',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 12px auto'
+            }}>
+              <i className="ri-calendar-check-line" style={{ color: '#2563eb', fontSize: '20px' }}></i>
             </div>
-            <p className="text-xl font-bold text-gray-800">52</p>
-            <p className="text-sm text-gray-500">Días activos</p>
+            <p style={{
+              fontSize: '24px',
+              fontWeight: 'bold',
+              color: '#1f2937',
+              margin: '0 0 4px 0'
+            }}>52</p>
+            <p style={{
+              fontSize: '13px',
+              color: '#6b7280',
+              fontWeight: '500',
+              margin: 0
+            }}>Días activos</p>
           </div>
 
-          <div className="bg-white rounded-xl p-4 shadow-md text-center">
-            <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
-              <i className="ri-scales-3-line text-green-600 text-lg"></i>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '16px',
+            padding: '20px',
+            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)',
+            border: '1px solid #f3f4f6',
+            textAlign: 'center'
+          }}>
+            <div style={{
+              width: '48px',
+              height: '48px',
+              backgroundColor: '#f0fdf4',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 12px auto'
+            }}>
+              <i className="ri-scales-3-line" style={{ color: '#16a34a', fontSize: '20px' }}></i>
             </div>
-            <p className="text-xl font-bold text-gray-800">-3.3 kg</p>
-            <p className="text-sm text-gray-500">Peso perdido</p>
+            <p style={{
+              fontSize: '24px',
+              fontWeight: 'bold',
+              color: '#1f2937',
+              margin: '0 0 4px 0'
+            }}>-3.3 kg</p>
+            <p style={{
+              fontSize: '13px',
+              color: '#6b7280',
+              fontWeight: '500',
+              margin: 0
+            }}>Peso perdido</p>
           </div>
 
-          <div className="bg-white rounded-xl p-4 shadow-md text-center">
-            <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-2">
-              <i className="ri-fire-line text-orange-600 text-lg"></i>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '16px',
+            padding: '20px',
+            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)',
+            border: '1px solid #f3f4f6',
+            textAlign: 'center'
+          }}>
+            <div style={{
+              width: '48px',
+              height: '48px',
+              backgroundColor: '#fff7ed',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 12px auto'
+            }}>
+              <i className="ri-fire-line" style={{ color: '#ea580c', fontSize: '20px' }}></i>
             </div>
-            <p className="text-xl font-bold text-gray-800">12</p>
-            <p className="text-sm text-gray-500">Días seguidos</p>
+            <p style={{
+              fontSize: '24px',
+              fontWeight: 'bold',
+              color: '#1f2937',
+              margin: '0 0 4px 0'
+            }}>12</p>
+            <p style={{
+              fontSize: '13px',
+              color: '#6b7280',
+              fontWeight: '500',
+              margin: 0
+            }}>Días seguidos</p>
           </div>
 
-          <div className="bg-white rounded-xl p-4 shadow-md text-center">
-            <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-2">
-              <i className="ri-restaurant-line text-purple-600 text-lg"></i>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '16px',
+            padding: '20px',
+            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)',
+            border: '1px solid #f3f4f6',
+            textAlign: 'center'
+          }}>
+            <div style={{
+              width: '48px',
+              height: '48px',
+              backgroundColor: '#faf5ff',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 12px auto'
+            }}>
+              <i className="ri-restaurant-line" style={{ color: '#7c3aed', fontSize: '20px' }}></i>
             </div>
-            <p className="text-xl font-bold text-gray-800">234</p>
-            <p className="text-sm text-gray-500">Comidas registradas</p>
+            <p style={{
+              fontSize: '24px',
+              fontWeight: 'bold',
+              color: '#1f2937',
+              margin: '0 0 4px 0'
+            }}>234</p>
+            <p style={{
+              fontSize: '13px',
+              color: '#6b7280',
+              fontWeight: '500',
+              margin: 0
+            }}>Comidas registradas</p>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-6 shadow-lg mb-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Información Personal</h3>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-                  <i className="ri-cake-line text-gray-600 text-sm"></i>
+        {/* Personal Information */}
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '24px',
+          padding: '24px',
+          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)',
+          border: '1px solid #f3f4f6',
+          marginBottom: '24px'
+        }}>
+          <h3 style={{
+            fontSize: '18px',
+            fontWeight: 'bold',
+            color: '#1f2937',
+            marginBottom: '20px',
+            margin: '0 0 20px 0'
+          }}>Información Personal</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '8px 0'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div style={{
+                  width: '40px',
+                  height: '40px',
+                  backgroundColor: '#f9fafb',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <i className="ri-cake-line" style={{ color: '#6b7280', fontSize: '16px' }}></i>
                 </div>
-                <span className="text-gray-700">Edad</span>
+                <span style={{ color: '#374151', fontWeight: '500' }}>Edad</span>
               </div>
-              <span className="font-medium text-gray-800">{userProfile.age} años</span>
+              <span style={{ fontWeight: 'bold', color: '#1f2937' }}>{userProfile.age} años</span>
             </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-                  <i className="ri-ruler-line text-gray-600 text-sm"></i>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '8px 0'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div style={{
+                  width: '40px',
+                  height: '40px',
+                  backgroundColor: '#f9fafb',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <i className="ri-ruler-line" style={{ color: '#6b7280', fontSize: '16px' }}></i>
                 </div>
-                <span className="text-gray-700">Altura</span>
+                <span style={{ color: '#374151', fontWeight: '500' }}>Altura</span>
               </div>
-              <span className="font-medium text-gray-800">{userProfile.height} cm</span>
+              <span style={{ fontWeight: 'bold', color: '#1f2937' }}>{userProfile.height} cm</span>
             </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-                  <i className="ri-scales-3-line text-gray-600 text-sm"></i>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '8px 0'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div style={{
+                  width: '40px',
+                  height: '40px',
+                  backgroundColor: '#f9fafb',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <i className="ri-scales-3-line" style={{ color: '#6b7280', fontSize: '16px' }}></i>
                 </div>
-                <span className="text-gray-700">Peso actual</span>
+                <span style={{ color: '#374151', fontWeight: '500' }}>Peso actual</span>
               </div>
-              <span className="font-medium text-gray-800">{userProfile.currentWeight} kg</span>
+              <span style={{ fontWeight: 'bold', color: '#1f2937' }}>{userProfile.currentWeight} kg</span>
             </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-                  <i className="ri-flag-line text-gray-600 text-sm"></i>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '8px 0'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div style={{
+                  width: '40px',
+                  height: '40px',
+                  backgroundColor: '#f9fafb',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <i className="ri-flag-line" style={{ color: '#6b7280', fontSize: '16px' }}></i>
                 </div>
-                <span className="text-gray-700">Peso objetivo</span>
+                <span style={{ color: '#374151', fontWeight: '500' }}>Peso objetivo</span>
               </div>
-              <span className="font-medium text-gray-800">{userProfile.goalWeight} kg</span>
+              <span style={{ fontWeight: 'bold', color: '#1f2937' }}>{userProfile.goalWeight} kg</span>
             </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-                  <i className="ri-run-line text-gray-600 text-sm"></i>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '8px 0'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div style={{
+                  width: '40px',
+                  height: '40px',
+                  backgroundColor: '#f9fafb',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <i className="ri-run-line" style={{ color: '#6b7280', fontSize: '16px' }}></i>
                 </div>
-                <span className="text-gray-700">Nivel de actividad</span>
+                <span style={{ color: '#374151', fontWeight: '500' }}>Nivel de actividad</span>
               </div>
-              <span className="font-medium text-gray-800">{getActivityLevelText(userProfile.activityLevel)}</span>
+              <span style={{
+                fontWeight: 'bold',
+                color: '#1f2937',
+                fontSize: '13px'
+              }}>{getActivityLevelText(userProfile.activityLevel)}</span>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-lg mb-6 overflow-hidden">
+        {/* Menu Options */}
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '24px',
+          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)',
+          border: '1px solid #f3f4f6',
+          marginBottom: '24px',
+          overflow: 'hidden'
+        }}>
           <Link href="/notifications">
-            <button className="w-full flex items-center justify-between p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                  <i className="ri-notification-line text-blue-600 text-sm"></i>
+            <button style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '20px',
+              borderBottom: '1px solid #f9fafb',
+              backgroundColor: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              transition: 'background-color 0.2s',
+              textDecoration: 'none'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div style={{
+                  width: '40px',
+                  height: '40px',
+                  backgroundColor: '#eff6ff',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <i className="ri-notification-line" style={{ color: '#2563eb', fontSize: '16px' }}></i>
                 </div>
-                <span className="text-gray-700">Notificaciones</span>
+                <span style={{ color: '#1f2937', fontWeight: '500' }}>Notificaciones</span>
               </div>
-              <i className="ri-arrow-right-s-line text-gray-400 text-lg"></i>
+              <i className="ri-arrow-right-s-line" style={{ color: '#9ca3af', fontSize: '20px' }}></i>
             </button>
           </Link>
 
           <button
             onClick={() => setShowShareModal(true)}
-            className="w-full flex items-center justify-between p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors"
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '20px',
+              borderBottom: '1px solid #f9fafb',
+              backgroundColor: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              transition: 'background-color 0.2s'
+            }}
           >
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                <i className="ri-share-line text-green-600 text-sm"></i>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                backgroundColor: '#f0fdf4',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <i className="ri-share-line" style={{ color: '#16a34a', fontSize: '16px' }}></i>
               </div>
-              <span className="text-gray-700">Compartir app</span>
+              <span style={{ color: '#1f2937', fontWeight: '500' }}>Compartir app</span>
             </div>
-            <i className="ri-arrow-right-s-line text-gray-400 text-lg"></i>
+            <i className="ri-arrow-right-s-line" style={{ color: '#9ca3af', fontSize: '20px' }}></i>
           </button>
 
           <button
             onClick={() => setShowLogoutModal(true)}
-            className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '20px',
+              backgroundColor: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              transition: 'background-color 0.2s'
+            }}
           >
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
-                <i className="ri-logout-box-line text-red-600 text-sm"></i>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                backgroundColor: '#fef2f2',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <i className="ri-logout-box-line" style={{ color: '#dc2626', fontSize: '16px' }}></i>
               </div>
-              <span className="text-red-600">Cerrar sesión</span>
+              <span style={{ color: '#dc2626', fontWeight: '500' }}>Cerrar sesión</span>
             </div>
-            <i className="ri-arrow-right-s-line text-gray-400 text-lg"></i>
+            <i className="ri-arrow-right-s-line" style={{ color: '#9ca3af', fontSize: '20px' }}></i>
           </button>
         </div>
 
-        <div className="text-center">
-          <p className="text-sm text-gray-500">Profitness v1.0.0</p>
-          <p className="text-xs text-gray-400 mt-1">Nutre tu progreso, domina tus resultados</p>
+        {/* App Info */}
+        <div style={{ textAlign: 'center', padding: '24px 0' }}>
+          <p style={{
+            fontSize: '14px',
+            color: '#6b7280',
+            fontWeight: '500',
+            margin: '0 0 4px 0'
+          }}>Profitness v1.0.0</p>
+          <p style={{
+            fontSize: '12px',
+            color: '#9ca3af',
+            margin: 0
+          }}>Nutre tu progreso, domina tus resultados</p>
         </div>
       </main>
 
@@ -256,39 +620,104 @@ export default function Profile() {
         title="Compartir Profitness"
         size="sm"
       >
-        <div className="text-center mb-6">
-          <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-3">
-            <i className="ri-share-line text-white text-2xl"></i>
+        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+          <div style={{
+            width: '64px',
+            height: '64px',
+            background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+            borderRadius: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 16px auto'
+          }}>
+            <i className="ri-share-line" style={{ color: 'white', fontSize: '24px' }}></i>
           </div>
-          <p className="text-gray-600 text-sm">
+          <p style={{ color: '#6b7280' }}>
             Comparte Profitness con tus amigos y familiares para que también puedan llevar un estilo de vida saludable
           </p>
         </div>
 
-        <div className="space-y-3 mb-6">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
           <button
             onClick={() => handleShareApp('whatsapp')}
-            className="w-full flex items-center p-4 bg-green-50 rounded-xl hover:bg-green-100 transition-colors !rounded-button"
+            className="!rounded-button"
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              padding: '16px',
+              backgroundColor: '#f0fdf4',
+              borderRadius: '16px',
+              border: 'none',
+              cursor: 'pointer',
+              transition: 'background-color 0.2s'
+            }}
           >
-            <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center mr-4">
-              <i className="ri-whatsapp-line text-white text-lg"></i>
+            <div style={{
+              width: '48px',
+              height: '48px',
+              backgroundColor: '#16a34a',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginRight: '16px'
+            }}>
+              <i className="ri-whatsapp-line" style={{ color: 'white', fontSize: '20px' }}></i>
             </div>
-            <div className="text-left">
-              <p className="font-medium text-gray-800">WhatsApp</p>
-              <p className="text-sm text-gray-500">Compartir por mensaje</p>
+            <div style={{ textAlign: 'left' }}>
+              <p style={{
+                fontWeight: '600',
+                color: '#1f2937',
+                margin: '0 0 4px 0'
+              }}>WhatsApp</p>
+              <p style={{
+                fontSize: '14px',
+                color: '#6b7280',
+                margin: 0
+              }}>Compartir por mensaje</p>
             </div>
           </button>
 
           <button
             onClick={() => handleShareApp('copy')}
-            className="w-full flex items-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors !rounded-button"
+            className="!rounded-button"
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              padding: '16px',
+              backgroundColor: '#f9fafb',
+              borderRadius: '16px',
+              border: 'none',
+              cursor: 'pointer',
+              transition: 'background-color 0.2s'
+            }}
           >
-            <div className="w-10 h-10 bg-gray-600 rounded-full flex items-center justify-center mr-4">
-              <i className="ri-file-copy-line text-white text-lg"></i>
+            <div style={{
+              width: '48px',
+              height: '48px',
+              backgroundColor: '#4b5563',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginRight: '16px'
+            }}>
+              <i className="ri-file-copy-line" style={{ color: 'white', fontSize: '20px' }}></i>
             </div>
-            <div className="text-left">
-              <p className="font-medium text-gray-800">Copiar enlace</p>
-              <p className="text-sm text-gray-500">Copiar al portapapeles</p>
+            <div style={{ textAlign: 'left' }}>
+              <p style={{
+                fontWeight: '600',
+                color: '#1f2937',
+                margin: '0 0 4px 0'
+              }}>Copiar enlace</p>
+              <p style={{
+                fontSize: '14px',
+                color: '#6b7280',
+                margin: 0
+              }}>Copiar al portapapeles</p>
             </div>
           </button>
         </div>
@@ -302,21 +731,55 @@ export default function Profile() {
         size="sm"
         showCloseButton={false}
       >
-        <div className="text-center mb-6">
-          <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
-            <i className="ri-logout-box-line text-red-600 text-xl"></i>
+        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+          <div style={{
+            width: '64px',
+            height: '64px',
+            backgroundColor: '#fef2f2',
+            borderRadius: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 16px auto'
+          }}>
+            <i className="ri-logout-box-line" style={{ color: '#dc2626', fontSize: '24px' }}></i>
           </div>
-          <p className="text-gray-600">¿Estás seguro que quieres cerrar sesión?</p>
+          <p style={{ color: '#6b7280' }}>¿Estás seguro que quieres cerrar sesión?</p>
         </div>
 
-        <div className="flex space-x-3">
+        <div style={{ display: 'flex', gap: '12px' }}>
           <button
             onClick={() => setShowLogoutModal(false)}
-            className="flex-1 py-3 px-4 border border-gray-300 rounded-xl text-gray-700 font-medium hover:bg-gray-50 transition-colors !rounded-button"
+            className="!rounded-button"
+            style={{
+              flex: 1,
+              padding: '16px',
+              border: '1px solid #d1d5db',
+              borderRadius: '16px',
+              color: '#374151',
+              fontWeight: '600',
+              backgroundColor: 'white',
+              cursor: 'pointer',
+              transition: 'background-color 0.2s'
+            }}
           >
             Cancelar
           </button>
-          <button className="flex-1 py-3 px-4 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-colors !rounded-button">
+          <button
+            onClick={handleLogout}
+            className="!rounded-button"
+            style={{
+              flex: 1,
+              padding: '16px',
+              backgroundColor: '#dc2626',
+              color: 'white',
+              borderRadius: '16px',
+              fontWeight: '600',
+              border: 'none',
+              cursor: 'pointer',
+              transition: 'background-color 0.2s'
+            }}
+          >
             Cerrar Sesión
           </button>
         </div>
@@ -324,12 +787,37 @@ export default function Profile() {
 
       {/* Success Message */}
       {showCopySuccess && (
-        <div className="fixed top-20 left-4 right-4 z-50">
-          <div className="bg-green-500 text-white px-4 py-3 rounded-xl shadow-lg flex items-center space-x-3 max-w-sm mx-auto">
-            <div className="w-6 h-6 bg-green-600 rounded-full flex items-center justify-center">
-              <i className="ri-check-line text-white text-sm"></i>
+        <div style={{
+          position: 'fixed',
+          top: '80px',
+          left: '16px',
+          right: '16px',
+          zIndex: 60
+        }}>
+          <div style={{
+            backgroundColor: '#16a34a',
+            color: 'white',
+            padding: '12px 16px',
+            borderRadius: '16px',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            maxWidth: '320px',
+            margin: '0 auto'
+          }}>
+            <div style={{
+              width: '24px',
+              height: '24px',
+              backgroundColor: '#15803d',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <i className="ri-check-line" style={{ color: 'white', fontSize: '14px' }}></i>
             </div>
-            <span className="text-sm font-medium">Enlace copiado al portapapeles</span>
+            <span style={{ fontSize: '14px', fontWeight: '600' }}>Enlace copiado al portapapeles</span>
           </div>
         </div>
       )}

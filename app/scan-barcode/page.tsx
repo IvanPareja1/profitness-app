@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -24,32 +25,103 @@ export default function ScanBarcode() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #f0f9ff 0%, #e0e7ff 100%)'
+    }}>
       {/* Header */}
-      <header className="fixed top-0 w-full bg-white/90 backdrop-blur-sm border-b border-gray-200 z-50">
-        <div className="flex items-center justify-between px-4 py-3">
-          <Link href="/add-food" className="w-8 h-8 flex items-center justify-center">
-            <i className="ri-arrow-left-line text-gray-600 text-xl"></i>
+      <header style={{
+        position: 'fixed',
+        top: 0,
+        width: '100%',
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        backdropFilter: 'blur(8px)',
+        borderBottom: '1px solid #e5e7eb',
+        zIndex: 50
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '12px 16px'
+        }}>
+          <Link href="/add-food" style={{
+            width: '32px',
+            height: '32px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            textDecoration: 'none'
+          }}>
+            <i className="ri-arrow-left-line" style={{ color: '#6b7280', fontSize: '20px' }}></i>
           </Link>
-          <h1 className="text-lg font-semibold">Escanear Código</h1>
-          <div className="w-8 h-8"></div>
+          <h1 style={{
+            fontSize: '18px',
+            fontWeight: '600',
+            color: '#1f2937',
+            margin: 0
+          }}>Escanear Código</h1>
+          <div style={{ width: '32px', height: '32px' }}></div>
         </div>
       </header>
 
-      <main className="pt-16 pb-20 px-4">
+      <main style={{
+        paddingTop: '64px',
+        paddingBottom: '80px',
+        padding: '64px 16px 80px 16px'
+      }}>
         {/* Scanner Area */}
-        <div className="mt-6 mb-6">
-          <div className="bg-white rounded-xl shadow-md p-6 text-center">
+        <div style={{
+          marginTop: '24px',
+          marginBottom: '24px'
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+            padding: '24px',
+            textAlign: 'center'
+          }}>
             {!isScanning && !scannedCode && (
               <>
-                <div className="w-24 h-24 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <i className="ri-qr-scan-2-line text-white text-4xl"></i>
+                <div style={{
+                  width: '96px',
+                  height: '96px',
+                  background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 16px auto'
+                }}>
+                  <i className="ri-qr-scan-2-line" style={{ color: 'white', fontSize: '32px' }}></i>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-800 mb-2">Escanear Código de Barras</h3>
-                <p className="text-gray-500 mb-6">Apunta la cámara hacia el código de barras del producto</p>
+                <h3 style={{
+                  fontSize: '18px',
+                  fontWeight: '600',
+                  color: '#1f2937',
+                  marginBottom: '8px',
+                  margin: '0 0 8px 0'
+                }}>Escanear Código de Barras</h3>
+                <p style={{
+                  color: '#6b7280',
+                  marginBottom: '24px',
+                  margin: '0 0 24px 0'
+                }}>Apunta la cámara hacia el código de barras del producto</p>
                 <button
                   onClick={handleStartScan}
-                  className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-8 py-3 rounded-xl font-medium shadow-lg !rounded-button"
+                  className="!rounded-button"
+                  style={{
+                    background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+                    color: 'white',
+                    padding: '12px 32px',
+                    borderRadius: '12px',
+                    fontWeight: '500',
+                    boxShadow: '0 10px 25px rgba(59, 130, 246, 0.3)',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '14px'
+                  }}
                 >
                   Iniciar Escaneo
                 </button>
@@ -58,37 +130,122 @@ export default function ScanBarcode() {
 
             {isScanning && (
               <>
-                <div className="w-24 h-24 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
-                  <i className="ri-qr-scan-2-line text-white text-4xl"></i>
+                <div style={{
+                  width: '96px',
+                  height: '96px',
+                  background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 16px auto',
+                  animation: 'pulse 2s infinite'
+                }}>
+                  <i className="ri-qr-scan-2-line" style={{ color: 'white', fontSize: '32px' }}></i>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-800 mb-2">Escaneando...</h3>
-                <p className="text-gray-500 mb-6">Mantén el código centrado en la pantalla</p>
-                <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-blue-500 to-purple-600 rounded-full animate-pulse"></div>
+                <h3 style={{
+                  fontSize: '18px',
+                  fontWeight: '600',
+                  color: '#1f2937',
+                  marginBottom: '8px',
+                  margin: '0 0 8px 0'
+                }}>Escaneando...</h3>
+                <p style={{
+                  color: '#6b7280',
+                  marginBottom: '24px',
+                  margin: '0 0 24px 0'
+                }}>Mantén el código centrado en la pantalla</p>
+                <div style={{
+                  width: '100%',
+                  height: '8px',
+                  backgroundColor: '#e5e7eb',
+                  borderRadius: '12px',
+                  overflow: 'hidden'
+                }}>
+                  <div style={{
+                    height: '8px',
+                    background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+                    borderRadius: '12px',
+                    animation: 'pulse 2s infinite'
+                  }}></div>
                 </div>
               </>
             )}
 
             {scannedCode && (
               <>
-                <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <i className="ri-check-line text-green-600 text-4xl"></i>
+                <div style={{
+                  width: '96px',
+                  height: '96px',
+                  backgroundColor: '#dcfce7',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 16px auto'
+                }}>
+                  <i className="ri-check-line" style={{ color: '#16a34a', fontSize: '32px' }}></i>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-800 mb-2">¡Código Escaneado!</h3>
-                <p className="text-gray-500 mb-2">Código: {scannedCode}</p>
-                <p className="text-sm text-gray-400 mb-6">Cereal Fitness Original - Nestlé</p>
-                <div className="flex gap-3">
+                <h3 style={{
+                  fontSize: '18px',
+                  fontWeight: '600',
+                  color: '#1f2937',
+                  marginBottom: '8px',
+                  margin: '0 0 8px 0'
+                }}>¡Código Escaneado!</h3>
+                <p style={{
+                  color: '#6b7280',
+                  marginBottom: '8px',
+                  margin: '0 0 8px 0'
+                }}>Código: {scannedCode}</p>
+                <p style={{
+                  fontSize: '14px',
+                  color: '#9ca3af',
+                  marginBottom: '24px',
+                  margin: '0 0 24px 0'
+                }}>Cereal Fitness Original - Nestlé</p>
+                <div style={{
+                  display: 'flex',
+                  gap: '12px'
+                }}>
                   <button
                     onClick={() => {
                       setScannedCode('');
                       setIsScanning(false);
                     }}
-                    className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-xl font-medium !rounded-button"
+                    className="!rounded-button"
+                    style={{
+                      flex: 1,
+                      backgroundColor: '#f3f4f6',
+                      color: '#374151',
+                      padding: '12px',
+                      borderRadius: '12px',
+                      fontWeight: '500',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '14px'
+                    }}
                   >
                     Escanear Otro
                   </button>
-                  <Link href="/add-food" className="flex-1">
-                    <button className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 rounded-xl font-medium !rounded-button">
+                  <Link href="/add-food" style={{
+                    flex: 1,
+                    textDecoration: 'none'
+                  }}>
+                    <button
+                      className="!rounded-button"
+                      style={{
+                        width: '100%',
+                        background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+                        color: 'white',
+                        padding: '12px',
+                        borderRadius: '12px',
+                        fontWeight: '500',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: '14px'
+                      }}
+                    >
                       Agregar
                     </button>
                   </Link>
@@ -99,16 +256,57 @@ export default function ScanBarcode() {
         </div>
 
         {/* Manual Input */}
-        <div className="mb-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-3">Ingreso Manual</h3>
-          <div className="bg-white rounded-xl shadow-md p-4">
-            <div className="flex gap-3">
+        <div style={{ marginBottom: '24px' }}>
+          <h3 style={{
+            fontSize: '18px',
+            fontWeight: '600',
+            color: '#1f2937',
+            marginBottom: '12px',
+            margin: '0 0 12px 0'
+          }}>Ingreso Manual</h3>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+            padding: '16px'
+          }}>
+            <div style={{
+              display: 'flex',
+              gap: '12px'
+            }}>
               <input
                 type="text"
                 placeholder="Ingresa el código manualmente"
-                className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                style={{
+                  flex: 1,
+                  padding: '12px 16px',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '12px',
+                  outline: 'none',
+                  fontSize: '14px'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#3b82f6';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = '#e5e7eb';
+                  e.target.style.boxShadow = 'none';
+                }}
               />
-              <button className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-xl font-medium !rounded-button">
+              <button
+                className="!rounded-button"
+                style={{
+                  background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+                  color: 'white',
+                  padding: '12px 24px',
+                  borderRadius: '12px',
+                  fontWeight: '500',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '14px'
+                }}
+              >
                 Buscar
               </button>
             </div>
@@ -116,26 +314,80 @@ export default function ScanBarcode() {
         </div>
 
         {/* Recent Scans */}
-        <div className="mb-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-3">Escaneos Recientes</h3>
-          <div className="bg-white rounded-xl shadow-md overflow-hidden">
+        <div style={{ marginBottom: '24px' }}>
+          <h3 style={{
+            fontSize: '18px',
+            fontWeight: '600',
+            color: '#1f2937',
+            marginBottom: '12px',
+            margin: '0 0 12px 0'
+          }}>Escaneos Recientes</h3>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+            overflow: 'hidden'
+          }}>
             {recentScans.map((item, index) => (
               <button
                 key={index}
-                className="w-full flex items-center justify-between p-4 border-b border-gray-100 last:border-b-0 hover:bg-gray-50 transition-colors"
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '16px',
+                  borderBottom: index < recentScans.length - 1 ? '1px solid #f3f4f6' : 'none',
+                  border: 'none',
+                  backgroundColor: 'transparent',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s'
+                }}
+                onMouseEnter={(e) => e.target.style.backgroundColor = '#f9fafb'}
+                onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
               >
-                <div className="flex items-center">
-                  <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center mr-3">
-                    <i className="ri-qr-code-line text-white text-lg"></i>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center'
+                }}>
+                  <div style={{
+                    width: '48px',
+                    height: '48px',
+                    background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginRight: '12px'
+                  }}>
+                    <i className="ri-qr-code-line" style={{ color: 'white', fontSize: '18px' }}></i>
                   </div>
-                  <div className="text-left">
-                    <h4 className="font-medium text-gray-800">{item.name}</h4>
-                    <p className="text-sm text-gray-500">{item.brand} • {item.calories} kcal</p>
-                    <p className="text-xs text-gray-400">{item.code}</p>
+                  <div style={{ textAlign: 'left' }}>
+                    <h4 style={{
+                      fontWeight: '500',
+                      color: '#1f2937',
+                      margin: '0 0 4px 0'
+                    }}>{item.name}</h4>
+                    <p style={{
+                      fontSize: '14px',
+                      color: '#6b7280',
+                      margin: '0 0 4px 0'
+                    }}>{item.brand} • {item.calories} kcal</p>
+                    <p style={{
+                      fontSize: '12px',
+                      color: '#9ca3af',
+                      margin: 0
+                    }}>{item.code}</p>
                   </div>
                 </div>
-                <div className="w-8 h-8 flex items-center justify-center">
-                  <i className="ri-add-line text-blue-600 text-xl"></i>
+                <div style={{
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <i className="ri-add-line" style={{ color: '#3b82f6', fontSize: '20px' }}></i>
                 </div>
               </button>
             ))}
@@ -143,14 +395,42 @@ export default function ScanBarcode() {
         </div>
 
         {/* Tips */}
-        <div className="bg-blue-50 rounded-xl p-4">
-          <div className="flex items-start">
-            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3 mt-0.5">
-              <i className="ri-lightbulb-line text-blue-600 text-lg"></i>
+        <div style={{
+          backgroundColor: '#eff6ff',
+          borderRadius: '12px',
+          padding: '16px'
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'flex-start'
+          }}>
+            <div style={{
+              width: '32px',
+              height: '32px',
+              backgroundColor: '#dbeafe',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginRight: '12px',
+              marginTop: '2px'
+            }}>
+              <i className="ri-lightbulb-line" style={{ color: '#3b82f6', fontSize: '18px' }}></i>
             </div>
             <div>
-              <h4 className="font-semibold text-blue-800 mb-1">Consejos para escanear</h4>
-              <ul className="text-sm text-blue-700 space-y-1">
+              <h4 style={{
+                fontWeight: '600',
+                color: '#1e40af',
+                marginBottom: '4px',
+                margin: '0 0 4px 0'
+              }}>Consejos para escanear</h4>
+              <ul style={{
+                fontSize: '14px',
+                color: '#1e40af',
+                margin: 0,
+                paddingLeft: '16px',
+                lineHeight: '1.5'
+              }}>
                 <li>• Asegúrate de tener buena iluminación</li>
                 <li>• Mantén el código centrado en la pantalla</li>
                 <li>• Limpia la lente de la cámara si es necesario</li>
@@ -161,40 +441,133 @@ export default function ScanBarcode() {
       </main>
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 w-full bg-white border-t border-gray-200">
-        <div className="grid grid-cols-5 py-2">
-          <Link href="/" className="flex flex-col items-center justify-center py-2 px-1">
-            <div className="w-6 h-6 flex items-center justify-center mb-1">
-              <i className="ri-home-line text-gray-400 text-lg"></i>
+      <nav style={{
+        position: 'fixed',
+        bottom: 0,
+        width: '100%',
+        backgroundColor: 'white',
+        borderTop: '1px solid #e5e7eb'
+      }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(5, 1fr)',
+          padding: '8px 0'
+        }}>
+          <Link href="/" style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '8px 4px',
+            textDecoration: 'none'
+          }}>
+            <div style={{
+              width: '24px',
+              height: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '4px'
+            }}>
+              <i className="ri-home-line" style={{ color: '#9ca3af', fontSize: '18px' }}></i>
             </div>
-            <span className="text-xs text-gray-400">Inicio</span>
+            <span style={{ fontSize: '12px', color: '#9ca3af' }}>Inicio</span>
           </Link>
-          <Link href="/nutrition" className="flex flex-col items-center justify-center py-2 px-1">
-            <div className="w-6 h-6 flex items-center justify-center mb-1">
-              <i className="ri-pie-chart-line text-gray-400 text-lg"></i>
+          <Link href="/nutrition" style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '8px 4px',
+            textDecoration: 'none'
+          }}>
+            <div style={{
+              width: '24px',
+              height: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '4px'
+            }}>
+              <i className="ri-pie-chart-line" style={{ color: '#9ca3af', fontSize: '18px' }}></i>
             </div>
-            <span className="text-xs text-gray-400">Nutrición</span>
+            <span style={{ fontSize: '12px', color: '#9ca3af' }}>Nutrición</span>
           </Link>
-          <Link href="/add-food" className="flex flex-col items-center justify-center py-2 px-1">
-            <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mb-1">
-              <i className="ri-add-line text-white text-lg"></i>
+          <Link href="/add-food" style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '8px 4px',
+            textDecoration: 'none'
+          }}>
+            <div style={{
+              width: '32px',
+              height: '32px',
+              background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '4px'
+            }}>
+              <i className="ri-add-line" style={{ color: 'white', fontSize: '18px' }}></i>
             </div>
-            <span className="text-xs text-blue-600 font-medium">Agregar</span>
+            <span style={{ fontSize: '12px', color: '#3b82f6', fontWeight: '500' }}>Agregar</span>
           </Link>
-          <Link href="/progress" className="flex flex-col items-center justify-center py-2 px-1">
-            <div className="w-6 h-6 flex items-center justify-center mb-1">
-              <i className="ri-line-chart-line text-gray-400 text-lg"></i>
+          <Link href="/progress" style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '8px 4px',
+            textDecoration: 'none'
+          }}>
+            <div style={{
+              width: '24px',
+              height: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '4px'
+            }}>
+              <i className="ri-line-chart-line" style={{ color: '#9ca3af', fontSize: '18px' }}></i>
             </div>
-            <span className="text-xs text-gray-400">Progreso</span>
+            <span style={{ fontSize: '12px', color: '#9ca3af' }}>Progreso</span>
           </Link>
-          <Link href="/profile" className="flex flex-col items-center justify-center py-2 px-1">
-            <div className="w-6 h-6 flex items-center justify-center mb-1">
-              <i className="ri-user-line text-gray-400 text-lg"></i>
+          <Link href="/profile" style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '8px 4px',
+            textDecoration: 'none'
+          }}>
+            <div style={{
+              width: '24px',
+              height: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '4px'
+            }}>
+              <i className="ri-user-line" style={{ color: '#9ca3af', fontSize: '18px' }}></i>
             </div>
-            <span className="text-xs text-gray-400">Perfil</span>
+            <span style={{ fontSize: '12px', color: '#9ca3af' }}>Perfil</span>
           </Link>
         </div>
       </nav>
+
+      <style jsx>{`
+        @keyframes pulse {
+          0%, 100% {
+            opacity: 1;
+          }
+          50% {
+            opacity: 0.5;
+          }
+        }
+      `}</style>
     </div>
   );
 }

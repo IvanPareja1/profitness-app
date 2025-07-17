@@ -15,23 +15,68 @@ export default function BottomNavigation() {
   ];
 
   return (
-    <nav className="fixed bottom-0 w-full bg-white border-t border-gray-200 z-40">
-      <div className="grid grid-cols-5 py-2">
+    <nav style={{
+      position: 'fixed',
+      bottom: 0,
+      width: '100%',
+      backgroundColor: 'white',
+      borderTop: '1px solid #e5e7eb',
+      zIndex: 40
+    }}>
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(5, 1fr)',
+        padding: '8px 0'
+      }}>
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           
           return (
-            <Link key={item.href} href={item.href} className="flex flex-col items-center justify-center py-2 px-1">
+            <Link 
+              key={item.href} 
+              href={item.href} 
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '8px 4px',
+                textDecoration: 'none'
+              }}
+            >
               {item.isSpecial ? (
-                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mb-1">
-                  <i className={`${item.icon} text-white text-lg`}></i>
+                <div style={{
+                  width: '32px',
+                  height: '32px',
+                  background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: '4px'
+                }}>
+                  <i className={item.icon} style={{ color: 'white', fontSize: '18px' }}></i>
                 </div>
               ) : (
-                <div className="w-6 h-6 flex items-center justify-center mb-1">
-                  <i className={`${item.icon} ${isActive ? 'text-blue-600' : 'text-gray-400'} text-lg`}></i>
+                <div style={{
+                  width: '24px',
+                  height: '24px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: '4px'
+                }}>
+                  <i className={item.icon} style={{ 
+                    color: isActive ? '#2563eb' : '#9ca3af', 
+                    fontSize: '18px' 
+                  }}></i>
                 </div>
               )}
-              <span className={`text-xs ${isActive ? 'text-blue-600 font-medium' : 'text-gray-400'}`}>
+              <span style={{
+                fontSize: '12px',
+                color: isActive ? '#2563eb' : '#9ca3af',
+                fontWeight: isActive ? '500' : '400'
+              }}>
                 {item.label}
               </span>
             </Link>

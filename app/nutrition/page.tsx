@@ -13,7 +13,7 @@ export default function Nutrition() {
   const [showHydrationModal, setShowHydrationModal] = useState(false);
   const [showHydrationSettings, setShowHydrationSettings] = useState(false);
   const [hydrationGoal, setHydrationGoal] = useState(2.5);
-  const [currentHydration, setCurrentHydration] = useState(2.1);
+  const [currentHydration, setCurrentHydration] = useState(0);
   const [hydrationReminders, setHydrationReminders] = useState({
     enabled: false,
     interval: 3, // horas
@@ -32,16 +32,18 @@ export default function Nutrition() {
 
   const [showLiquidIntakeModal, setShowLiquidIntakeModal] = useState(false);
   const [liquidIntake, setLiquidIntake] = useState([
-    { type: 'water', name: 'Agua', amount: 1500, icon: 'ri-drop-line', color: 'blue' },
-    { type: 'coffee', name: 'Café', amount: 300, icon: 'ri-cup-line', color: 'orange' },
-    { type: 'tea', name: 'Té', amount: 200, icon: 'ri-cup-line', color: 'green' },
-    { type: 'juice', name: 'Jugos', amount: 150, icon: 'ri-glass-line', color: 'purple' }
+    { type: 'water', name: 'Agua', amount: 0, icon: 'ri-drop-line', color: 'blue' },
+    { type: 'coffee', name: 'Café', amount: 0, icon: 'ri-cup-line', color: 'orange' },
+    { type: 'tea', name: 'Té', amount: 0, icon: 'ri-cup-line', color: 'green' },
+    { type: 'juice', name: 'Jugos', amount: 0, icon: 'ri-glass-line', color: 'purple' }
   ]);
   const [selectedLiquidType, setSelectedLiquidType] = useState('water');
   const [customAmount, setCustomAmount] = useState('');
   const [showFiberModal, setShowFiberModal] = useState(false);
   const [fiberGoal, setFiberGoal] = useState(30);
-  const [currentFiber, setCurrentFiber] = useState(28);
+  const [currentFiber, setCurrentFiber] = useState(0);
+  const [showFiberSettings, setShowFiberSettings] = useState(false);
+  const [tempFiberGoal, setTempFiberGoal] = useState(30);
   const [fiberFoods, setFiberFoods] = useState([
     { name: 'Avena', fiber: 10, icon: 'ri-bowl-line', category: 'Cereales' },
     { name: 'Manzana', fiber: 4, icon: 'ri-apple-line', category: 'Frutas' },
@@ -49,49 +51,172 @@ export default function Nutrition() {
     { name: 'Lentejas', fiber: 6, icon: 'ri-bowl-line', category: 'Legumbres' }
   ]);
 
-  const dailyMacros = {
-    protein: { consumed: 89, target: 140, percentage: 64 },
-    carbs: { consumed: 165, target: 215, percentage: 77 },
-    fats: { consumed: 52, target: 72, percentage: 72 }
-  };
+  const [dailyMacros, setDailyMacros] = useState({
+    protein: { consumed: 0, target: 140, percentage: 0 },
+    carbs: { consumed: 0, target: 215, percentage: 0 },
+    fats: { consumed: 0, target: 72, percentage: 0 }
+  });
 
-  const mealBreakdown = [
+  const [mealBreakdown, setMealBreakdown] = useState([
     { 
       name: 'Desayuno', 
-      calories: 420, 
-      protein: 25, 
-      carbs: 45, 
-      fats: 18,
-      foods: ['Yogur griego', 'Granola', 'Frutos rojos']
+      calories: 0, 
+      protein: 0, 
+      carbs: 0, 
+      fats: 0,
+      foods: []
     },
     { 
       name: 'Almuerzo', 
-      calories: 650, 
-      protein: 42, 
-      carbs: 58, 
-      fats: 22,
-      foods: ['Pollo a la plancha', 'Arroz integral', 'Ensalada']
+      calories: 0, 
+      protein: 0, 
+      carbs: 0, 
+      fats: 0,
+      foods: []
     },
     { 
       name: 'Merienda', 
-      calories: 180, 
-      protein: 8, 
-      carbs: 25, 
-      fats: 6,
-      foods: ['Manzana', 'Mantequilla de maní']
+      calories: 0, 
+      protein: 0, 
+      carbs: 0, 
+      fats: 0,
+      foods: []
     },
     { 
       name: 'Cena', 
-      calories: 520, 
-      protein: 35, 
-      carbs: 42, 
-      fats: 18,
-      foods: ['Salmón', 'Quinoa', 'Brócoli']
+      calories: 0, 
+      protein: 0, 
+      carbs: 0, 
+      fats: 0,
+      foods: []
     }
-  ];
+  ]);
 
   const totalCalories = mealBreakdown.reduce((sum, meal) => sum + meal.calories, 0);
   const calorieTarget = 2150;
+
+  const getCurrentDate = () => {
+    return new Date().toISOString().split('T')[0];
+  };
+
+  const checkDailyReset = () => {
+    const today = getCurrentDate();
+    const lastResetDate = localStorage.getItem('lastResetDate');
+    
+    if (lastResetDate !== today) {
+      console.log('Reiniciando datos diarios - Nueva fecha:', today);
+      
+      if (lastResetDate && (currentHydration > 0 || currentFiber > 0 || totalCalories > 0)) {
+        const historicalData = {
+          date: lastResetDate,
+          hydration: currentHydration,
+          fiber: currentFiber,
+          calories: totalCalories,
+          macros: dailyMacros,
+          meals: mealBreakdown
+        };
+        
+        const existingHistory = localStorage.getItem('dailyNutritionHistory');
+        let history = [];
+        if (existingHistory) {
+          try {
+            history = JSON.parse(existingHistory);
+          } catch (e) {
+            history = [];
+          }
+        }
+        
+        history.push(historicalData);
+        if (history.length > 30) {
+          history = history.slice(-30);
+        }
+        
+        localStorage.setItem('dailyNutritionHistory', JSON.stringify(history));
+      }
+      
+      resetDailyData();
+      
+      localStorage.setItem('lastResetDate', today);
+    }
+  };
+
+  const resetDailyData = () => {
+    console.log('Reiniciando datos diarios a cero');
+    
+    setCurrentHydration(0);
+    localStorage.setItem('currentHydration', '0');
+    
+    setCurrentFiber(0);
+    localStorage.setItem('currentFiber', '0');
+    
+    const resetLiquids = [
+      { type: 'water', name: 'Agua', amount: 0, icon: 'ri-drop-line', color: 'blue' },
+      { type: 'coffee', name: 'Café', amount: 0, icon: 'ri-cup-line', color: 'orange' },
+      { type: 'tea', name: 'Té', amount: 0, icon: 'ri-cup-line', color: 'green' },
+      { type: 'juice', name: 'Jugos', amount: 0, icon: 'ri-glass-line', color: 'purple' }
+    ];
+    setLiquidIntake(resetLiquids);
+    localStorage.setItem('liquidIntake', JSON.stringify(resetLiquids));
+    
+    const resetMacros = {
+      protein: { consumed: 0, target: 140, percentage: 0 },
+      carbs: { consumed: 0, target: 215, percentage: 0 },
+      fats: { consumed: 0, target: 72, percentage: 0 }
+    };
+    setDailyMacros(resetMacros);
+    localStorage.setItem('dailyMacros', JSON.stringify(resetMacros));
+    
+    const resetMeals = [
+      { name: 'Desayuno', calories: 0, protein: 0, carbs: 0, fats: 0, foods: [] },
+      { name: 'Almuerzo', calories: 0, protein: 0, carbs: 0, fats: 0, foods: [] },
+      { name: 'Merienda', calories: 0, protein: 0, carbs: 0, fats: 0, foods: [] },
+      { name: 'Cena', calories: 0, protein: 0, carbs: 0, fats: 0, foods: [] }
+    ];
+    setMealBreakdown(resetMeals);
+    localStorage.setItem('mealBreakdown', JSON.stringify(resetMeals));
+  };
+
+  const loadDailyData = () => {
+    try {
+      const today = getCurrentDate();
+      const savedDate = localStorage.getItem('currentDataDate');
+      
+      if (savedDate === today) {
+        const savedHydration = localStorage.getItem('currentHydration');
+        const savedFiber = localStorage.getItem('currentFiber');
+        const savedLiquids = localStorage.getItem('liquidIntake');
+        const savedMacros = localStorage.getItem('dailyMacros');
+        const savedMeals = localStorage.getItem('mealBreakdown');
+        
+        if (savedHydration) setCurrentHydration(parseFloat(savedHydration));
+        if (savedFiber) setCurrentFiber(parseFloat(savedFiber));
+        if (savedLiquids) setLiquidIntake(JSON.parse(savedLiquids));
+        if (savedMacros) setDailyMacros(JSON.parse(savedMacros));
+        if (savedMeals) setMealBreakdown(JSON.parse(savedMeals));
+      }
+      
+      const savedHydrationGoal = localStorage.getItem('hydrationGoal');
+      const savedReminders = localStorage.getItem('hydrationReminders');
+      const savedFiberGoal = localStorage.getItem('fiberGoal');
+
+      if (savedHydrationGoal) setHydrationGoal(parseFloat(savedHydrationGoal));
+      if (savedReminders) setHydrationReminders(JSON.parse(savedReminders));
+      if (savedFiberGoal) setFiberGoal(parseFloat(savedFiberGoal));
+      
+    } catch (error) {
+      console.error('Error cargando datos:', error);
+    }
+  };
+
+  const saveDailyData = () => {
+    const today = getCurrentDate();
+    localStorage.setItem('currentDataDate', today);
+    localStorage.setItem('currentHydration', currentHydration.toString());
+    localStorage.setItem('currentFiber', currentFiber.toString());
+    localStorage.setItem('liquidIntake', JSON.stringify(liquidIntake));
+    localStorage.setItem('dailyMacros', JSON.stringify(dailyMacros));
+    localStorage.setItem('mealBreakdown', JSON.stringify(mealBreakdown));
+  };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -142,7 +267,6 @@ export default function Nutrition() {
     setHydrationGoal(tempHydrationGoal);
     setHydrationReminders(tempReminders);
 
-    // Calcular recordatorios automáticos
     if (tempReminders.enabled) {
       const totalHours = calculateTotalActiveHours(tempReminders.startTime, tempReminders.endTime);
       const reminderCount = Math.floor(totalHours / tempReminders.interval);
@@ -183,13 +307,11 @@ export default function Nutrition() {
   };
 
   const handleAddLiquid = (amount: number, type: string = 'water') => {
-    // Solo actualizar la meta de hidratación si es agua
     if (type === 'water') {
       const newAmount = Math.min(currentHydration + amount / 1000, hydrationGoal);
       setCurrentHydration(parseFloat(newAmount.toFixed(1)));
     }
 
-    // Actualizar el registro de líquidos
     setLiquidIntake(prev => 
       prev.map(liquid => 
         liquid.type === type 
@@ -220,6 +342,17 @@ export default function Nutrition() {
     setCurrentFiber(newAmount);
   };
 
+  const handleFiberSettings = () => {
+    setTempFiberGoal(fiberGoal);
+    setShowFiberModal(false);
+    setShowFiberSettings(true);
+  };
+
+  const handleSaveFiberSettings = () => {
+    setFiberGoal(tempFiberGoal);
+    setShowFiberSettings(false);
+  };
+
   const getFiberRecommendations = () => {
     const remaining = fiberGoal - currentFiber;
     if (remaining <= 0) return [];
@@ -238,104 +371,250 @@ export default function Nutrition() {
 
   useEffect(() => {
     setMounted(true);
-
-    // Cargar configuraciones guardadas
-    const savedHydrationGoal = localStorage.getItem('hydrationGoal');
-    const savedCurrentHydration = localStorage.getItem('currentHydration');
-    const savedReminders = localStorage.getItem('hydrationReminders');
-
-    if (savedHydrationGoal) {
-      setHydrationGoal(parseFloat(savedHydrationGoal));
-    }
-    if (savedCurrentHydration) {
-      setCurrentHydration(parseFloat(savedCurrentHydration));
-    }
-    if (savedReminders) {
-      setHydrationReminders(JSON.parse(savedReminders));
-    }
+    
+    checkDailyReset();
+    
+    loadDailyData();
   }, []);
 
-  // Guardar configuraciones
   useEffect(() => {
     if (mounted) {
+      saveDailyData();
+      
       localStorage.setItem('hydrationGoal', hydrationGoal.toString());
-      localStorage.setItem('currentHydration', currentHydration.toString());
       localStorage.setItem('hydrationReminders', JSON.stringify(hydrationReminders));
+      localStorage.setItem('fiberGoal', fiberGoal.toString());
     }
-  }, [hydrationGoal, currentHydration, hydrationReminders, mounted]);
+  }, [hydrationGoal, currentHydration, hydrationReminders, fiberGoal, currentFiber, liquidIntake, dailyMacros, mealBreakdown, mounted]);
 
   if (!mounted) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+      <div style={{
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #f0f9ff 0%, #e0e7ff 100%)'
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '100vh'
+        }}>
+          <div style={{
+            width: '32px',
+            height: '32px',
+            border: '4px solid #3b82f6',
+            borderTop: '4px solid transparent',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite'
+          }}></div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #f0f9ff 0%, #e0e7ff 100%)'
+    }}>
       {/* Header */}
-      <header className="fixed top-0 w-full bg-white/90 backdrop-blur-sm border-b border-gray-200 z-50">
-        <div className="flex items-center justify-between px-4 py-3">
-          <h1 className="text-lg font-semibold">Nutrición</h1>
-          <div className="flex items-center space-x-3">
+      <header style={{
+        position: 'fixed',
+        top: 0,
+        width: '100%',
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        backdropFilter: 'blur(8px)',
+        borderBottom: '1px solid #e5e7eb',
+        zIndex: 50
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '12px 16px'
+        }}>
+          <h1 style={{
+            fontSize: '18px',
+            fontWeight: '600',
+            color: '#1f2937',
+            margin: 0
+          }}>Nutrición</h1>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px'
+          }}>
             <button 
               onClick={() => setShowDatePicker(true)}
-              className="w-8 h-8 flex items-center justify-center"
+              style={{
+                width: '32px',
+                height: '32px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: 'none',
+                backgroundColor: 'transparent',
+                cursor: 'pointer'
+              }}
             >
-              <i className="ri-calendar-line text-gray-600 text-lg"></i>
+              <i className="ri-calendar-line" style={{ color: '#6b7280', fontSize: '18px' }}></i>
             </button>
-            <div className="relative">
+            <div style={{ position: 'relative' }}>
               <button 
                 onClick={() => setShowOptionsMenu(!showOptionsMenu)}
-                className="w-8 h-8 flex items-center justify-center"
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: 'none',
+                  backgroundColor: 'transparent',
+                  cursor: 'pointer'
+                }}
               >
-                <i className="ri-more-line text-gray-600 text-lg"></i>
+                <i className="ri-more-line" style={{ color: '#6b7280', fontSize: '18px' }}></i>
               </button>
 
               {/* Options Menu Dropdown */}
               {showOptionsMenu && (
-                <div className="absolute right-0 top-10 bg-white rounded-xl shadow-lg border border-gray-200 py-2 min-w-48 z-50">
+                <div style={{
+                  position: 'absolute',
+                  right: 0,
+                  top: '40px',
+                  backgroundColor: 'white',
+                  borderRadius: '12px',
+                  boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
+                  border: '1px solid #e5e7eb',
+                  padding: '8px 0',
+                  minWidth: '192px',
+                  zIndex: 50
+                }}>
                   <button
                     onClick={handleExportData}
-                    className="w-full flex items-center px-4 py-3 hover:bg-gray-50 transition-colors"
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      padding: '12px 16px',
+                      border: 'none',
+                      backgroundColor: 'transparent',
+                      cursor: 'pointer',
+                      transition: 'background-color 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.target.style.backgroundColor = '#f9fafb'}
+                    onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
                   >
-                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
-                      <i className="ri-download-line text-blue-600 text-sm"></i>
+                    <div style={{
+                      width: '32px',
+                      height: '32px',
+                      backgroundColor: '#dbeafe',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginRight: '12px'
+                    }}>
+                      <i className="ri-download-line" style={{ color: '#2563eb', fontSize: '14px' }}></i>
                     </div>
-                    <span className="text-gray-700">Exportar datos</span>
+                    <span style={{ color: '#374151', fontSize: '14px' }}>Exportar datos</span>
                   </button>
 
                   <button
                     onClick={handleShareProgress}
-                    className="w-full flex items-center px-4 py-3 hover:bg-gray-50 transition-colors"
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      padding: '12px 16px',
+                      border: 'none',
+                      backgroundColor: 'transparent',
+                      cursor: 'pointer',
+                      transition: 'background-color 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.target.style.backgroundColor = '#f9fafb'}
+                    onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
                   >
-                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3">
-                      <i className="ri-share-line text-green-600 text-sm"></i>
+                    <div style={{
+                      width: '32px',
+                      height: '32px',
+                      backgroundColor: '#dcfce7',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginRight: '12px'
+                    }}>
+                      <i className="ri-share-line" style={{ color: '#16a34a', fontSize: '14px' }}></i>
                     </div>
-                    <span className="text-gray-700">Compartir progreso</span>
+                    <span style={{ color: '#374151', fontSize: '14px' }}>Compartir progreso</span>
                   </button>
 
                   <button
                     onClick={handlePrintReport}
-                    className="w-full flex items-center px-4 py-3 hover:bg-gray-50 transition-colors"
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      padding: '12px 16px',
+                      border: 'none',
+                      backgroundColor: 'transparent',
+                      cursor: 'pointer',
+                      transition: 'background-color 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.target.style.backgroundColor = '#f9fafb'}
+                    onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
                   >
-                    <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center mr-3">
-                      <i className="ri-printer-line text-purple-600 text-sm"></i>
+                    <div style={{
+                      width: '32px',
+                      height: '32px',
+                      backgroundColor: '#f3e8ff',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginRight: '12px'
+                    }}>
+                      <i className="ri-printer-line" style={{ color: '#9333ea', fontSize: '14px' }}></i>
                     </div>
-                    <span className="text-gray-700">Imprimir reporte</span>
+                    <span style={{ color: '#374151', fontSize: '14px' }}>Imprimir reporte</span>
                   </button>
 
-                  <div className="border-t border-gray-100 my-2"></div>
+                  <div style={{
+                    borderTop: '1px solid #f3f4f6',
+                    margin: '8px 0'
+                  }}></div>
 
-                  <Link href="/nutrition-settings" className="block">
-                    <button className="w-full flex items-center px-4 py-3 hover:bg-gray-50 transition-colors">
-                      <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center mr-3">
-                        <i className="ri-settings-line text-gray-600 text-sm"></i>
+                  <Link href="/nutrition-settings" style={{
+                    display: 'block',
+                    textDecoration: 'none'
+                  }}>
+                    <button style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      padding: '12px 16px',
+                      border: 'none',
+                      backgroundColor: 'transparent',
+                      cursor: 'pointer',
+                      transition: 'background-color 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.target.style.backgroundColor = '#f9fafb'}
+                    onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                    >
+                      <div style={{
+                        width: '32px',
+                        height: '32px',
+                        backgroundColor: '#f3f4f6',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginRight: '12px'
+                      }}>
+                        <i className="ri-settings-line" style={{ color: '#6b7280', fontSize: '14px' }}></i>
                       </div>
-                      <span className="text-gray-700">Configuración</span>
+                      <span style={{ color: '#374151', fontSize: '14px' }}>Configuración</span>
                     </button>
                   </Link>
                 </div>
@@ -345,19 +624,41 @@ export default function Nutrition() {
         </div>
       </header>
 
-      <main className="pt-16 pb-20 px-4">
+      <main style={{
+        paddingTop: '64px',
+        paddingBottom: '80px',
+        padding: '64px 16px 80px 16px'
+      }}>
         {/* Selected Date Display */}
-        <div className="mt-6 mb-4">
-          <div className="text-center">
-            <p className="text-sm text-gray-500">Fecha seleccionada</p>
-            <p className="text-lg font-semibold text-gray-800">{formatDate(selectedDate)}</p>
+        <div style={{ marginTop: '24px', marginBottom: '16px' }}>
+          <div style={{ textAlign: 'center' }}>
+            <p style={{
+              fontSize: '14px',
+              color: '#6b7280',
+              margin: '0 0 4px 0'
+            }}>Fecha seleccionada</p>
+            <p style={{
+              fontSize: '18px',
+              fontWeight: '600',
+              color: '#1f2937',
+              margin: 0
+            }}>{formatDate(selectedDate)}</p>
           </div>
         </div>
 
         {/* Period Selector */}
-        <div className="mb-6">
-          <div className="bg-white rounded-xl p-1 shadow-sm">
-            <div className="grid grid-cols-3 gap-1">
+        <div style={{ marginBottom: '24px' }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            padding: '4px',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+          }}>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: '4px'
+            }}>
               {[ 
                 { id: 'day', label: 'Día' },
                 { id: 'week', label: 'Semana' },
@@ -366,11 +667,30 @@ export default function Nutrition() {
                 <button
                   key={period.id}
                   onClick={() => setSelectedPeriod(period.id)}
-                  className={`py-2 px-4 rounded-lg text-sm font-medium transition-all !rounded-button ${ 
-                    selectedPeriod === period.id 
-                      ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white' 
-                      : 'text-gray-600 hover:bg-gray-50'
-                  }`}
+                  className="!rounded-button"
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    transition: 'all 0.2s',
+                    border: 'none',
+                    cursor: 'pointer',
+                    background: selectedPeriod === period.id 
+                      ? 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)'
+                      : 'transparent',
+                    color: selectedPeriod === period.id ? 'white' : '#6b7280'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (selectedPeriod !== period.id) {
+                      e.target.style.backgroundColor = '#f9fafb';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (selectedPeriod !== period.id) {
+                      e.target.style.backgroundColor = 'transparent';
+                    }
+                  }}
                 >
                   {period.label}
                 </button>
@@ -380,23 +700,62 @@ export default function Nutrition() {
         </div>
 
         {/* Calories Overview */}
-        <div className="bg-white rounded-2xl p-6 shadow-lg mb-6">
-          <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-800 mb-1">{totalCalories} kcal</h2>
-            <p className="text-gray-600">de {calorieTarget} kcal objetivo</p>
-            <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '16px',
+          padding: '24px',
+          boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+          marginBottom: '24px'
+        }}>
+          <div style={{
+            textAlign: 'center',
+            marginBottom: '24px'
+          }}>
+            <h2 style={{
+              fontSize: '32px',
+              fontWeight: '700',
+              color: '#1f2937',
+              marginBottom: '4px',
+              margin: '0 0 4px 0'
+            }}>{totalCalories} kcal</h2>
+            <p style={{
+              color: '#6b7280',
+              margin: 0
+            }}>de {calorieTarget} kcal objetivo</p>
+            <div style={{
+              width: '100%',
+              backgroundColor: '#e5e7eb',
+              borderRadius: '12px',
+              height: '8px',
+              marginTop: '12px',
+              overflow: 'hidden'
+            }}>
               <div 
-                className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${Math.min((totalCalories / calorieTarget) * 100, 100)}%` }} 
+                style={{
+                  background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+                  height: '8px',
+                  borderRadius: '12px',
+                  transition: 'all 0.3s',
+                  width: `${Math.min((totalCalories / calorieTarget) * 100, 100)}%`
+                }}
               ></div>
             </div>
           </div>
 
           {/* Macros Breakdown */}
-          <div className="grid grid-cols-3 gap-4">
-            <div className="text-center">
-              <div className="relative w-16 h-16 mx-auto mb-2">
-                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: '16px'
+          }}>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{
+                position: 'relative',
+                width: '64px',
+                height: '64px',
+                margin: '0 auto 8px auto'
+              }}>
+                <svg style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }} viewBox="0 0 36 36">
                   <path
                     d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                     fill="none"
@@ -411,17 +770,44 @@ export default function Nutrition() {
                     strokeDasharray={`${dailyMacros.protein.percentage}, 100`}
                   />
                 </svg>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-xs font-bold text-red-600">{dailyMacros.protein.percentage}%</span>
+                <div style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <span style={{
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    color: '#ef4444'
+                  }}>{dailyMacros.protein.percentage}%</span>
                 </div>
               </div>
-              <p className="text-sm font-semibold text-gray-800">Proteínas</p>
-              <p className="text-xs text-gray-500">{dailyMacros.protein.consumed}g / {dailyMacros.protein.target}g</p>
+              <p style={{
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#1f2937',
+                margin: '0 0 4px 0'
+              }}>Proteínas</p>
+              <p style={{
+                fontSize: '12px',
+                color: '#6b7280',
+                margin: 0
+              }}>{dailyMacros.protein.consumed}g / {dailyMacros.protein.target}g</p>
             </div>
 
-            <div className="text-center">
-              <div className="relative w-16 h-16 mx-auto mb-2">
-                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+            <div style={{ textAlign: 'center' }}>
+              <div style={{
+                position: 'relative',
+                width: '64px',
+                height: '64px',
+                margin: '0 auto 8px auto'
+              }}>
+                <svg style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }} viewBox="0 0 36 36">
                   <path
                     d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                     fill="none"
@@ -436,17 +822,44 @@ export default function Nutrition() {
                     strokeDasharray={`${dailyMacros.carbs.percentage}, 100`}
                   />
                 </svg>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-xs font-bold text-yellow-600">{dailyMacros.carbs.percentage}%</span>
+                <div style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <span style={{
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    color: '#f59e0b'
+                  }}>{dailyMacros.carbs.percentage}%</span>
                 </div>
               </div>
-              <p className="text-sm font-semibold text-gray-800">Carbohidratos</p>
-              <p className="text-xs text-gray-500">{dailyMacros.carbs.consumed}g / {dailyMacros.carbs.target}g</p>
+              <p style={{
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#1f2937',
+                margin: '0 0 4px 0'
+              }}>Carbohidratos</p>
+              <p style={{
+                fontSize: '12px',
+                color: '#6b7280',
+                margin: 0
+              }}>{dailyMacros.carbs.consumed}g / {dailyMacros.carbs.target}g</p>
             </div>
 
-            <div className="text-center">
-              <div className="relative w-16 h-16 mx-auto mb-2">
-                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+            <div style={{ textAlign: 'center' }}>
+              <div style={{
+                position: 'relative',
+                width: '64px',
+                height: '64px',
+                margin: '0 auto 8px auto'
+              }}>
+                <svg style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }} viewBox="0 0 36 36">
                   <path
                     d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                     fill="none"
@@ -461,51 +874,154 @@ export default function Nutrition() {
                     strokeDasharray={`${dailyMacros.fats.percentage}, 100`}
                   />
                 </svg>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-xs font-bold text-green-600">{dailyMacros.fats.percentage}%</span>
+                <div style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <span style={{
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    color: '#10b981'
+                  }}>{dailyMacros.fats.percentage}%</span>
                 </div>
               </div>
-              <p className="text-sm font-semibold text-gray-800">Grasas</p>
-              <p className="text-xs text-gray-500">{dailyMacros.fats.consumed}g / {dailyMacros.fats.target}g</p>
+              <p style={{
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#1f2937',
+                margin: '0 0 4px 0'
+              }}>Grasas</p>
+              <p style={{
+                fontSize: '12px',
+                color: '#6b7280',
+                margin: 0
+              }}>{dailyMacros.fats.consumed}g / {dailyMacros.fats.target}g</p>
             </div>
           </div>
         </div>
 
         {/* Meal Breakdown */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-800">Desglose por comidas</h3>
-            <Link href="/add-food" className="text-blue-600 text-sm">Agregar comida</Link>
+        <div style={{ marginBottom: '24px' }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '16px'
+          }}>
+            <h3 style={{
+              fontSize: '18px',
+              fontWeight: '600',
+              color: '#1f2937',
+              margin: 0
+            }}>Desglose por comidas</h3>
+            <Link href="/add-food" style={{
+              color: '#3b82f6',
+              fontSize: '14px',
+              textDecoration: 'none'
+            }}>Agregar comida</Link>
           </div>
 
-          <div className="space-y-4">
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px'
+          }}>
             {mealBreakdown.map((meal, index) => (
-              <div key={index} className="bg-white rounded-xl p-4 shadow-md">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-semibold text-gray-800">{meal.name}</h4>
-                  <span className="text-sm font-medium text-gray-600">{meal.calories} kcal</span>
+              <div key={index} style={{
+                backgroundColor: 'white',
+                borderRadius: '12px',
+                padding: '16px',
+                boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: '12px'
+                }}>
+                  <h4 style={{
+                    fontWeight: '600',
+                    color: '#1f2937',
+                    margin: 0
+                  }}>{meal.name}</h4>
+                  <span style={{
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: '#6b7280'
+                  }}>{meal.calories} kcal</span>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4 mb-3">
-                  <div className="text-center">
-                    <p className="text-xs text-gray-500 mb-1">Proteínas</p>
-                    <p className="text-sm font-semibold text-red-600">{meal.protein}g</p>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(3, 1fr)',
+                  gap: '16px',
+                  marginBottom: '12px'
+                }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <p style={{
+                      fontSize: '12px',
+                      color: '#6b7280',
+                      marginBottom: '4px',
+                      margin: '0 0 4px 0'
+                    }}>Proteínas</p>
+                    <p style={{
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#ef4444',
+                      margin: 0
+                    }}>{meal.protein}g</p>
                   </div>
-                  <div className="text-center">
-                    <p className="text-xs text-gray-500 mb-1">Carbohidratos</p>
-                    <p className="text-sm font-semibold text-yellow-600">{meal.carbs}g</p>
+                  <div style={{ textAlign: 'center' }}>
+                    <p style={{
+                      fontSize: '12px',
+                      color: '#6b7280',
+                      marginBottom: '4px',
+                      margin: '0 0 4px 0'
+                    }}>Carbohidratos</p>
+                    <p style={{
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#f59e0b',
+                      margin: 0
+                    }}>{meal.carbs}g</p>
                   </div>
-                  <div className="text-center">
-                    <p className="text-xs text-gray-500 mb-1">Grasas</p>
-                    <p className="text-sm font-semibold text-green-600">{meal.fats}g</p>
+                  <div style={{ textAlign: 'center' }}>
+                    <p style={{
+                      fontSize: '12px',
+                      color: '#6b7280',
+                      marginBottom: '4px',
+                      margin: '0 0 4px 0'
+                    }}>Grasas</p>
+                    <p style={{
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#10b981',
+                      margin: 0
+                    }}>{meal.fats}g</p>
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-2">
+                <div style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: '8px'
+                }}>
                   {meal.foods.map((food, foodIndex) => (
                     <span 
                       key={foodIndex}
-                      className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full"
+                      style={{
+                        fontSize: '12px',
+                        backgroundColor: '#f3f4f6',
+                        color: '#6b7280',
+                        padding: '4px 8px',
+                        borderRadius: '16px'
+                      }}
                     >
                       {food}
                     </span>
@@ -517,161 +1033,568 @@ export default function Nutrition() {
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-2 gap-4">
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(2, 1fr)',
+          gap: '16px'
+        }}>
           <button 
             onClick={handleHydrationClick}
-            className="bg-white rounded-xl p-4 shadow-md text-center hover:bg-blue-50 transition-colors"
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              padding: '16px',
+              boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+              textAlign: 'center',
+              border: 'none',
+              cursor: 'pointer',
+              transition: 'background-color 0.2s'
+            }}
+            onMouseEnter={(e) => e.target.style.backgroundColor = '#f0f9ff'}
+            onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
           >
-            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
-              <i className="ri-drop-line text-blue-600 text-lg"></i>
+            <div style={{
+              width: '40px',
+              height: '40px',
+              backgroundColor: '#dbeafe',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 8px auto'
+            }}>
+              <i className="ri-drop-line" style={{ color: '#2563eb', fontSize: '18px' }}></i>
             </div>
-            <p className="text-xs text-gray-500 mb-1">Hidratación</p>
-            <p className="text-lg font-bold text-gray-800">{currentHydration}L</p>
-            <p className="text-xs text-gray-400">Meta: {hydrationGoal}L</p>
-            <div className="w-full bg-gray-200 rounded-full h-1 mt-2">
+            <p style={{
+              fontSize: '12px',
+              color: '#6b7280',
+              marginBottom: '4px',
+              margin: '0 0 4px 0'
+            }}>Hidratación</p>
+            <p style={{
+              fontSize: '18px',
+              fontWeight: '700',
+              color: '#1f2937',
+              margin: 0
+            }}>{currentHydration}L</p>
+            <p style={{
+              fontSize: '12px',
+              color: '#9ca3af',
+              margin: '4px 0 8px 0'
+            }}>Meta: {hydrationGoal}L</p>
+            <div style={{
+              width: '100%',
+              backgroundColor: '#e5e7eb',
+              borderRadius: '4px',
+              height: '4px',
+              marginTop: '8px'
+            }}>
               <div 
-                className="bg-blue-500 h-1 rounded-full transition-all duration-300"
-                style={{ width: `${getHydrationPercentage()}%` }} 
+                style={{
+                  backgroundColor: '#3b82f6',
+                  height: '4px',
+                  borderRadius: '4px',
+                  transition: 'all 0.3s',
+                  width: `${getHydrationPercentage()}%`
+                }}
               ></div>
             </div>
           </button>
 
           <button 
             onClick={() => setShowFiberModal(true)}
-            className="bg-white rounded-xl p-4 shadow-md text-center hover:bg-green-50 transition-colors"
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              padding: '16px',
+              boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+              textAlign: 'center',
+              border: 'none',
+              cursor: 'pointer',
+              transition: 'background-color 0.2s'
+            }}
+            onMouseEnter={(e) => e.target.style.backgroundColor = '#f0fdf4'}
+            onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
           >
-            <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
-              <i className="ri-leaf-line text-green-600 text-lg"></i>
+            <div style={{
+              width: '40px',
+              height: '40px',
+              backgroundColor: '#dcfce7',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 8px auto'
+            }}>
+              <i className="ri-leaf-line" style={{ color: '#16a34a', fontSize: '18px' }}></i>
             </div>
-            <p className="text-xs text-gray-500 mb-1">Fibra</p>
-            <p className="text-lg font-bold text-gray-800">{currentFiber}g</p>
-            <p className="text-xs text-gray-400">Meta: {fiberGoal}g</p>
-            <div className="w-full bg-gray-200 rounded-full h-1 mt-2">
+            <p style={{
+              fontSize: '12px',
+              color: '#6b7280',
+              marginBottom: '4px',
+              margin: '0 0 4px 0'
+            }}>Fibra</p>
+            <p style={{
+              fontSize: '18px',
+              fontWeight: '700',
+              color: '#1f2937',
+              margin: 0
+            }}>{currentFiber}g</p>
+            <p style={{
+              fontSize: '12px',
+              color: '#9ca3af',
+              margin: '4px 0 8px 0'
+            }}>Meta: {fiberGoal}g</p>
+            <div style={{
+              width: '100%',
+              backgroundColor: '#e5e7eb',
+              borderRadius: '4px',
+              height: '4px',
+              marginTop: '8px'
+            }}>
               <div 
-                className="bg-green-500 h-1 rounded-full transition-all duration-300"
-                style={{ width: `${getFiberPercentage()}%` }} 
+                style={{
+                  backgroundColor: '#16a34a',
+                  height: '4px',
+                  borderRadius: '4px',
+                  transition: 'all 0.3s',
+                  width: `${getFiberPercentage()}%`
+                }}
               ></div>
             </div>
           </button>
         </div>
 
-        {/* Liquid Intake Section */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-800">Ingesta de Líquidos</h3>
-            <button 
-              onClick={() => setShowLiquidIntakeModal(true)}
-              className="text-blue-600 text-sm font-medium"
-            >
-              + Agregar
-            </button>
-          </div>
+      </main>
 
-          <div className="bg-white rounded-xl p-4 shadow-md">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="text-sm text-gray-500">Total del día</p>
-                <p className="text-xl font-bold text-gray-800">{(getTotalLiquidIntake() / 1000).toFixed(1)}L</p>
-              </div>
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center">
-                <i className="ri-glass-line text-blue-600 text-lg"></i>
-              </div>
+      {/* Bottom Navigation */}
+      <nav style={{
+        position: 'fixed',
+        bottom: 0,
+        width: '100%',
+        backgroundColor: 'white',
+        borderTop: '1px solid #e5e7eb'
+      }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(5, 1fr)',
+          padding: '8px 0'
+        }}>
+          <Link href="/" style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '8px 4px',
+            textDecoration: 'none'
+          }}>
+            <div style={{
+              width: '24px',
+              height: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '4px'
+            }}>
+              <i className="ri-home-line" style={{ color: '#9ca3af', fontSize: '18px' }}></i>
+            </div>
+            <span style={{ fontSize: '12px', color: '#9ca3af' }}>Inicio</span>
+          </Link>
+          <Link href="/nutrition" style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '8px 4px',
+            textDecoration: 'none'
+          }}>
+            <div style={{
+              width: '24px',
+              height: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '4px'
+            }}>
+              <i className="ri-pie-chart-line" style={{ color: '#3b82f6', fontSize: '18px' }}></i>
+            </div>
+            <span style={{ fontSize: '12px', color: '#3b82f6', fontWeight: '500' }}>Nutrición</span>
+          </Link>
+          <Link href="/add-food" style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '8px 4px',
+            textDecoration: 'none'
+          }}>
+            <div style={{
+              width: '32px',
+              height: '32px',
+              background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '4px'
+            }}>
+              <i className="ri-add-line" style={{ color: 'white', fontSize: '18px' }}></i>
+            </div>
+            <span style={{ fontSize: '12px', color: '#9ca3af' }}>Agregar</span>
+          </Link>
+          <Link href="/progress" style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '8px 4px',
+            textDecoration: 'none'
+          }}>
+            <div style={{
+              width: '24px',
+              height: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '4px'
+            }}>
+              <i className="ri-line-chart-line" style={{ color: '#9ca3af', fontSize: '18px' }}></i>
+            </div>
+            <span style={{ fontSize: '12px', color: '#9ca3af' }}>Progreso</span>
+          </Link>
+          <Link href="/profile" style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '8px 4px',
+            textDecoration: 'none'
+          }}>
+            <div style={{
+              width: '24px',
+              height: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '4px'
+            }}>
+              <i className="ri-user-line" style={{ color: '#9ca3af', fontSize: '18px' }}></i>
+            </div>
+            <span style={{ fontSize: '12px', color: '#9ca3af' }}>Perfil</span>
+          </Link>
+        </div>
+      </nav>
+
+      {/* Date Picker Modal */}
+      {showDatePicker && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 50
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '16px',
+            padding: '24px',
+            width: '320px',
+            maxHeight: '90vh',
+            overflowY: 'auto'
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              marginBottom: '16px'
+            }}>
+              <h3 style={{
+                fontSize: '18px',
+                fontWeight: '600',
+                color: '#1f2937',
+                margin: 0
+              }}>Seleccionar Fecha</h3>
+              <button
+                onClick={() => setShowDatePicker(false)}
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: 'none',
+                  backgroundColor: 'transparent',
+                  cursor: 'pointer'
+                }}
+              >
+                <i className="ri-close-line" style={{ color: '#6b7280', fontSize: '18px' }}></i>
+              </button>
             </div>
 
-            <div className="space-y-3">
-              {liquidIntake.map((liquid, index) => (
-                <div key={index} className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-8 h-8 bg-${liquid.color}-100 rounded-full flex items-center justify-center`}>
-                      <i className={`${liquid.icon} text-${liquid.color}-600 text-sm`}></i>
-                    </div>
-                    <span className="text-sm font-medium text-gray-700">{liquid.name}</span>
-                  </div>
-                  <span className="text-sm font-semibold text-gray-800">{liquid.amount}ml</span>
-                </div>
-              ))}
-            </div>
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => handleDateChange(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                borderRadius: '12px',
+                border: '1px solid #e5e7eb',
+                fontSize: '16px'
+              }}
+            />
 
-            {liquidIntake.find(l => l.type === 'water')?.amount > 0 && (
-              <div className="mt-4 pt-3 border-t border-gray-100">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-gray-500">Solo agua cuenta para la meta de hidratación</span>
-                  <span className="text-blue-600 font-medium">
-                    {liquidIntake.find(l => l.type === 'water')?.amount}ml
-                  </span>
-                </div>
-              </div>
-            )}
+            <div style={{
+              display: 'flex',
+              gap: '8px'
+            }}>
+              <button
+                onClick={() => setShowDatePicker(false)}
+                style={{
+                  flex: 1,
+                  padding: '12px 16px',
+                  borderRadius: '12px',
+                  border: '1px solid #e5e7eb',
+                  backgroundColor: 'white',
+                  color: '#6b7280',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => setShowDatePicker(false)}
+                style={{
+                  flex: 1,
+                  padding: '12px 16px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+                  color: 'white',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer'
+                }}
+              >
+                Confirmar
+              </button>
+            </div>
           </div>
         </div>
-
-      </main>
+      )}
 
       {/* Hydration Modal */}
       {showHydrationModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-gray-800">Hidratación</h3>
-              <button 
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 50
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '16px',
+            padding: '24px',
+            width: '360px',
+            maxHeight: '90vh',
+            overflowY: 'auto'
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              marginBottom: '16px'
+            }}>
+              <h3 style={{
+                fontSize: '18px',
+                fontWeight: '600',
+                color: '#1f2937',
+                margin: 0
+              }}>Control de Hidratación</h3>
+              <button
                 onClick={() => setShowHydrationModal(false)}
-                className="w-8 h-8 flex items-center justify-center"
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: 'none',
+                  backgroundColor: 'transparent',
+                  cursor: 'pointer'
+                }}
               >
-                <i className="ri-close-line text-gray-600 text-lg"></i>
+                <i className="ri-close-line" style={{ color: '#6b7280', fontSize: '18px' }}></i>
               </button>
             </div>
 
-            <div className="text-center mb-6">
-              <div className="relative w-20 h-20 mx-auto mb-4">
-                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                  <path
-                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                    fill="none"
-                    stroke="#e5e7eb"
-                    strokeWidth="4"
-                  />
-                  <path
-                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                    fill="none"
-                    stroke="#3b82f6"
-                    strokeWidth="4"
-                    strokeDasharray={`${getHydrationPercentage()}, 100`}
-                  />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-sm font-bold text-blue-600">{Math.round(getHydrationPercentage())}%</span>
+            <div style={{
+              textAlign: 'center',
+              marginBottom: '24px'
+            }}>
+              <div style={{
+                width: '80px',
+                height: '80px',
+                backgroundColor: '#dbeafe',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 16px auto'
+              }}>
+                <i className="ri-drop-line" style={{ color: '#2563eb', fontSize: '32px' }}></i>
+              </div>
+              <p style={{
+                fontSize: '36px',
+                fontWeight: '700',
+                color: '#1f2937',
+                margin: '0 0 8px 0'
+              }}>{currentHydration}L</p>
+              <p style={{
+                fontSize: '14px',
+                color: '#6b7280',
+                margin: '0 0 16px 0'
+              }}>de {hydrationGoal}L objetivo</p>
+              <div style={{
+                width: '100%',
+                backgroundColor: '#e5e7eb',
+                borderRadius: '12px',
+                height: '8px',
+                overflow: 'hidden'
+              }}>
+                <div 
+                  style={{
+                    backgroundColor: '#3b82f6',
+                    height: '8px',
+                    borderRadius: '12px',
+                    transition: 'all 0.3s',
+                    width: `${getHydrationPercentage()}%`
+                  }}
+                ></div>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '24px' }}>
+              <p style={{
+                fontSize: '14px',
+                fontWeight: '500',
+                color: '#1f2937',
+                marginBottom: '12px'
+              }}>Agregar agua:</p>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: '12px',
+                marginBottom: '16px'
+              }}>
+                {[250, 500, 750].map((amount) => (
+                  <button
+                    key={amount}
+                    onClick={() => handleAddWater(amount)}
+                    style={{
+                      backgroundColor: '#dbeafe',
+                      color: '#2563eb',
+                      padding: '16px 12px',
+                      borderRadius: '12px',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      border: 'none',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.target.style.backgroundColor = '#bfdbfe'}
+                    onMouseLeave={(e) => e.target.style.backgroundColor = '#dbeafe'}
+                  >
+                    +{amount}ml
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div style={{
+              backgroundColor: '#f0f9ff',
+              borderRadius: '12px',
+              padding: '16px',
+              marginBottom: '16px'
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px'
+              }}>
+                <div style={{
+                  width: '32px',
+                  height: '32px',
+                  backgroundColor: '#dbeafe',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <i className="ri-lightbulb-line" style={{ color: '#2563eb', fontSize: '16px' }}></i>
+                </div>
+                <div>
+                  <p style={{
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: '#1f2937',
+                    margin: '0 0 4px 0'
+                  }}>Consejo del día</p>
+                  <p style={{
+                    fontSize: '12px',
+                    color: '#6b7280',
+                    margin: 0
+                  }}>Bebe agua regularmente durante el día para mantener una hidratación óptima y mejorar tu rendimiento</p>
                 </div>
               </div>
-              <p className="text-2xl font-bold text-gray-800 mb-1">{currentHydration}L</p>
-              <p className="text-gray-600">de {hydrationGoal}L objetivo</p>
             </div>
 
-            <div className="grid grid-cols-4 gap-2 mb-6">
-              {[100, 200, 250, 500].map((amount) => (
-                <button
-                  key={amount}
-                  onClick={() => handleAddWater(amount)}
-                  className="py-3 px-2 bg-blue-50 text-blue-600 rounded-xl text-xs font-medium hover:bg-blue-100 transition-colors !rounded-button"
-                >
-                  +{amount}ml
-                </button>
-              ))}
-            </div>
-
-            <div className="space-y-3">
+            <div style={{
+              display: 'flex',
+              gap: '8px'
+            }}>
               <button
                 onClick={handleHydrationSettings}
-                className="w-full flex items-center justify-center py-3 px-4 bg-gray-50 text-gray-700 rounded-xl font-medium hover:bg-gray-100 transition-colors !rounded-button"
+                style={{
+                  flex: 1,
+                  padding: '12px 16px',
+                  borderRadius: '12px',
+                  border: '1px solid #e5e7eb',
+                  backgroundColor: 'white',
+                  color: '#6b7280',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer'
+                }}
               >
-                <i className="ri-settings-line mr-2"></i>
-                Configurar Meta y Recordatorios
+                Configurar
               </button>
-
               <button
-                onClick={() => setCurrentHydration(0)}
-                className="w-full py-3 px-4 border border-gray-300 rounded-xl text-gray-700 font-medium !rounded-button"
+                onClick={() => setShowHydrationModal(false)}
+                style={{
+                  flex: 1,
+                  padding: '12px 16px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  backgroundColor: '#3b82f6',
+                  color: 'white',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer'
+                }}
               >
-                Reiniciar Día
+                Listo
               </button>
             </div>
           </div>
@@ -680,283 +1603,236 @@ export default function Nutrition() {
 
       {/* Hydration Settings Modal */}
       {showHydrationSettings && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-6 border-b border-gray-100">
-              <h3 className="text-lg font-semibold text-gray-800">Configuración de Hidratación</h3>
-              <button 
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 50
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '16px',
+            padding: '24px',
+            width: '360px',
+            maxHeight: '90vh',
+            overflowY: 'auto'
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              marginBottom: '16px'
+            }}>
+              <h3 style={{
+                fontSize: '18px',
+                fontWeight: '600',
+                color: '#1f2937',
+                margin: 0
+              }}>Configuración de Hidratación</h3>
+              <button
                 onClick={() => setShowHydrationSettings(false)}
-                className="w-8 h-8 flex items-center justify-center"
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: 'none',
+                  backgroundColor: 'transparent',
+                  cursor: 'pointer'
+                }}
               >
-                <i className="ri-close-line text-gray-600 text-lg"></i>
+                <i className="ri-close-line" style={{ color: '#6b7280', fontSize: '18px' }}></i>
               </button>
             </div>
 
-            <div className="p-6">
-              {/* Meta de Hidratación */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-3">Meta diaria de hidratación</label>
-                <div className="flex items-center space-x-4">
-                  <input
-                    type="range"
-                    min="1"
-                    max="5"
-                    step="0.1"
-                    value={tempHydrationGoal}
-                    onChange={(e) => setTempHydrationGoal(parseFloat(e.target.value))}
-                    className="flex-1 h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer"
-                    style={{
-                      background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${((tempHydrationGoal - 1) / 4) * 100}%, #e5e7eb ${((tempHydrationGoal - 1) / 4) * 100}%, #e5e7eb 100%)`
-                    }}
-                  />
-                  <span className="text-lg font-bold text-blue-600 min-w-[60px]">{tempHydrationGoal}L</span>
-                </div>
-                <div className="flex justify-between text-xs text-gray-500 mt-2">
-                  <span>1L</span>
-                  <span>2.5L</span>
-                  <span>5L</span>
-                </div>
+            {/* Meta diaria */}
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{
+                fontSize: '14px',
+                fontWeight: '500',
+                color: '#1f2937',
+                marginBottom: '8px',
+                display: 'block'
+              }}>Meta diaria de hidratación (L)</label>
+              <input
+                type="number"
+                min="1"
+                max="5"
+                step="0.1"
+                value={tempHydrationGoal}
+                onChange={(e) => setTempHydrationGoal(parseFloat(e.target.value) || 2.5)}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  borderRadius: '12px',
+                  border: '1px solid #e5e7eb',
+                  fontSize: '16px'
+                }}
+              />
+            </div>
+
+            {/* Recordatorios */}
+            <div style={{ marginBottom: '24px' }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: '16px'
+              }}>
+                <label style={{
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#1f2937'
+                }}>Recordatorios automáticos</label>
+                <button
+                  onClick={() => setTempReminders(prev => ({ ...prev, enabled: !prev.enabled }))}
+                  style={{
+                    width: '48px',
+                    height: '28px',
+                    backgroundColor: tempReminders.enabled ? '#3b82f6' : '#e5e7eb',
+                    borderRadius: '14px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    position: 'relative',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <div style={{
+                    width: '20px',
+                    height: '20px',
+                    backgroundColor: 'white',
+                    borderRadius: '50%',
+                    position: 'absolute',
+                    top: '4px',
+                    left: tempReminders.enabled ? '24px' : '4px',
+                    transition: 'all 0.2s'
+                  }}></div>
+                </button>
               </div>
 
-              {/* Recordatorios */}
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <p className="font-medium text-gray-800">Recordatorios automáticos</p>
-                    <p className="text-sm text-gray-500">Recibe alertas para mantenerte hidratado</p>
+              {tempReminders.enabled && (
+                <div style={{
+                  backgroundColor: '#f0f9ff',
+                  borderRadius: '12px',
+                  padding: '16px'
+                }}>
+                  <div style={{ marginBottom: '16px' }}>
+                    <label style={{
+                      fontSize: '12px',
+                      color: '#6b7280',
+                      marginBottom: '4px',
+                      display: 'block'
+                    }}>Cada cuántas horas</label>
+                    <select
+                      value={tempReminders.interval}
+                      onChange={(e) => setTempReminders(prev => ({ ...prev, interval: parseInt(e.target.value) }))}
+                      style={{
+                        width: '100%',
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        border: '1px solid #e5e7eb',
+                        fontSize: '14px'
+                      }}
+                    >
+                      <option value={1}>Cada hora</option>
+                      <option value={2}>Cada 2 horas</option>
+                      <option value={3}>Cada 3 horas</option>
+                      <option value={4}>Cada 4 horas</option>
+                    </select>
                   </div>
-                  <button
-                    onClick={() => setTempReminders(prev => ({ ...prev, enabled: !prev.enabled }))}
-                    className={`relative w-12 h-6 rounded-full transition-colors ${ 
-                      tempReminders.enabled ? 'bg-blue-600' : 'bg-gray-300'
-                    }`}
-                  >
-                    <div
-                      className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform ${ 
-                        tempReminders.enabled ? 'translate-x-6' : 'translate-x-0.5'
-                      }`}
-                    />
-                  </button>
-                </div>
 
-                {tempReminders.enabled && (
-                  <div className="space-y-4 bg-blue-50 rounded-xl p-4">
-                    {/* Intervalo */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gap: '12px'
+                  }}>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Frecuencia de recordatorios</label>
-                      <select
-                        value={tempReminders.interval}
-                        onChange={(e) => setTempReminders(prev => ({ ...prev, interval: parseInt(e.target.value) }))}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                      >
-                        <option value={1}>Cada 1 hora</option>
-                        <option value={2}>Cada 2 horas</option>
-                        <option value={3}>Cada 3 horas</option>
-                        <option value={4}>Cada 4 horas</option>
-                      </select>
+                      <label style={{
+                        fontSize: '12px',
+                        color: '#6b7280',
+                        marginBottom: '4px',
+                        display: 'block'
+                      }}>Desde</label>
+                      <input
+                        type="time"
+                        value={tempReminders.startTime}
+                        onChange={(e) => setTempReminders(prev => ({ ...prev, startTime: e.target.value }))}
+                        style={{
+                          width: '100%',
+                          padding: '8px 12px',
+                          borderRadius: '8px',
+                          border: '1px solid #e5e7eb',
+                          fontSize: '14px'
+                        }}
+                      />
                     </div>
-
-                    {/* Horario activo */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Hora de inicio</label>
-                        <input
-                          type="time"
-                          value={tempReminders.startTime}
-                          onChange={(e) => setTempReminders(prev => ({ ...prev, startTime: e.target.value }))}
-                          className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Hora de fin</label>
-                        <input
-                          type="time"
-                          value={tempReminders.endTime}
-                          onChange={(e) => setTempReminders(prev => ({ ...prev, endTime: e.target.value }))}
-                          className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                        />
-                      </div>
+                    <div>
+                      <label style={{
+                        fontSize: '12px',
+                        color: '#6b7280',
+                        marginBottom: '4px',
+                        display: 'block'
+                      }}>Hasta</label>
+                      <input
+                        type="time"
+                        value={tempReminders.endTime}
+                        onChange={(e) => setTempReminders(prev => ({ ...prev, endTime: e.target.value }))}
+                        style={{
+                          width: '100%',
+                          padding: '8px 12px',
+                          borderRadius: '8px',
+                          border: '1px solid #e5e7eb',
+                          fontSize: '14px'
+                        }}
+                      />
                     </div>
-
-                    {/* Vista previa de configuración */}
-                    <div className="bg-white rounded-lg p-3 border border-blue-200">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <i className="ri-information-line text-blue-600"></i>
-                        <span className="text-sm font-medium text-blue-800">Vista previa de recordatorios</span>
-                      </div>
-                      <p className="text-sm text-blue-700">
-                        Recibirás recordatorios cada {tempReminders.interval} hora{tempReminders.interval > 1 ? 's' : ''} 
-                        de {tempReminders.startTime} a {tempReminders.endTime}
-                      </p>
-                      <p className="text-xs text-blue-600 mt-1">
-                        Cantidad sugerida por recordatorio: ~{Math.round((tempHydrationGoal * 1000) / Math.floor(calculateTotalActiveHours(tempReminders.startTime, tempReminders.endTime) / tempReminders.interval))}ml
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Metas preestablecidas */}
-              <div className="mb-6">
-                <p className="text-sm font-medium text-gray-700 mb-3">Metas recomendadas</p>
-                <div className="grid grid-cols-3 gap-2">
-                  {[ 
-                    { amount: 2.0, label: 'Básica' },
-                    { amount: 2.5, label: 'Estándar' },
-                    { amount: 3.0, label: 'Activa' }
-                  ].map((preset) => (
-                    <button
-                      key={preset.amount}
-                      onClick={() => setTempHydrationGoal(preset.amount)}
-                      className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors !rounded-button ${ 
-                        tempHydrationGoal === preset.amount 
-                          ? 'bg-blue-500 text-white' 
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                    >
-                      {preset.amount}L
-                      <div className="text-xs opacity-75">{preset.label}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex space-x-3">
-                <button
-                  onClick={() => setShowHydrationSettings(false)}
-                  className="flex-1 py-3 px-4 border border-gray-300 rounded-xl text-gray-700 font-medium !rounded-button"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleSaveHydrationSettings}
-                  className="flex-1 py-3 px-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium rounded-xl !rounded-button"
-                >
-                  Guardar
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Liquid Intake Modal */}
-      {showLiquidIntakeModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-6 border-b border-gray-100">
-              <h3 className="text-lg font-semibold text-gray-800">Agregar Líquidos</h3>
-              <button 
-                onClick={() => setShowLiquidIntakeModal(false)}
-                className="w-8 h-8 flex items-center justify-center"
-              >
-                <i className="ri-close-line text-gray-600 text-lg"></i>
-              </button>
-            </div>
-
-            <div className="p-6">
-              {/* Tipo de líquido */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-3">Tipo de líquido</label>
-                <div className="grid grid-cols-2 gap-3">
-                  {[ 
-                    { type: 'water', name: 'Agua', icon: 'ri-drop-line', color: 'blue' },
-                    { type: 'coffee', name: 'Café', icon: 'ri-cup-line', color: 'orange' },
-                    { type: 'tea', name: 'Té', icon: 'ri-cup-line', color: 'green' },
-                    { type: 'juice', name: 'Jugo', icon: 'ri-glass-line', color: 'purple' },
-                    { type: 'soda', name: 'Refresco', icon: 'ri-glass-line', color: 'red' },
-                    { type: 'sports', name: 'Bebida deportiva', icon: 'ri-glass-line', color: 'yellow' }
-                  ].map((liquid) => (
-                    <button
-                      key={liquid.type}
-                      onClick={() => setSelectedLiquidType(liquid.type)}
-                      className={`p-3 rounded-xl border-2 transition-all !rounded-button ${ 
-                        selectedLiquidType === liquid.type
-                          ? `border-${liquid.color}-500 bg-${liquid.color}-50`
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      <div className={`w-8 h-8 bg-${liquid.color}-100 rounded-full flex items-center justify-center mx-auto mb-2`}>
-                        <i className={`${liquid.icon} text-${liquid.color}-600 text-sm`}></i>
-                      </div>
-                      <span className="text-sm font-medium text-gray-700">{liquid.name}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {selectedLiquidType === 'water' && (
-                <div className="mb-4 p-3 bg-blue-50 rounded-xl">
-                  <div className="flex items-center space-x-2">
-                    <i className="ri-information-line text-blue-600"></i>
-                    <span className="text-sm text-blue-800">Solo el agua cuenta para tu meta de hidratación</span>
                   </div>
                 </div>
               )}
+            </div>
 
-              {/* Cantidades rápidas */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-3">Cantidades rápidas</label>
-                <div className="grid grid-cols-4 gap-2">
-                  {[100, 200, 250, 500].map((amount) => (
-                    <button
-                      key={amount}
-                      onClick={() => handleAddLiquid(amount, selectedLiquidType)}
-                      className="py-3 px-2 bg-gray-50 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-100 transition-colors !rounded-button"
-                    >
-                      {amount}ml
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Cantidad personalizada */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-3">Cantidad personalizada</label>
-                <div className="flex space-x-3">
-                  <input
-                    type="number"
-                    value={customAmount}
-                    onChange={(e) => setCustomAmount(e.target.value)}
-                    placeholder="ml"
-                    min="1"
-                    max="2000"
-                    className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                  <button
-                    onClick={handleCustomAmountAdd}
-                    disabled={!customAmount || parseInt(customAmount) <= 0}
-                    className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-medium disabled:opacity-50 disabled:cursor-not-allowed !rounded-button"
-                  >
-                    Agregar
-                  </button>
-                </div>
-                <p className="text-xs text-gray-500 mt-1">Máximo 2000ml por vez</p>
-              </div>
-
-              {/* Resumen del día */}
-              <div className="bg-gray-50 rounded-xl p-4">
-                <h4 className="font-medium text-gray-800 mb-3">Resumen del día</h4>
-                <div className="space-y-2">
-                  {liquidIntake.filter(l => l.amount > 0).map((liquid, index) => (
-                    <div key={index} className="flex items-center justify-between text-sm">
-                      <div className="flex items-center space-x-2">
-                        <div className={`w-4 h-4 bg-${liquid.color}-100 rounded-full flex items-center justify-center`}>
-                          <i className={`${liquid.icon} text-${liquid.color}-600 text-xs`}></i>
-                        </div>
-                        <span className="text-gray-700">{liquid.name}</span>
-                      </div>
-                      <span className="font-medium text-gray-800">{liquid.amount}ml</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="border-t border-gray-200 mt-3 pt-3">
-                  <div className="flex justify-between text-sm font-semibold">
-                    <span>Total</span>
-                    <span>{(getTotalLiquidIntake() / 1000).toFixed(1)}L</span>
-                  </div>
-                </div>
-              </div>
+            <div style={{
+              display: 'flex',
+              gap: '8px'
+            }}>
+              <button
+                onClick={() => setShowHydrationSettings(false)}
+                style={{
+                  flex: 1,
+                  padding: '12px 16px',
+                  borderRadius: '12px',
+                  border: '1px solid #e5e7eb',
+                  backgroundColor: 'white',
+                  color: '#6b7280',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSaveHydrationSettings}
+                style={{
+                  flex: 1,
+                  padding: '12px 16px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  backgroundColor: '#3b82f6',
+                  color: 'white',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer'
+                }}
+              >
+                Guardar
+              </button>
             </div>
           </div>
         </div>
@@ -964,235 +1840,450 @@ export default function Nutrition() {
 
       {/* Fiber Modal */}
       {showFiberModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-6 border-b border-gray-100">
-              <h3 className="text-lg font-semibold text-gray-800">Seguimiento de Fibra</h3>
-              <button 
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 50
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '16px',
+            padding: '24px',
+            width: '360px',
+            maxHeight: '90vh',
+            overflowY: 'auto'
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              marginBottom: '16px'
+            }}>
+              <h3 style={{
+                fontSize: '18px',
+                fontWeight: '600',
+                color: '#1f2937',
+                margin: 0
+              }}>Control de Fibra</h3>
+              <button
                 onClick={() => setShowFiberModal(false)}
-                className="w-8 h-8 flex items-center justify-center"
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: 'none',
+                  backgroundColor: 'transparent',
+                  cursor: 'pointer'
+                }}
               >
-                <i className="ri-close-line text-gray-600 text-lg"></i>
+                <i className="ri-close-line" style={{ color: '#6b7280', fontSize: '18px' }}></i>
               </button>
             </div>
 
-            <div className="p-6">
-              {/* Progreso actual */}
-              <div className="text-center mb-6">
-                <div className="relative w-20 h-20 mx-auto mb-4">
-                  <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                    <path
-                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                      fill="none"
-                      stroke="#e5e7eb"
-                      strokeWidth="4"
-                    />
-                    <path
-                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                      fill="none"
-                      stroke="#10b981"
-                      strokeWidth="4"
-                      strokeDasharray={`${getFiberPercentage()}, 100`}
-                    />
-                  </svg>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-sm font-bold text-green-600">{Math.round(getFiberPercentage())}%</span>
-                  </div>
-                </div>
-                <p className="text-2xl font-bold text-gray-800 mb-1">{currentFiber}g</p>
-                <p className="text-gray-600">de {fiberGoal}g objetivo</p>
-                {currentFiber >= fiberGoal && (
-                  <div className="mt-2 text-green-600 text-sm font-medium">
-                    ¡Meta alcanzada!
-                  </div>
-                )}
+            <div style={{
+              textAlign: 'center',
+              marginBottom: '24px'
+            }}>
+              <div style={{
+                width: '80px',
+                height: '80px',
+                backgroundColor: '#dcfce7',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 16px auto'
+              }}>
+                <i className="ri-leaf-line" style={{ color: '#16a34a', fontSize: '32px' }}></i>
               </div>
+              <p style={{
+                fontSize: '36px',
+                fontWeight: '700',
+                color: '#1f2937',
+                margin: '0 0 8px 0'
+              }}>{currentFiber}g</p>
+              <p style={{
+                fontSize: '14px',
+                color: '#6b7280',
+                margin: '0 0 16px 0'
+              }}>de {fiberGoal}g objetivo</p>
+              <div style={{
+                width: '100%',
+                backgroundColor: '#e5e7eb',
+                borderRadius: '12px',
+                height: '8px',
+                overflow: 'hidden'
+              }}>
+                <div 
+                  style={{
+                    backgroundColor: '#16a34a',
+                    height: '8px',
+                    borderRadius: '12px',
+                    transition: 'all 0.3s',
+                    width: `${getFiberPercentage()}%`
+                  }}
+                ></div>
+              </div>
+            </div>
 
-              {/* Alimentos consumidos hoy */}
-              <div className="mb-6">
-                <h4 className="font-medium text-gray-800 mb-3">Alimentos ricos en fibra consumidos hoy</h4>
-                <div className="space-y-2">
-                  {fiberFoods.map((food, index) => (
-                    <div key={index} className="flex items-center justify-between bg-gray-50 rounded-lg p-3">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                          <i className={`${food.icon} text-green-600 text-sm`}></i>
+            <div style={{ marginBottom: '24px' }}>
+              <p style={{
+                fontSize: '14px',
+                fontWeight: '500',
+                color: '#1f2937',
+                marginBottom: '12px'
+              }}>Fuentes de fibra:</p>
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px'
+              }}>
+                {fiberFoods.map((food, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleAddFiber(food.fiber)}
+                    style={{
+                      backgroundColor: '#f0fdf4',
+                      padding: '12px 16px',
+                      borderRadius: '12px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      textAlign: 'left'
+                    }}
+                    onMouseEnter={(e) => e.target.style.backgroundColor = '#dcfce7'}
+                    onMouseLeave={(e) => e.target.style.backgroundColor = '#f0fdf4'}
+                  >
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between'
+                    }}>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px'
+                      }}>
+                        <div style={{
+                          width: '32px',
+                          height: '32px',
+                          backgroundColor: '#dcfce7',
+                          borderRadius: '50%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}>
+                          <i className={food.icon} style={{ color: '#16a34a', fontSize: '16px' }}></i>
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-gray-800">{food.name}</p>
-                          <p className="text-xs text-gray-500">{food.category}</p>
+                          <p style={{
+                            fontSize: '14px',
+                            fontWeight: '500',
+                            color: '#1f2937',
+                            margin: '0 0 2px 0'
+                          }}>{food.name}</p>
+                          <p style={{
+                            fontSize: '12px',
+                            color: '#6b7280',
+                            margin: 0
+                          }}>{food.category}</p>
                         </div>
                       </div>
-                      <span className="text-sm font-semibold text-green-600">{food.fiber}g</span>
+                      <span style={{
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        color: '#16a34a'
+                      }}>+{food.fiber}g</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {getFiberRecommendations().length > 0 && (
+              <div style={{
+                backgroundColor: '#f0fdf4',
+                borderRadius: '12px',
+                padding: '16px',
+                marginBottom: '16px'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  marginBottom: '12px'
+                }}>
+                  <div style={{
+                    width: '32px',
+                    height: '32px',
+                    backgroundColor: '#dcfce7',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <i className="ri-information-line" style={{ color: '#16a34a', fontSize: '16px' }}></i>
+                  </div>
+                  <div>
+                    <p style={{
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      color: '#1f2937',
+                      margin: '0 0 4px 0'
+                    }}>Recomendaciones</p>
+                    <p style={{
+                      fontSize: '12px',
+                      color: '#6b7280',
+                      margin: 0
+                    }}>Te faltan {Math.max(0, fiberGoal - currentFiber)}g para alcanzar tu meta diaria</p>
+                  </div>
+                </div>
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '6px'
+                }}>
+                  {getFiberRecommendations().slice(0, 3).map((rec, index) => (
+                    <div key={index} style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '8px 12px',
+                      backgroundColor: '#dcfce7',
+                      borderRadius: '8px'
+                    }}>
+                      <span style={{
+                        fontSize: '12px',
+                        color: '#1f2937'
+                      }}>{rec.name}</span>
+                      <span style={{
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        color: '#16a34a'
+                      }}>{rec.fiber}g</span>
                     </div>
                   ))}
                 </div>
               </div>
+            )}
 
-              {/* Agregar fibra rápido */}
-              <div className="mb-6">
-                <h4 className="font-medium text-gray-800 mb-3">Agregar fibra</h4>
-                <div className="grid grid-cols-4 gap-2 mb-4">
-                  {[2, 4, 6, 8].map((amount) => (
-                    <button
-                      key={amount}
-                      onClick={() => handleAddFiber(amount)}
-                      className="py-2 px-2 bg-green-50 text-green-600 rounded-xl text-sm font-medium !rounded-button"
-                    >
-                      +{amount}g
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Recomendaciones */}
-              {getFiberRecommendations().length > 0 && (
-                <div className="mb-6">
-                  <h4 className="font-medium text-gray-800 mb-3">Sugerencias para completar tu meta</h4>
-                  <div className="space-y-2">
-                    {getFiberRecommendations().slice(0, 3).map((rec, index) => (
-                      <button
-                        key={index}
-                        onClick={() => handleAddFiber(rec.fiber)}
-                        className="w-full flex items-center justify-between bg-green-50 rounded-lg p-3 hover:bg-green-100 transition-colors"
-                      >
-                        <div className="flex items-center space-x-3">
-                          <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
-                            <i className={`${rec.icon} text-green-600 text-xs`}></i>
-                          </div>
-                          <span className="text-sm text-gray-700">{rec.name}</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <span className="text-sm font-medium text-green-600">+{rec.fiber}g</span>
-                          <i className="ri-add-circle-line text-green-600"></i>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Información sobre fibra */}
-              <div className="bg-blue-50 rounded-xl p-4 mb-6">
-                <div className="flex items-start space-x-3">
-                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <i className="ri-information-line text-blue-600 text-sm"></i>
-                  </div>
-                  <div>
-                    <h5 className="font-medium text-blue-800 mb-2">Beneficios de la fibra</h5>
-                    <ul className="text-sm text-blue-700 space-y-1">
-                      <li>• Mejora la digestión</li>
-                      <li>• Ayuda a controlar el peso</li>
-                      <li>• Reduce el colesterol</li>
-                      <li>• Regula el azúcar en sangre</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-
-              {/* Configurar meta */}
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-3">
-                  <label className="text-sm font-medium text-gray-700">Meta diaria de fibra</label>
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => setFiberGoal(Math.max(20, fiberGoal - 5))}
-                      className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center"
-                    >
-                      <i className="ri-subtract-line text-gray-600"></i>
-                    </button>
-                    <span className="text-lg font-bold text-gray-800 min-w-[50px] text-center">{fiberGoal}g</span>
-                    <button
-                      onClick={() => setFiberGoal(Math.min(50, fiberGoal + 5))}
-                      className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center"
-                    >
-                      <i className="ri-add-line text-gray-600"></i>
-                    </button>
-                  </div>
-                </div>
-                <div className="flex justify-between text-xs text-gray-500">
-                  <span>Recomendado: 25-35g/día</span>
-                  <span>Rango: 20-50g</span>
-                </div>
-              </div>
-
-              <div className="flex space-x-3">
-                <button
-                  onClick={() => setCurrentFiber(0)}
-                  className="flex-1 py-3 px-4 border border-gray-300 rounded-xl text-gray-700 font-medium !rounded-button"
-                >
-                  Reiniciar Día
-                </button>
-                <button
-                  onClick={() => setShowFiberModal(false)}
-                  className="flex-1 py-3 px-4 bg-gradient-to-r from-green-500 to-green-600 text-white font-medium rounded-xl !rounded-button"
-                >
-                  Cerrar
-                </button>
-              </div>
+            <div style={{
+              display: 'flex',
+              gap: '8px'
+            }}>
+              <button
+                onClick={handleFiberSettings}
+                style={{
+                  flex: 1,
+                  padding: '12px 16px',
+                  borderRadius: '12px',
+                  border: '1px solid #e5e7eb',
+                  backgroundColor: 'white',
+                  color: '#6b7280',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer'
+                }}
+              >
+                Configurar
+              </button>
+              <button
+                onClick={() => setShowFiberModal(false)}
+                style={{
+                  flex: 1,
+                  padding: '12px 16px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  backgroundColor: '#16a34a',
+                  color: 'white',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer'
+                }}
+              >
+                Listo
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Date Picker Modal */}
-      {showDatePicker && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-800">Seleccionar Fecha</h3>
-              <button 
-                onClick={() => setShowDatePicker(false)}
-                className="w-8 h-8 flex items-center justify-center"
+      {/* Fiber Settings Modal */}
+      {showFiberSettings && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 50
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '16px',
+            padding: '24px',
+            width: '360px',
+            maxHeight: '90vh',
+            overflowY: 'auto'
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              marginBottom: '16px'
+            }}>
+              <h3 style={{
+                fontSize: '18px',
+                fontWeight: '600',
+                color: '#1f2937',
+                margin: 0
+              }}>Configuración de Fibra</h3>
+              <button
+                onClick={() => setShowFiberSettings(false)}
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: 'none',
+                  backgroundColor: 'transparent',
+                  cursor: 'pointer'
+                }}
               >
-                <i className="ri-close-line text-gray-600 text-lg"></i>
+                <i className="ri-close-line" style={{ color: '#6b7280', fontSize: '18px' }}></i>
               </button>
             </div>
 
-            <div className="mb-6">
+            {/* Meta diaria de fibra */}
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{
+                fontSize: '14px',
+                fontWeight: '500',
+                color: '#1f2937',
+                marginBottom: '8px',
+                display: 'block'
+              }}>Meta diaria de fibra (g)</label>
               <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => handleDateChange(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center text-lg"
+                type="number"
+                min="10"
+                max="60"
+                step="1"
+                value={tempFiberGoal}
+                onChange={(e) => setTempFiberGoal(parseFloat(e.target.value) || 30)}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  borderRadius: '12px',
+                  border: '1px solid #e5e7eb',
+                  fontSize: '16px'
+                }}
               />
+              <p style={{
+                fontSize: '12px',
+                color: '#6b7280',
+                marginTop: '8px',
+                margin: '8px 0 0 0'
+              }}>Recomendado: 25-35g diarios para adultos</p>
             </div>
 
-            <div className="grid grid-cols-3 gap-2 mb-6">
-              <button
-                onClick={() => handleDateChange(new Date().toISOString().split('T')[0])}
-                className="py-2 px-3 bg-blue-50 text-blue-600 rounded-lg text-sm font-medium !rounded-button"
-              >
-                Hoy
-              </button>
-              <button
-                onClick={() => {
-                  const yesterday = new Date();
-                  yesterday.setDate(yesterday.getDate() - 1);
-                  handleDateChange(yesterday.toISOString().split('T')[0]);
-                }}
-                className="py-2 px-3 bg-gray-50 text-gray-600 rounded-lg text-sm font-medium !rounded-button"
-              >
-                Ayer
-              </button>
-              <button
-                onClick={() => {
-                  const lastWeek = new Date();
-                  lastWeek.setDate(lastWeek.getDate() - 7);
-                  handleDateChange(lastWeek.toISOString().split('T')[0]);
-                }}
-                className="py-2 px-3 bg-gray-50 text-gray-600 rounded-lg text-sm font-medium !rounded-button"
-              >
-                Hace 7 días
-              </button>
+            {/* Info sobre fibra */}
+            <div style={{
+              backgroundColor: '#f0fdf4',
+              borderRadius: '12px',
+              padding: '16px',
+              marginBottom: '24px'
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                marginBottom: '12px'
+              }}>
+                <div style={{
+                  width: '32px',
+                  height: '32px',
+                  backgroundColor: '#dcfce7',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <i className="ri-information-line" style={{ color: '#16a34a', fontSize: '16px' }}></i>
+                </div>
+                <div>
+                  <p style={{
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: '#1f2937',
+                    margin: '0 0 4px 0'
+                  }}>Beneficios de la fibra</p>
+                  <p style={{
+                    fontSize: '12px',
+                    color: '#6b7280',
+                    margin: 0
+                  }}>Mejora la digestión, controla el azúcar en sangre y reduce el colesterol</p>
+                </div>
+              </div>
+              <div style={{
+                fontSize: '12px',
+                color: '#6b7280',
+                lineHeight: '1.4'
+              }}>
+                <p style={{ margin: '0 0 8px 0' }}>• Mujeres: 21-25g diarios</p>
+                <p style={{ margin: '0 0 8px 0' }}>• Hombres: 30-38g diarios</p>
+                <p style={{ margin: 0 }}>• Aumenta gradualmente para evitar molestias</p>
+              </div>
             </div>
 
-            <button
-              onClick={() => setShowDatePicker(false)}
-              className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 rounded-xl font-medium !rounded-button"
-            >
-              Confirmar
-            </button>
+            <div style={{
+              display: 'flex',
+              gap: '8px'
+            }}>
+              <button
+                onClick={() => setShowFiberSettings(false)}
+                style={{
+                  flex: 1,
+                  padding: '12px 16px',
+                  borderRadius: '12px',
+                  border: '1px solid #e5e7eb',
+                  backgroundColor: 'white',
+                  color: '#6b7280',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSaveFiberSettings}
+                style={{
+                  flex: 1,
+                  padding: '12px 16px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  backgroundColor: '#16a34a',
+                  color: 'white',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer'
+                }}
+              >
+                Guardar
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -1200,46 +2291,17 @@ export default function Nutrition() {
       {/* Overlay to close menu when clicking outside */}
       {showOptionsMenu && (
         <div 
-          className="fixed inset-0 z-40" 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 40
+          }}
           onClick={() => setShowOptionsMenu(false)}
         ></div>
       )}
-
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 w-full bg-white border-t border-gray-200">
-        <div className="grid grid-cols-5 py-2">
-          <Link href="/" className="flex flex-col items-center justify-center py-2 px-1">
-            <div className="w-6 h-6 flex items-center justify-center mb-1">
-              <i className="ri-home-line text-gray-400 text-lg"></i>
-            </div>
-            <span className="text-xs text-gray-400">Inicio</span>
-          </Link>
-          <Link href="/nutrition" className="flex flex-col items-center justify-center py-2 px-1">
-            <div className="w-6 h-6 flex items-center justify-center mb-1">
-              <i className="ri-pie-chart-line text-blue-600 text-lg"></i>
-            </div>
-            <span className="text-xs text-blue-600 font-medium">Nutrición</span>
-          </Link>
-          <Link href="/add-food" className="flex flex-col items-center justify-center py-2 px-1">
-            <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mb-1">
-              <i className="ri-add-line text-white text-lg"></i>
-            </div>
-            <span className="text-xs text-gray-400">Agregar</span>
-          </Link>
-          <Link href="/progress" className="flex flex-col items-center justify-center py-2 px-1">
-            <div className="w-6 h-6 flex items-center justify-center mb-1">
-              <i className="ri-line-chart-line text-gray-400 text-lg"></i>
-            </div>
-            <span className="text-xs text-gray-400">Progreso</span>
-          </Link>
-          <Link href="/profile" className="flex flex-col items-center justify-center py-2 px-1">
-            <div className="w-6 h-6 flex items-center justify-center mb-1">
-              <i className="ri-user-line text-gray-400 text-lg"></i>
-            </div>
-            <span className="text-xs text-gray-400">Perfil</span>
-          </Link>
-        </div>
-      </nav>
     </div>
   );
 }

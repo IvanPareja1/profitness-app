@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -46,127 +47,312 @@ export default function Settings() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #f0f9ff 0%, #e0e7ff 100%)'
+    }}>
       {/* Header */}
-      <header className="fixed top-0 w-full bg-white/90 backdrop-blur-sm border-b border-gray-200 z-50">
-        <div className="flex items-center justify-between px-4 py-3">
-          <Link href="/profile" className="w-8 h-8 flex items-center justify-center">
-            <i className="ri-arrow-left-line text-gray-600 text-xl"></i>
+      <header style={{
+        position: 'fixed',
+        top: 0,
+        width: '100%',
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        backdropFilter: 'blur(8px)',
+        borderBottom: '1px solid #e5e7eb',
+        zIndex: 50
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '12px 16px'
+        }}>
+          <Link href="/profile" style={{
+            width: '32px',
+            height: '32px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            textDecoration: 'none'
+          }}>
+            <i className="ri-arrow-left-line" style={{ color: '#6b7280', fontSize: '20px' }}></i>
           </Link>
-          <h1 className="text-lg font-semibold">Settings</h1>
-          <div className="w-8 h-8"></div>
+          <h1 style={{
+            fontSize: '18px',
+            fontWeight: '600',
+            color: '#1f2937',
+            margin: 0
+          }}>Configuración</h1>
+          <div style={{ width: '32px', height: '32px' }}></div>
         </div>
       </header>
 
-      <main className="pt-16 pb-20 px-4">
+      <main style={{
+        paddingTop: '64px',
+        paddingBottom: '80px',
+        padding: '64px 16px 80px 16px'
+      }}>
         {/* Notifications Section */}
-        <div className="bg-white rounded-2xl p-6 shadow-lg mb-6 mt-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Notifications</h3>
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '16px',
+          padding: '24px',
+          boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+          marginBottom: '24px',
+          marginTop: '24px'
+        }}>
+          <h3 style={{
+            fontSize: '18px',
+            fontWeight: '600',
+            color: '#1f2937',
+            marginBottom: '16px',
+            margin: '0 0 16px 0'
+          }}>Notificaciones</h3>
           
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
               <div>
-                <p className="font-medium text-gray-800">Push Notifications</p>
-                <p className="text-sm text-gray-500">Receive alerts on your device</p>
+                <p style={{
+                  fontWeight: '500',
+                  color: '#1f2937',
+                  margin: '0 0 4px 0'
+                }}>Notificaciones Push</p>
+                <p style={{
+                  fontSize: '14px',
+                  color: '#6b7280',
+                  margin: 0
+                }}>Recibe alertas en tu dispositivo</p>
               </div>
               <button
                 onClick={() => handleNotificationToggle('pushNotifications')}
-                className={`relative w-12 h-6 rounded-full transition-colors ${
-                  notifications.pushNotifications ? 'bg-blue-600' : 'bg-gray-300'
-                }`}
+                style={{
+                  position: 'relative',
+                  width: '48px',
+                  height: '24px',
+                  borderRadius: '24px',
+                  transition: 'background-color 0.2s',
+                  backgroundColor: notifications.pushNotifications ? '#3b82f6' : '#d1d5db',
+                  border: 'none',
+                  cursor: 'pointer'
+                }}
               >
-                <div
-                  className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
-                    notifications.pushNotifications ? 'translate-x-6' : 'translate-x-0.5'
-                  }`}
-                />
+                <div style={{
+                  position: 'absolute',
+                  top: '2px',
+                  width: '20px',
+                  height: '20px',
+                  backgroundColor: 'white',
+                  borderRadius: '50%',
+                  transition: 'transform 0.2s',
+                  transform: notifications.pushNotifications ? 'translateX(24px)' : 'translateX(2px)'
+                }}></div>
               </button>
             </div>
 
-            <div className="flex items-center justify-between">
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
               <div>
-                <p className="font-medium text-gray-800">Email Reminders</p>
-                <p className="text-sm text-gray-500">Get reminders via email</p>
+                <p style={{
+                  fontWeight: '500',
+                  color: '#1f2937',
+                  margin: '0 0 4px 0'
+                }}>Recordatorios por Email</p>
+                <p style={{
+                  fontSize: '14px',
+                  color: '#6b7280',
+                  margin: 0
+                }}>Recibe recordatorios vía correo</p>
               </div>
               <button
                 onClick={() => handleNotificationToggle('emailReminders')}
-                className={`relative w-12 h-6 rounded-full transition-colors ${
-                  notifications.emailReminders ? 'bg-blue-600' : 'bg-gray-300'
-                }`}
+                style={{
+                  position: 'relative',
+                  width: '48px',
+                  height: '24px',
+                  borderRadius: '24px',
+                  transition: 'background-color 0.2s',
+                  backgroundColor: notifications.emailReminders ? '#3b82f6' : '#d1d5db',
+                  border: 'none',
+                  cursor: 'pointer'
+                }}
               >
-                <div
-                  className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
-                    notifications.emailReminders ? 'translate-x-6' : 'translate-x-0.5'
-                  }`}
-                />
+                <div style={{
+                  position: 'absolute',
+                  top: '2px',
+                  width: '20px',
+                  height: '20px',
+                  backgroundColor: 'white',
+                  borderRadius: '50%',
+                  transition: 'transform 0.2s',
+                  transform: notifications.emailReminders ? 'translateX(24px)' : 'translateX(2px)'
+                }}></div>
               </button>
             </div>
 
-            <div className="flex items-center justify-between">
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
               <div>
-                <p className="font-medium text-gray-800">Weekly Reports</p>
-                <p className="text-sm text-gray-500">Summary of your progress</p>
+                <p style={{
+                  fontWeight: '500',
+                  color: '#1f2937',
+                  margin: '0 0 4px 0'
+                }}>Reportes Semanales</p>
+                <p style={{
+                  fontSize: '14px',
+                  color: '#6b7280',
+                  margin: 0
+                }}>Resumen de tu progreso</p>
               </div>
               <button
                 onClick={() => handleNotificationToggle('weeklyReports')}
-                className={`relative w-12 h-6 rounded-full transition-colors ${
-                  notifications.weeklyReports ? 'bg-blue-600' : 'bg-gray-300'
-                }`}
+                style={{
+                  position: 'relative',
+                  width: '48px',
+                  height: '24px',
+                  borderRadius: '24px',
+                  transition: 'background-color 0.2s',
+                  backgroundColor: notifications.weeklyReports ? '#3b82f6' : '#d1d5db',
+                  border: 'none',
+                  cursor: 'pointer'
+                }}
               >
-                <div
-                  className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
-                    notifications.weeklyReports ? 'translate-x-6' : 'translate-x-0.5'
-                  }`}
-                />
+                <div style={{
+                  position: 'absolute',
+                  top: '2px',
+                  width: '20px',
+                  height: '20px',
+                  backgroundColor: 'white',
+                  borderRadius: '50%',
+                  transition: 'transform 0.2s',
+                  transform: notifications.weeklyReports ? 'translateX(24px)' : 'translateX(2px)'
+                }}></div>
               </button>
             </div>
 
-            <div className="flex items-center justify-between">
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
               <div>
-                <p className="font-medium text-gray-800">Meal Reminders</p>
-                <p className="text-sm text-gray-500">Reminders to log meals</p>
+                <p style={{
+                  fontWeight: '500',
+                  color: '#1f2937',
+                  margin: '0 0 4px 0'
+                }}>Recordatorios de Comida</p>
+                <p style={{
+                  fontSize: '14px',
+                  color: '#6b7280',
+                  margin: 0
+                }}>Recordatorios para registrar comidas</p>
               </div>
               <button
                 onClick={() => handleNotificationToggle('mealReminders')}
-                className={`relative w-12 h-6 rounded-full transition-colors ${
-                  notifications.mealReminders ? 'bg-blue-600' : 'bg-gray-300'
-                }`}
+                style={{
+                  position: 'relative',
+                  width: '48px',
+                  height: '24px',
+                  borderRadius: '24px',
+                  transition: 'background-color 0.2s',
+                  backgroundColor: notifications.mealReminders ? '#3b82f6' : '#d1d5db',
+                  border: 'none',
+                  cursor: 'pointer'
+                }}
               >
-                <div
-                  className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
-                    notifications.mealReminders ? 'translate-x-6' : 'translate-x-0.5'
-                  }`}
-                />
+                <div style={{
+                  position: 'absolute',
+                  top: '2px',
+                  width: '20px',
+                  height: '20px',
+                  backgroundColor: 'white',
+                  borderRadius: '50%',
+                  transition: 'transform 0.2s',
+                  transform: notifications.mealReminders ? 'translateX(24px)' : 'translateX(2px)'
+                }}></div>
               </button>
             </div>
           </div>
         </div>
 
         {/* Preferences Section */}
-        <div className="bg-white rounded-2xl p-6 shadow-lg mb-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Preferences</h3>
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '16px',
+          padding: '24px',
+          boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+          marginBottom: '24px'
+        }}>
+          <h3 style={{
+            fontSize: '18px',
+            fontWeight: '600',
+            color: '#1f2937',
+            marginBottom: '16px',
+            margin: '0 0 16px 0'
+          }}>Preferencias</h3>
           
-          <div className="space-y-6">
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '24px'
+          }}>
             <div>
-              <p className="font-medium text-gray-800 mb-3">Units</p>
-              <div className="flex space-x-2">
+              <p style={{
+                fontWeight: '500',
+                color: '#1f2937',
+                marginBottom: '12px',
+                margin: '0 0 12px 0'
+              }}>Unidades</p>
+              <div style={{
+                display: 'flex',
+                gap: '8px'
+              }}>
                 <button
                   onClick={() => handlePreferenceChange('units', 'metric')}
-                  className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all !rounded-button ${
-                    preferences.units === 'metric'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-600'
-                  }`}
+                  className="!rounded-button"
+                  style={{
+                    flex: 1,
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    transition: 'all 0.2s',
+                    border: 'none',
+                    cursor: 'pointer',
+                    backgroundColor: preferences.units === 'metric' ? '#3b82f6' : '#f3f4f6',
+                    color: preferences.units === 'metric' ? 'white' : '#6b7280'
+                  }}
                 >
-                  Metric (kg, cm)
+                  Métrico (kg, cm)
                 </button>
                 <button
                   onClick={() => handlePreferenceChange('units', 'imperial')}
-                  className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all !rounded-button ${
-                    preferences.units === 'imperial'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-600'
-                  }`}
+                  className="!rounded-button"
+                  style={{
+                    flex: 1,
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    transition: 'all 0.2s',
+                    border: 'none',
+                    cursor: 'pointer',
+                    backgroundColor: preferences.units === 'imperial' ? '#3b82f6' : '#f3f4f6',
+                    color: preferences.units === 'imperial' ? 'white' : '#6b7280'
+                  }}
                 >
                   Imperial (lbs, ft)
                 </button>
@@ -174,25 +360,48 @@ export default function Settings() {
             </div>
 
             <div>
-              <p className="font-medium text-gray-800 mb-3">Language</p>
-              <div className="grid grid-cols-2 gap-2">
+              <p style={{
+                fontWeight: '500',
+                color: '#1f2937',
+                marginBottom: '12px',
+                margin: '0 0 12px 0'
+              }}>Idioma</p>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, 1fr)',
+                gap: '8px'
+              }}>
                 <button
                   onClick={() => handlePreferenceChange('language', 'es')}
-                  className={`py-2 px-4 rounded-lg text-sm font-medium transition-all !rounded-button ${
-                    preferences.language === 'es'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-600'
-                  }`}
+                  className="!rounded-button"
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    transition: 'all 0.2s',
+                    border: 'none',
+                    cursor: 'pointer',
+                    backgroundColor: preferences.language === 'es' ? '#3b82f6' : '#f3f4f6',
+                    color: preferences.language === 'es' ? 'white' : '#6b7280'
+                  }}
                 >
                   Español
                 </button>
                 <button
                   onClick={() => handlePreferenceChange('language', 'en')}
-                  className={`py-2 px-4 rounded-lg text-sm font-medium transition-all !rounded-button ${
-                    preferences.language === 'en'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-600'
-                  }`}
+                  className="!rounded-button"
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    transition: 'all 0.2s',
+                    border: 'none',
+                    cursor: 'pointer',
+                    backgroundColor: preferences.language === 'en' ? '#3b82f6' : '#f3f4f6',
+                    color: preferences.language === 'en' ? 'white' : '#6b7280'
+                  }}
                 >
                   English
                 </button>
@@ -200,27 +409,51 @@ export default function Settings() {
             </div>
 
             <div>
-              <p className="font-medium text-gray-800 mb-3">Theme</p>
-              <div className="flex space-x-2">
+              <p style={{
+                fontWeight: '500',
+                color: '#1f2937',
+                marginBottom: '12px',
+                margin: '0 0 12px 0'
+              }}>Tema</p>
+              <div style={{
+                display: 'flex',
+                gap: '8px'
+              }}>
                 <button
                   onClick={() => handlePreferenceChange('theme', 'light')}
-                  className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all !rounded-button ${
-                    preferences.theme === 'light'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-600'
-                  }`}
+                  className="!rounded-button"
+                  style={{
+                    flex: 1,
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    transition: 'all 0.2s',
+                    border: 'none',
+                    cursor: 'pointer',
+                    backgroundColor: preferences.theme === 'light' ? '#3b82f6' : '#f3f4f6',
+                    color: preferences.theme === 'light' ? 'white' : '#6b7280'
+                  }}
                 >
-                  Light
+                  Claro
                 </button>
                 <button
                   onClick={() => handlePreferenceChange('theme', 'dark')}
-                  className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all !rounded-button ${
-                    preferences.theme === 'dark'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-600'
-                  }`}
+                  className="!rounded-button"
+                  style={{
+                    flex: 1,
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    transition: 'all 0.2s',
+                    border: 'none',
+                    cursor: 'pointer',
+                    backgroundColor: preferences.theme === 'dark' ? '#3b82f6' : '#f3f4f6',
+                    color: preferences.theme === 'dark' ? 'white' : '#6b7280'
+                  }}
                 >
-                  Dark
+                  Oscuro
                 </button>
               </div>
             </div>
@@ -228,122 +461,359 @@ export default function Settings() {
         </div>
 
         {/* Privacy Section */}
-        <div className="bg-white rounded-2xl p-6 shadow-lg mb-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Privacy & Data</h3>
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '16px',
+          padding: '24px',
+          boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+          marginBottom: '24px'
+        }}>
+          <h3 style={{
+            fontSize: '18px',
+            fontWeight: '600',
+            color: '#1f2937',
+            marginBottom: '16px',
+            margin: '0 0 16px 0'
+          }}>Privacidad y Datos</h3>
           
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
               <div>
-                <p className="font-medium text-gray-800">Data Analytics</p>
-                <p className="text-sm text-gray-500">Help improve the app</p>
+                <p style={{
+                  fontWeight: '500',
+                  color: '#1f2937',
+                  margin: '0 0 4px 0'
+                }}>Análisis de Datos</p>
+                <p style={{
+                  fontSize: '14px',
+                  color: '#6b7280',
+                  margin: 0
+                }}>Ayudar a mejorar la aplicación</p>
               </div>
               <button
                 onClick={() => handlePrivacyToggle('analytics')}
-                className={`relative w-12 h-6 rounded-full transition-colors ${
-                  privacy.analytics ? 'bg-blue-600' : 'bg-gray-300'
-                }`}
+                style={{
+                  position: 'relative',
+                  width: '48px',
+                  height: '24px',
+                  borderRadius: '24px',
+                  transition: 'background-color 0.2s',
+                  backgroundColor: privacy.analytics ? '#3b82f6' : '#d1d5db',
+                  border: 'none',
+                  cursor: 'pointer'
+                }}
               >
-                <div
-                  className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
-                    privacy.analytics ? 'translate-x-6' : 'translate-x-0.5'
-                  }`}
-                />
+                <div style={{
+                  position: 'absolute',
+                  top: '2px',
+                  width: '20px',
+                  height: '20px',
+                  backgroundColor: 'white',
+                  borderRadius: '50%',
+                  transition: 'transform 0.2s',
+                  transform: privacy.analytics ? 'translateX(24px)' : 'translateX(2px)'
+                }}></div>
               </button>
             </div>
 
-            <div className="flex items-center justify-between">
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
               <div>
-                <p className="font-medium text-gray-800">Data Sharing</p>
-                <p className="text-sm text-gray-500">Share data with partners</p>
+                <p style={{
+                  fontWeight: '500',
+                  color: '#1f2937',
+                  margin: '0 0 4px 0'
+                }}>Compartir Datos</p>
+                <p style={{
+                  fontSize: '14px',
+                  color: '#6b7280',
+                  margin: 0
+                }}>Compartir datos con socios</p>
               </div>
               <button
                 onClick={() => handlePrivacyToggle('dataSharing')}
-                className={`relative w-12 h-6 rounded-full transition-colors ${
-                  privacy.dataSharing ? 'bg-blue-600' : 'bg-gray-300'
-                }`}
+                style={{
+                  position: 'relative',
+                  width: '48px',
+                  height: '24px',
+                  borderRadius: '24px',
+                  transition: 'background-color 0.2s',
+                  backgroundColor: privacy.dataSharing ? '#3b82f6' : '#d1d5db',
+                  border: 'none',
+                  cursor: 'pointer'
+                }}
               >
-                <div
-                  className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
-                    privacy.dataSharing ? 'translate-x-6' : 'translate-x-0.5'
-                  }`}
-                />
+                <div style={{
+                  position: 'absolute',
+                  top: '2px',
+                  width: '20px',
+                  height: '20px',
+                  backgroundColor: 'white',
+                  borderRadius: '50%',
+                  transition: 'transform 0.2s',
+                  transform: privacy.dataSharing ? 'translateX(24px)' : 'translateX(2px)'
+                }}></div>
               </button>
             </div>
           </div>
         </div>
 
         {/* Account Actions */}
-        <div className="bg-white rounded-2xl shadow-lg mb-6 overflow-hidden">
-          <button className="w-full flex items-center justify-between p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                <i className="ri-download-line text-blue-600 text-sm"></i>
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '16px',
+          boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+          marginBottom: '24px',
+          overflow: 'hidden'
+        }}>
+          <button style={{
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '16px',
+            borderBottom: '1px solid #f3f4f6',
+            border: 'none',
+            backgroundColor: 'transparent',
+            cursor: 'pointer',
+            transition: 'background-color 0.2s'
+          }}
+          onMouseEnter={(e) => e.target.style.backgroundColor = '#f9fafb'}
+          onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+          >
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px'
+            }}>
+              <div style={{
+                width: '32px',
+                height: '32px',
+                backgroundColor: '#dbeafe',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <i className="ri-download-line" style={{ color: '#3b82f6', fontSize: '14px' }}></i>
               </div>
-              <span className="text-gray-700">Export Data</span>
+              <span style={{ color: '#374151' }}>Exportar Datos</span>
             </div>
-            <i className="ri-arrow-right-s-line text-gray-400 text-lg"></i>
+            <i className="ri-arrow-right-s-line" style={{ color: '#9ca3af', fontSize: '18px' }}></i>
           </button>
           
-          <button className="w-full flex items-center justify-between p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
-                <i className="ri-refresh-line text-orange-600 text-sm"></i>
+          <button style={{
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '16px',
+            borderBottom: '1px solid #f3f4f6',
+            border: 'none',
+            backgroundColor: 'transparent',
+            cursor: 'pointer',
+            transition: 'background-color 0.2s'
+          }}
+          onMouseEnter={(e) => e.target.style.backgroundColor = '#f9fafb'}
+          onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+          >
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px'
+            }}>
+              <div style={{
+                width: '32px',
+                height: '32px',
+                backgroundColor: '#fed7aa',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <i className="ri-refresh-line" style={{ color: '#ea580c', fontSize: '14px' }}></i>
               </div>
-              <span className="text-gray-700">Reset All Data</span>
+              <span style={{ color: '#374151' }}>Reiniciar Todos los Datos</span>
             </div>
-            <i className="ri-arrow-right-s-line text-gray-400 text-lg"></i>
+            <i className="ri-arrow-right-s-line" style={{ color: '#9ca3af', fontSize: '18px' }}></i>
           </button>
           
-          <button className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
-                <i className="ri-delete-bin-line text-red-600 text-sm"></i>
+          <button style={{
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '16px',
+            border: 'none',
+            backgroundColor: 'transparent',
+            cursor: 'pointer',
+            transition: 'background-color 0.2s'
+          }}
+          onMouseEnter={(e) => e.target.style.backgroundColor = '#f9fafb'}
+          onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+          >
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px'
+            }}>
+              <div style={{
+                width: '32px',
+                height: '32px',
+                backgroundColor: '#fee2e2',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <i className="ri-delete-bin-line" style={{ color: '#dc2626', fontSize: '14px' }}></i>
               </div>
-              <span className="text-red-600">Delete Account</span>
+              <span style={{ color: '#dc2626' }}>Eliminar Cuenta</span>
             </div>
-            <i className="ri-arrow-right-s-line text-gray-400 text-lg"></i>
+            <i className="ri-arrow-right-s-line" style={{ color: '#9ca3af', fontSize: '18px' }}></i>
           </button>
         </div>
 
         {/* App Info */}
-        <div className="text-center">
-          <p className="text-sm text-gray-500">Profitness v1.0.0</p>
-          <p className="text-xs text-gray-400 mt-1">Build 2024.01.21</p>
+        <div style={{ textAlign: 'center' }}>
+          <p style={{
+            fontSize: '14px',
+            color: '#6b7280',
+            margin: '0 0 4px 0'
+          }}>Profitness v1.0.0</p>
+          <p style={{
+            fontSize: '12px',
+            color: '#9ca3af',
+            margin: 0
+          }}>Build 2024.01.21</p>
         </div>
       </main>
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 w-full bg-white border-t border-gray-200">
-        <div className="grid grid-cols-5 py-2">
-          <Link href="/" className="flex flex-col items-center justify-center py-2 px-1">
-            <div className="w-6 h-6 flex items-center justify-center mb-1">
-              <i className="ri-home-line text-gray-400 text-lg"></i>
+      <nav style={{
+        position: 'fixed',
+        bottom: 0,
+        width: '100%',
+        backgroundColor: 'white',
+        borderTop: '1px solid #e5e7eb'
+      }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(5, 1fr)',
+          padding: '8px 0'
+        }}>
+          <Link href="/" style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '8px 4px',
+            textDecoration: 'none'
+          }}>
+            <div style={{
+              width: '24px',
+              height: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '4px'
+            }}>
+              <i className="ri-home-line" style={{ color: '#9ca3af', fontSize: '18px' }}></i>
             </div>
-            <span className="text-xs text-gray-400">Inicio</span>
+            <span style={{ fontSize: '12px', color: '#9ca3af' }}>Inicio</span>
           </Link>
-          <Link href="/nutrition" className="flex flex-col items-center justify-center py-2 px-1">
-            <div className="w-6 h-6 flex items-center justify-center mb-1">
-              <i className="ri-pie-chart-line text-gray-400 text-lg"></i>
+          <Link href="/nutrition" style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '8px 4px',
+            textDecoration: 'none'
+          }}>
+            <div style={{
+              width: '24px',
+              height: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '4px'
+            }}>
+              <i className="ri-pie-chart-line" style={{ color: '#9ca3af', fontSize: '18px' }}></i>
             </div>
-            <span className="text-xs text-gray-400">Nutrición</span>
+            <span style={{ fontSize: '12px', color: '#9ca3af' }}>Nutrición</span>
           </Link>
-          <Link href="/add-food" className="flex flex-col items-center justify-center py-2 px-1">
-            <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mb-1">
-              <i className="ri-add-line text-white text-lg"></i>
+          <Link href="/add-food" style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '8px 4px',
+            textDecoration: 'none'
+          }}>
+            <div style={{
+              width: '32px',
+              height: '32px',
+              background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '4px'
+            }}>
+              <i className="ri-add-line" style={{ color: 'white', fontSize: '18px' }}></i>
             </div>
-            <span className="text-xs text-gray-400">Agregar</span>
+            <span style={{ fontSize: '12px', color: '#9ca3af' }}>Agregar</span>
           </Link>
-          <Link href="/progress" className="flex flex-col items-center justify-center py-2 px-1">
-            <div className="w-6 h-6 flex items-center justify-center mb-1">
-              <i className="ri-line-chart-line text-gray-400 text-lg"></i>
+          <Link href="/progress" style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '8px 4px',
+            textDecoration: 'none'
+          }}>
+            <div style={{
+              width: '24px',
+              height: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '4px'
+            }}>
+              <i className="ri-line-chart-line" style={{ color: '#9ca3af', fontSize: '18px' }}></i>
             </div>
-            <span className="text-xs text-gray-400">Progreso</span>
+            <span style={{ fontSize: '12px', color: '#9ca3af' }}>Progreso</span>
           </Link>
-          <Link href="/profile" className="flex flex-col items-center justify-center py-2 px-1">
-            <div className="w-6 h-6 flex items-center justify-center mb-1">
-              <i className="ri-user-line text-blue-600 text-lg"></i>
+          <Link href="/profile" style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '8px 4px',
+            textDecoration: 'none'
+          }}>
+            <div style={{
+              width: '24px',
+              height: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '4px'
+            }}>
+              <i className="ri-user-line" style={{ color: '#3b82f6', fontSize: '18px' }}></i>
             </div>
-            <span className="text-xs text-blue-600 font-medium">Perfil</span>
+            <span style={{ fontSize: '12px', color: '#3b82f6', fontWeight: '500' }}>Perfil</span>
           </Link>
         </div>
       </nav>

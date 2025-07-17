@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useLocalStorage } from './useLocalStorage';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 export interface UserProfile {
   name: string;
@@ -30,6 +31,39 @@ const defaultProfile: UserProfile = {
 export function useUserProfile() {
   const [userProfile, setUserProfile, mounted] = useLocalStorage<UserProfile>('userProfile', defaultProfile);
   const [profilePhoto, setProfilePhoto] = useLocalStorage<string>('userProfilePhoto', '');
+  const syncedRef = useRef(false);
+
+  // Sincronizar con datos de Google si están disponibles
+  useEffect(() => {
+    if (mounted && !syncedRef.current) {
+      const userData = localStorage.getItem('userData');
+      if (userData) {
+        try {
+          const googleData = JSON.parse(userData);
+          const needsUpdate = googleData.name !== userProfile.name || googleData.email !== userProfile.email;
+          
+          if (needsUpdate) {
+            setUserProfile(prev => ({
+              ...prev,
+              name: googleData.name || prev.name,
+              email: googleData.email || prev.email
+            }));
+          }
+          
+          if (googleData.picture && !profilePhoto) {
+            setProfilePhoto(googleData.picture);
+          }
+          
+          syncedRef.current = true;
+        } catch (error) {
+          console.error('Error parsing Google user data:', error);
+          syncedRef.current = true;
+        }
+      } else {
+        syncedRef.current = true;
+      }
+    }
+  }, [mounted, userProfile.name, userProfile.email, profilePhoto, setUserProfile, setProfilePhoto]); 
 
   // Función para calcular calorías diarias
   const calculateDailyCalories = (profile: UserProfile) => {

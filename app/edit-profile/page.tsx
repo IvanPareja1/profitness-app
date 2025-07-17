@@ -78,161 +78,421 @@ export default function EditProfile() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      {/* Header */}
-      <header className="fixed top-0 w-full bg-white/90 backdrop-blur-sm border-b border-gray-200 z-50">
-        <div className="flex items-center justify-between px-4 py-3">
-          <Link href="/profile" className="w-8 h-8 flex items-center justify-center">
-            <i className="ri-arrow-left-line text-gray-600 text-xl"></i>
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #f0f9ff 0%, #e0e7ff 100%)'
+    }}>
+      <header style={{
+        position: 'fixed',
+        top: 0,
+        width: '100%',
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        backdropFilter: 'blur(8px)',
+        borderBottom: '1px solid #e5e7eb',
+        zIndex: 50
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '12px 16px'
+        }}>
+          <Link href="/profile" style={{
+            width: '32px',
+            height: '32px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            textDecoration: 'none'
+          }}>
+            <i className="ri-arrow-left-line" style={{ color: '#6b7280', fontSize: '20px' }}></i>
           </Link>
-          <h1 className="text-lg font-semibold">Editar Perfil</h1>
+          <h1 style={{
+            fontSize: '18px',
+            fontWeight: '600',
+            color: '#1f2937',
+            margin: 0
+          }}>Editar Perfil</h1>
           <button 
             onClick={handleSave}
-            className="text-blue-600 font-medium"
+            style={{
+              color: '#3b82f6',
+              fontWeight: '500',
+              fontSize: '14px',
+              border: 'none',
+              backgroundColor: 'transparent',
+              cursor: 'pointer'
+            }}
           >
             Guardar
           </button>
         </div>
       </header>
 
-      <main className="pt-16 pb-20 px-4">
-        {/* Profile Photo */}
-        <div className="bg-white rounded-2xl p-6 shadow-lg mb-6 mt-6">
-          <div className="text-center">
-            <div className="w-24 h-24 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 relative overflow-hidden">
+      <main style={{
+        paddingTop: '64px',
+        paddingBottom: '80px',
+        padding: '64px 16px 80px 16px'
+      }}>
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '16px',
+          padding: '24px',
+          boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+          marginBottom: '24px',
+          marginTop: '24px'
+        }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{
+              width: '96px',
+              height: '96px',
+              background: currentPhoto ? 'none' : 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 16px auto',
+              position: 'relative',
+              overflow: 'hidden'
+            }}>
               {currentPhoto ? (
                 <img 
                   src={currentPhoto}
                   alt="Foto de perfil"
-                  className="w-full h-full object-cover"
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover'
+                  }}
                 />
               ) : (
-                <span className="text-3xl font-bold text-white">MG</span>
+                <span style={{
+                  fontSize: '32px',
+                  fontWeight: 'bold',
+                  color: 'white'
+                }}>MG</span>
               )}
             </div>
             <button 
               onClick={() => setShowPhotoModal(true)}
-              className="text-blue-600 font-medium"
+              style={{
+                color: '#3b82f6',
+                fontWeight: '500',
+                fontSize: '14px',
+                border: 'none',
+                backgroundColor: 'transparent',
+                cursor: 'pointer'
+              }}
             >
               Cambiar foto
             </button>
           </div>
         </div>
 
-        {/* Personal Information */}
-        <div className="bg-white rounded-2xl p-6 shadow-lg mb-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Información Personal</h3>
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '16px',
+          padding: '24px',
+          boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+          marginBottom: '24px'
+        }}>
+          <h3 style={{
+            fontSize: '18px',
+            fontWeight: '600',
+            color: '#1f2937',
+            marginBottom: '16px',
+            margin: '0 0 16px 0'
+          }}>Información Personal</h3>
           
-          <div className="space-y-4">
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px'
+          }}>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '500',
+                color: '#374151',
+                marginBottom: '8px'
+              }}>
                 Nombre completo
               </label>
               <input
                 type="text"
                 value={formData.name}
                 onChange={(e) => handleInputChange('name', e.target.value)}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '12px',
+                  outline: 'none',
+                  fontSize: '14px',
+                  transition: 'all 0.2s'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#3b82f6';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = '#e5e7eb';
+                  e.target.style.boxShadow = 'none';
+                }}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '500',
+                color: '#374151',
+                marginBottom: '8px'
+              }}>
                 Correo electrónico
               </label>
               <input
                 type="email"
                 value={formData.email}
                 onChange={(e) => handleInputChange('email', e.target.value)}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '12px',
+                  outline: 'none',
+                  fontSize: '14px',
+                  transition: 'all 0.2s'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#3b82f6';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = '#e5e7eb';
+                  e.target.style.boxShadow = 'none';
+                }}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '500',
+                color: '#374151',
+                marginBottom: '8px'
+              }}>
                 Género
               </label>
-              <div className="grid grid-cols-2 gap-3">
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, 1fr)',
+                gap: '12px'
+              }}>
                 <button
                   onClick={() => handleInputChange('gender', 'female')}
-                  className={`p-4 rounded-xl border-2 transition-all text-center !rounded-button ${
-                    formData.gender === 'female'
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200 bg-white hover:bg-gray-50'
-                  }`}
+                  className="!rounded-button"
+                  style={{
+                    padding: '16px',
+                    borderRadius: '12px',
+                    border: formData.gender === 'female' ? '2px solid #3b82f6' : '2px solid #e5e7eb',
+                    backgroundColor: formData.gender === 'female' ? '#eff6ff' : 'white',
+                    transition: 'all 0.2s',
+                    textAlign: 'center',
+                    cursor: 'pointer'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (formData.gender !== 'female') {
+                      e.target.style.backgroundColor = '#f9fafb';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (formData.gender !== 'female') {
+                      e.target.style.backgroundColor = 'white';
+                    }
+                  }}
                 >
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-2 ${
-                    formData.gender === 'female' ? 'bg-blue-100' : 'bg-gray-100'
-                  }`}>
-                    <i className={`ri-women-line text-lg ${
-                      formData.gender === 'female' ? 'text-blue-600' : 'text-gray-600'
-                    }`}></i>
+                  <div style={{
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 8px auto',
+                    backgroundColor: formData.gender === 'female' ? '#dbeafe' : '#f3f4f6'
+                  }}>
+                    <i className="ri-women-line" style={{
+                      fontSize: '18px',
+                      color: formData.gender === 'female' ? '#3b82f6' : '#6b7280'
+                    }}></i>
                   </div>
-                  <p className={`text-sm font-medium ${
-                    formData.gender === 'female' ? 'text-blue-800' : 'text-gray-800'
-                  }`}>
+                  <p style={{
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: formData.gender === 'female' ? '#1e40af' : '#1f2937',
+                    margin: 0
+                  }}>
                     Mujer
                   </p>
                 </button>
 
                 <button
                   onClick={() => handleInputChange('gender', 'male')}
-                  className={`p-4 rounded-xl border-2 transition-all text-center !rounded-button ${
-                    formData.gender === 'male'
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200 bg-white hover:bg-gray-50'
-                  }`}
+                  className="!rounded-button"
+                  style={{
+                    padding: '16px',
+                    borderRadius: '12px',
+                    border: formData.gender === 'male' ? '2px solid #3b82f6' : '2px solid #e5e7eb',
+                    backgroundColor: formData.gender === 'male' ? '#eff6ff' : 'white',
+                    transition: 'all 0.2s',
+                    textAlign: 'center',
+                    cursor: 'pointer'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (formData.gender !== 'male') {
+                      e.target.style.backgroundColor = '#f9fafb';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (formData.gender !== 'male') {
+                      e.target.style.backgroundColor = 'white';
+                    }
+                  }}
                 >
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-2 ${
-                    formData.gender === 'male' ? 'bg-blue-100' : 'bg-gray-100'
-                  }`}>
-                    <i className={`ri-men-line text-lg ${
-                      formData.gender === 'male' ? 'text-blue-600' : 'text-gray-600'
-                    }`}></i>
+                  <div style={{
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 8px auto',
+                    backgroundColor: formData.gender === 'male' ? '#dbeafe' : '#f3f4f6'
+                  }}>
+                    <i className="ri-men-line" style={{
+                      fontSize: '18px',
+                      color: formData.gender === 'male' ? '#3b82f6' : '#6b7280'
+                    }}></i>
                   </div>
-                  <p className={`text-sm font-medium ${
-                    formData.gender === 'male' ? 'text-blue-800' : 'text-gray-800'
-                  }`}>
+                  <p style={{
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: formData.gender === 'male' ? '#1e40af' : '#1f2937',
+                    margin: 0
+                  }}>
                     Hombre
                   </p>
                 </button>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, 1fr)',
+              gap: '16px'
+            }}>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#374151',
+                  marginBottom: '8px'
+                }}>
                   Edad
                 </label>
                 <input
                   type="number"
                   value={formData.age}
                   onChange={(e) => handleInputChange('age', parseInt(e.target.value))}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '12px',
+                    outline: 'none',
+                    fontSize: '14px',
+                    transition: 'all 0.2s'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#3b82f6';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#e5e7eb';
+                    e.target.style.boxShadow = 'none';
+                  }}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#374151',
+                  marginBottom: '8px'
+                }}>
                   Altura (cm)
                 </label>
                 <input
                   type="number"
                   value={formData.height}
                   onChange={(e) => handleInputChange('height', parseInt(e.target.value))}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '12px',
+                    outline: 'none',
+                    fontSize: '14px',
+                    transition: 'all 0.2s'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#3b82f6';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#e5e7eb';
+                    e.target.style.boxShadow = 'none';
+                  }}
                 />
               </div>
             </div>
           </div>
         </div>
 
-        {/* Body Metrics */}
-        <div className="bg-white rounded-2xl p-6 shadow-lg mb-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Métricas Corporales</h3>
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '16px',
+          padding: '24px',
+          boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+          marginBottom: '24px'
+        }}>
+          <h3 style={{
+            fontSize: '18px',
+            fontWeight: '600',
+            color: '#1f2937',
+            marginBottom: '16px',
+            margin: '0 0 16px 0'
+          }}>Métricas Corporales</h3>
           
-          <div className="grid grid-cols-2 gap-4">
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: '16px'
+          }}>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '500',
+                color: '#374151',
+                marginBottom: '8px'
+              }}>
                 Peso actual (kg)
               </label>
               <input
@@ -240,11 +500,33 @@ export default function EditProfile() {
                 step="0.1"
                 value={formData.currentWeight}
                 onChange={(e) => handleInputChange('currentWeight', parseFloat(e.target.value))}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '12px',
+                  outline: 'none',
+                  fontSize: '14px',
+                  transition: 'all 0.2s'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#3b82f6';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = '#e5e7eb';
+                  e.target.style.boxShadow = 'none';
+                }}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '500',
+                color: '#374151',
+                marginBottom: '8px'
+              }}>
                 Peso objetivo (kg)
               </label>
               <input
@@ -252,41 +534,106 @@ export default function EditProfile() {
                 step="0.1"
                 value={formData.goalWeight}
                 onChange={(e) => handleInputChange('goalWeight', parseFloat(e.target.value))}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '12px',
+                  outline: 'none',
+                  fontSize: '14px',
+                  transition: 'all 0.2s'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#3b82f6';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = '#e5e7eb';
+                  e.target.style.boxShadow = 'none';
+                }}
               />
             </div>
           </div>
         </div>
 
-        {/* Activity Level */}
-        <div className="bg-white rounded-2xl p-6 shadow-lg mb-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Nivel de Actividad</h3>
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '16px',
+          padding: '24px',
+          boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+          marginBottom: '24px'
+        }}>
+          <h3 style={{
+            fontSize: '18px',
+            fontWeight: '600',
+            color: '#1f2937',
+            marginBottom: '16px',
+            margin: '0 0 16px 0'
+          }}>Nivel de Actividad</h3>
           
-          <div className="space-y-3">
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px'
+          }}>
             {ACTIVITY_LEVELS.map((level) => (
               <button
                 key={level.id}
                 onClick={() => handleInputChange('activityLevel', level.id)}
-                className={`w-full text-left p-4 rounded-xl border-2 transition-all !rounded-button ${
-                  formData.activityLevel === level.id
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-200 bg-white hover:bg-gray-50'
-                }`}
+                className="!rounded-button"
+                style={{
+                  width: '100%',
+                  textAlign: 'left',
+                  padding: '16px',
+                  borderRadius: '12px',
+                  border: formData.activityLevel === level.id ? '2px solid #3b82f6' : '2px solid #e5e7eb',
+                  backgroundColor: formData.activityLevel === level.id ? '#eff6ff' : 'white',
+                  transition: 'all 0.2s',
+                  cursor: 'pointer'
+                }}
+                onMouseEnter={(e) => {
+                  if (formData.activityLevel !== level.id) {
+                    e.target.style.backgroundColor = '#f9fafb';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (formData.activityLevel !== level.id) {
+                    e.target.style.backgroundColor = 'white';
+                  }
+                }}
               >
-                <div className="flex items-center justify-between">
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}>
                   <div>
-                    <p className="font-medium text-gray-800">{level.label}</p>
-                    <p className="text-sm text-gray-500">{level.description}</p>
+                    <p style={{
+                      fontWeight: '500',
+                      color: '#1f2937',
+                      margin: '0 0 4px 0'
+                    }}>{level.label}</p>
+                    <p style={{
+                      fontSize: '14px',
+                      color: '#6b7280',
+                      margin: 0
+                    }}>{level.description}</p>
                   </div>
-                  <div className={`w-5 h-5 rounded-full border-2 ${
-                    formData.activityLevel === level.id
-                      ? 'border-blue-500 bg-blue-500'
-                      : 'border-gray-300'
-                  }`}>
+                  <div style={{
+                    width: '20px',
+                    height: '20px',
+                    borderRadius: '50%',
+                    border: formData.activityLevel === level.id ? '2px solid #3b82f6' : '2px solid #d1d5db',
+                    backgroundColor: formData.activityLevel === level.id ? '#3b82f6' : 'transparent',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
                     {formData.activityLevel === level.id && (
-                      <div className="w-full h-full rounded-full bg-blue-500 flex items-center justify-center">
-                        <i className="ri-check-line text-white text-xs"></i>
-                      </div>
+                      <i className="ri-check-line" style={{
+                        color: 'white',
+                        fontSize: '12px'
+                      }}></i>
                     )}
                   </div>
                 </div>
@@ -295,31 +642,72 @@ export default function EditProfile() {
           </div>
         </div>
 
-        {/* Goal Selection */}
-        <div className="bg-white rounded-2xl p-6 shadow-lg mb-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Objetivo</h3>
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '16px',
+          padding: '24px',
+          boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+          marginBottom: '24px'
+        }}>
+          <h3 style={{
+            fontSize: '18px',
+            fontWeight: '600',
+            color: '#1f2937',
+            marginBottom: '16px',
+            margin: '0 0 16px 0'
+          }}>Objetivo</h3>
           
-          <div className="grid grid-cols-2 gap-3">
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: '12px'
+          }}>
             {GOALS.map((goal) => (
               <button
                 key={goal.id}
                 onClick={() => handleInputChange('goal', goal.id)}
-                className={`p-4 rounded-xl border-2 transition-all text-center !rounded-button ${
-                  formData.goal === goal.id
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-200 bg-white hover:bg-gray-50'
-                }`}
+                className="!rounded-button"
+                style={{
+                  padding: '16px',
+                  borderRadius: '12px',
+                  border: formData.goal === goal.id ? '2px solid #3b82f6' : '2px solid #e5e7eb',
+                  backgroundColor: formData.goal === goal.id ? '#eff6ff' : 'white',
+                  transition: 'all 0.2s',
+                  textAlign: 'center',
+                  cursor: 'pointer'
+                }}
+                onMouseEnter={(e) => {
+                  if (formData.goal !== goal.id) {
+                    e.target.style.backgroundColor = '#f9fafb';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (formData.goal !== goal.id) {
+                    e.target.style.backgroundColor = 'white';
+                  }
+                }}
               >
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-2 ${
-                  formData.goal === goal.id ? 'bg-blue-100' : 'bg-gray-100'
-                }`}>
-                  <i className={`${goal.icon} text-lg ${
-                    formData.goal === goal.id ? 'text-blue-600' : 'text-gray-600'
-                  }`}></i>
+                <div style={{
+                  width: '48px',
+                  height: '48px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 8px auto',
+                  backgroundColor: formData.goal === goal.id ? '#dbeafe' : '#f3f4f6'
+                }}>
+                  <i className={goal.icon} style={{
+                    fontSize: '18px',
+                    color: formData.goal === goal.id ? '#3b82f6' : '#6b7280'
+                  }}></i>
                 </div>
-                <p className={`text-sm font-medium ${
-                  formData.goal === goal.id ? 'text-blue-800' : 'text-gray-800'
-                }`}>
+                <p style={{
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: formData.goal === goal.id ? '#1e40af' : '#1f2937',
+                  margin: 0
+                }}>
                   {goal.label}
                 </p>
               </button>
@@ -327,91 +715,400 @@ export default function EditProfile() {
           </div>
         </div>
 
-        {/* Save Button */}
         <button
           onClick={handleSave}
-          className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-4 rounded-xl font-semibold shadow-lg !rounded-button"
+          className="!rounded-button"
+          style={{
+            width: '100%',
+            background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+            color: 'white',
+            padding: '16px',
+            borderRadius: '12px',
+            fontWeight: '600',
+            boxShadow: '0 10px 25px rgba(59, 130, 246, 0.3)',
+            border: 'none',
+            cursor: 'pointer',
+            fontSize: '16px'
+          }}
         >
           Guardar Cambios
         </button>
       </main>
 
-      {/* Photo Modal */}
-      <Modal
-        isOpen={showPhotoModal}
-        onClose={() => setShowPhotoModal(false)}
-        title="Cambiar Foto"
-        size="sm"
-      >
-        <div className="space-y-3">
-          <button
-            onClick={() => handlePhotoOption('camera')}
-            className="w-full flex items-center p-4 bg-blue-50 rounded-xl hover:bg-blue-100 transition-colors !rounded-button"
-          >
-            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-4">
-              <i className="ri-camera-line text-blue-600 text-lg"></i>
+      {showPhotoModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          zIndex: 50,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '16px'
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '16px',
+            padding: '24px',
+            width: '100%',
+            maxWidth: '400px'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '24px'
+            }}>
+              <h3 style={{
+                fontSize: '18px',
+                fontWeight: '600',
+                color: '#1f2937',
+                margin: 0
+              }}>Cambiar Foto</h3>
+              <button 
+                onClick={() => setShowPhotoModal(false)}
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: 'none',
+                  backgroundColor: 'transparent',
+                  cursor: 'pointer'
+                }}
+              >
+                <i className="ri-close-line" style={{ color: '#6b7280', fontSize: '18px' }}></i>
+              </button>
             </div>
-            <div className="text-left">
-              <p className="font-medium text-gray-800">Tomar foto</p>
-              <p className="text-sm text-gray-500">Usar la cámara</p>
-            </div>
-          </button>
 
-          <button
-            onClick={() => handlePhotoOption('gallery')}
-            className="w-full flex items-center p-4 bg-green-50 rounded-xl hover:bg-green-100 transition-colors !rounded-button"
-          >
-            <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-4">
-              <i className="ri-image-line text-green-600 text-lg"></i>
-            </div>
-            <div className="text-left">
-              <p className="font-medium text-gray-800">Seleccionar de galería</p>
-              <p className="text-sm text-gray-500">Elegir foto existente</p>
-            </div>
-          </button>
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px'
+            }}>
+              <button
+                onClick={() => handlePhotoOption('camera')}
+                className="!rounded-button"
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '16px',
+                  backgroundColor: '#eff6ff',
+                  borderRadius: '12px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s'
+                }}
+                onMouseEnter={(e) => e.target.style.backgroundColor = '#dbeafe'}
+                onMouseLeave={(e) => e.target.style.backgroundColor = '#eff6ff'}
+              >
+                <div style={{
+                  width: '40px',
+                  height: '40px',
+                  backgroundColor: '#dbeafe',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginRight: '16px'
+                }}>
+                  <i className="ri-camera-line" style={{ color: '#3b82f6', fontSize: '18px' }}></i>
+                </div>
+                <div style={{ textAlign: 'left' }}>
+                  <p style={{
+                    fontWeight: '500',
+                    color: '#1f2937',
+                    margin: '0 0 4px 0'
+                  }}>Tomar foto</p>
+                  <p style={{
+                    fontSize: '14px',
+                    color: '#6b7280',
+                    margin: 0
+                  }}>Usar la cámara</p>
+                </div>
+              </button>
 
-          {currentPhoto && (
+              <button
+                onClick={() => handlePhotoOption('gallery')}
+                className="!rounded-button"
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '16px',
+                  backgroundColor: '#f0fdf4',
+                  borderRadius: '12px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s'
+                }}
+                onMouseEnter={(e) => e.target.style.backgroundColor = '#dcfce7'}
+                onMouseLeave={(e) => e.target.style.backgroundColor = '#f0fdf4'}
+              >
+                <div style={{
+                  width: '40px',
+                  height: '40px',
+                  backgroundColor: '#dcfce7',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginRight: '16px'
+                }}>
+                  <i className="ri-image-line" style={{ color: '#16a34a', fontSize: '18px' }}></i>
+                </div>
+                <div style={{ textAlign: 'left' }}>
+                  <p style={{
+                    fontWeight: '500',
+                    color: '#1f2937',
+                    margin: '0 0 4px 0'
+                  }}>Seleccionar de galería</p>
+                  <p style={{
+                    fontSize: '14px',
+                    color: '#6b7280',
+                    margin: 0
+                  }}>Elegir foto existente</p>
+                </div>
+              </button>
+
+              {currentPhoto && (
+                <button
+                  onClick={() => handlePhotoOption('remove')}
+                  className="!rounded-button"
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '16px',
+                    backgroundColor: '#fef2f2',
+                    borderRadius: '12px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s'
+                  }}
+                  onMouseEnter={(e) => e.target.style.backgroundColor = '#fee2e2'}
+                  onMouseLeave={(e) => e.target.style.backgroundColor = '#fef2f2'}
+                >
+                  <div style={{
+                    width: '40px',
+                    height: '40px',
+                    backgroundColor: '#fee2e2',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginRight: '16px'
+                  }}>
+                    <i className="ri-delete-bin-line" style={{ color: '#dc2626', fontSize: '18px' }}></i>
+                  </div>
+                  <div style={{ textAlign: 'left' }}>
+                    <p style={{
+                      fontWeight: '500',
+                      color: '#1f2937',
+                      margin: '0 0 4px 0'
+                    }}>Eliminar foto</p>
+                    <p style={{
+                      fontSize: '14px',
+                      color: '#6b7280',
+                      margin: 0
+                    }}>Volver a iniciales</p>
+                  </div>
+                </button>
+              )}
+            </div>
+
             <button
-              onClick={() => handlePhotoOption('remove')}
-              className="w-full flex items-center p-4 bg-red-50 rounded-xl hover:bg-red-100 transition-colors !rounded-button"
+              onClick={() => setShowPhotoModal(false)}
+              className="!rounded-button"
+              style={{
+                width: '100%',
+                marginTop: '16px',
+                padding: '12px 16px',
+                border: '1px solid #d1d5db',
+                borderRadius: '12px',
+                color: '#374151',
+                fontWeight: '500',
+                backgroundColor: 'white',
+                cursor: 'pointer',
+                fontSize: '14px'
+              }}
             >
-              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center mr-4">
-                <i className="ri-delete-bin-line text-red-600 text-lg"></i>
-              </div>
-              <div className="text-left">
-                <p className="font-medium text-gray-800">Eliminar foto</p>
-                <p className="text-sm text-gray-500">Volver a iniciales</p>
-              </div>
+              Cancelar
             </button>
-          )}
-        </div>
-
-        <button
-          onClick={() => setShowPhotoModal(false)}
-          className="w-full mt-4 py-3 px-4 border border-gray-300 rounded-xl text-gray-700 font-medium !rounded-button"
-        >
-          Cancelar
-        </button>
-      </Modal>
-
-      {/* Success Modal */}
-      <Modal
-        isOpen={showSuccessModal}
-        onClose={() => setShowSuccessModal(false)}
-        title=""
-        size="sm"
-        showCloseButton={false}
-      >
-        <div className="text-center">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <i className="ri-check-line text-green-600 text-2xl"></i>
           </div>
-          <h3 className="text-lg font-semibold text-gray-800 mb-2">¡Perfil Actualizado!</h3>
-          <p className="text-gray-600">Tus cambios han sido guardados exitosamente</p>
         </div>
-      </Modal>
+      )}
 
-      <BottomNavigation />
+      {showSuccessModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          zIndex: 50,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '16px'
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '16px',
+            padding: '24px',
+            width: '100%',
+            maxWidth: '320px',
+            textAlign: 'center'
+          }}>
+            <div style={{
+              width: '64px',
+              height: '64px',
+              backgroundColor: '#dcfce7',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 16px auto'
+            }}>
+              <i className="ri-check-line" style={{ color: '#16a34a', fontSize: '32px' }}></i>
+            </div>
+            <h3 style={{
+              fontSize: '18px',
+              fontWeight: '600',
+              color: '#1f2937',
+              marginBottom: '8px',
+              margin: '0 0 8px 0'
+            }}>¡Perfil Actualizado!</h3>
+            <p style={{
+              color: '#6b7280',
+              margin: 0
+            }}>Tus cambios han sido guardados exitosamente</p>
+          </div>
+        </div>
+      )}
+
+      <nav style={{
+        position: 'fixed',
+        bottom: 0,
+        width: '100%',
+        backgroundColor: 'white',
+        borderTop: '1px solid #e5e7eb'
+      }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(5, 1fr)',
+          padding: '8px 0'
+        }}>
+          <Link href="/" style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '8px 4px',
+            textDecoration: 'none'
+          }}>
+            <div style={{
+              width: '24px',
+              height: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '4px'
+            }}>
+              <i className="ri-home-line" style={{ color: '#9ca3af', fontSize: '18px' }}></i>
+            </div>
+            <span style={{ fontSize: '12px', color: '#9ca3af' }}>Inicio</span>
+          </Link>
+          <Link href="/nutrition" style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '8px 4px',
+            textDecoration: 'none'
+          }}>
+            <div style={{
+              width: '24px',
+              height: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '4px'
+            }}>
+              <i className="ri-pie-chart-line" style={{ color: '#9ca3af', fontSize: '18px' }}></i>
+            </div>
+            <span style={{ fontSize: '12px', color: '#9ca3af' }}>Nutrición</span>
+          </Link>
+          <Link href="/add-food" style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '8px 4px',
+            textDecoration: 'none'
+          }}>
+            <div style={{
+              width: '32px',
+              height: '32px',
+              background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '4px'
+            }}>
+              <i className="ri-add-line" style={{ color: 'white', fontSize: '18px' }}></i>
+            </div>
+            <span style={{ fontSize: '12px', color: '#9ca3af' }}>Agregar</span>
+          </Link>
+          <Link href="/progress" style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '8px 4px',
+            textDecoration: 'none'
+          }}>
+            <div style={{
+              width: '24px',
+              height: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '4px'
+            }}>
+              <i className="ri-line-chart-line" style={{ color: '#9ca3af', fontSize: '18px' }}></i>
+            </div>
+            <span style={{ fontSize: '12px', color: '#9ca3af' }}>Progreso</span>
+          </Link>
+          <Link href="/profile" style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '8px 4px',
+            textDecoration: 'none'
+          }}>
+            <div style={{
+              width: '24px',
+              height: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '4px'
+            }}>
+              <i className="ri-user-line" style={{ color: '#3b82f6', fontSize: '18px' }}></i>
+            </div>
+            <span style={{ fontSize: '12px', color: '#3b82f6', fontWeight: '500' }}>Perfil</span>
+          </Link>
+        </div>
+      </nav>
     </div>
   );
 }
