@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -33,14 +34,19 @@ export default function Login() {
     document.head.appendChild(script);
 
     return () => {
-      document.head.removeChild(script);
+      if (document.head.contains(script)) {
+        document.head.removeChild(script);
+      }
     };
   }, [router]);
 
   const initializeGoogleSignIn = () => {
     if (window.google) {
+      // IMPORTANTE: Reemplaza con tu Google Client ID real
+      const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID";
+      
       window.google.accounts.id.initialize({
-        client_id: "YOUR_GOOGLE_CLIENT_ID", // Reemplazar con tu Client ID real
+        client_id: CLIENT_ID,
         callback: handleGoogleSignIn,
         auto_select: false,
       });

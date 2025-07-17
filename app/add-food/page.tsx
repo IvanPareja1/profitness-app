@@ -90,7 +90,7 @@ export default function AddFood() {
   });
 
   // Función para buscar alimento en la base de datos
-  const findFoodInDatabase = (foodName) => {
+  const findFoodInDatabase = (foodName: string) => {
     const normalizedName = foodName.toLowerCase().trim();
 
     // Busqueda exacta
@@ -109,7 +109,7 @@ export default function AddFood() {
   };
 
   // Función para calcular macronutrientes basado en cantidad
-  const calculateMacros = (baseNutrition, quantity, unit) => {
+  const calculateMacros = (baseNutrition: any, quantity: string, unit: string) => {
     if (!baseNutrition || !quantity) return null;
 
     let multiplier = 1;
