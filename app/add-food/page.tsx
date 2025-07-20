@@ -12,6 +12,16 @@ type NutritionInfo = {
   fats: number;
 };
 
+// Tipo para los alimentos
+type Food = {
+  name: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+  serving?: string;
+};
+
 // Base de datos de alimentos con sus valores nutricionales por 100g
 const foodDatabase: Record<string, NutritionInfo> = {
   // Carnes y pescados
@@ -147,7 +157,7 @@ export default function AddFood() {
       case 'unidades':
       case 'pieza':
       case 'piezas':
-        // Estimaciones promedio por unidad usando el nombre del campo correcto
+        // Estimaciones promedio por unidad
         const foodName = newFood.name.toLowerCase();
         if (foodName.includes('huevo')) {
           multiplier = qty * 0.5; // 50g por huevo
@@ -195,14 +205,14 @@ export default function AddFood() {
     }
   }, [newFood.name, newFood.quantity]);
 
-  const [recentFoods, setRecentFoods] = useState([
+  const [recentFoods, setRecentFoods] = useState<Food[]>([
     { name: 'Pollo a la plancha', calories: 165, protein: 31, carbs: 0, fats: 3.6 },
     { name: 'Arroz blanco', calories: 130, protein: 2.7, carbs: 28, fats: 0.3 },
     { name: 'Aguacate', calories: 160, protein: 2, carbs: 9, fats: 15 },
     { name: 'Plátano', calories: 89, protein: 1.1, carbs: 23, fats: 0.3 }
   ]);
 
-  const popularFoods = [
+  const popularFoods: Food[] = [
     { name: 'Huevos revueltos', calories: 155, protein: 13, carbs: 1.1, fats: 11 },
     { name: 'Avena', calories: 68, protein: 2.4, carbs: 12, fats: 1.4 },
     { name: 'Pechuga de pollo', calories: 231, protein: 43.5, carbs: 0, fats: 5 },
@@ -216,9 +226,9 @@ export default function AddFood() {
     { id: 'snack', name: 'Snack', icon: 'ri-apple-line' }
   ];
 
-  const handleCreateFood = () => {
+  const handleCreateFood = (): void => {
     if (newFood.name && newFood.calories) {
-      const foodToAdd = {
+      const foodToAdd: Food = {
         name: newFood.name,
         calories: parseFloat(newFood.calories) || 0,
         protein: parseFloat(newFood.protein) || 0,
@@ -246,14 +256,14 @@ export default function AddFood() {
     }
   };
 
-  const addFoodToMeal = (food: any) => {
+  const addFoodToMeal = (food: Food): void => {
     console.log(`Agregando ${food.name} a ${selectedMeal}`);
 
     setShowSuccess(true);
     setTimeout(() => setShowSuccess(false), 2000);
   };
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: string, value: string): void => {
     setNewFood(prev => ({ ...prev, [field]: value }));
   };
 
