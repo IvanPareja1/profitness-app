@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -63,15 +64,6 @@ export default function Nutrition() {
 
   const { dailyCalories, dailyMacros, mounted: profileMounted } = useUserProfile();
 
-  const getCurrentDate = (): string => {
-    const now = new Date();
-    return now.toLocaleDateString('es-ES', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    });
-  };
-
   const getCurrentDateISO = (): string => {
     const now = new Date();
     const year = now.getFullYear();
@@ -80,21 +72,19 @@ export default function Nutrition() {
     return `${year}-${month}-${day}`;
   };
 
-  const mealBreakdown = getMealBreakdown();
+  const getDisplayDate = (): string => {
+    const currentDate = dailyData.date || getCurrentDateISO();
+    const today = new Date();
+    const selectedDate = new Date(currentDate + 'T00:00:00');
 
-  const formatDate = (dateString: string): string => {
-    if (!dateString || dateString === '') return getCurrentDate();
-    try {
-      const date = new Date(dateString + 'T00:00:00');
-      return date.toLocaleDateString('es-ES', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric'
-      });
-    } catch (error) {
-      return getCurrentDate();
-    }
+    const day = selectedDate.getDate();
+    const month = selectedDate.toLocaleDateString('es-ES', { month: 'long' });
+    const year = selectedDate.getFullYear();
+
+    return `${day} de ${month} de ${year}`;
   };
+
+  const mealBreakdown = getMealBreakdown();
 
   const handleDateChange = (date: string): void => {
     console.log('Fecha cambiada a:', date);
@@ -525,56 +515,131 @@ export default function Nutrition() {
               fontWeight: '600',
               color: '#1f2937',
               margin: 0
-            }}>{formatDate(dailyData.date || getCurrentDateISO())}</p>
+            }}>{getDisplayDate()}</p>
           </div>
         </div>
 
-        <div style={{ marginBottom: '24px' }}>
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '12px',
-            padding: '4px',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-          }}>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: '4px'
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: '16px'
+        }}>
+          <h3 style={{
+            fontSize: '18px',
+            fontWeight: '600',
+            color: '#1f2937',
+            margin: 0
+          }}>Desglose por comidas</h3>
+          <Link href="/add-food" style={{
+            color: '#3b82f6',
+            fontSize: '14px',
+            textDecoration: 'none'
+          }}>Agregar comida</Link>
+        </div>
+
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '16px'
+        }}>
+          {mealBreakdown.map((meal, index: number) => (
+            <div key={index} style={{
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              padding: '16px',
+              boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
             }}>
-              {['day', 'week', 'month'].map((period: string) => (
-                <button
-                  key={period}
-                  onClick={() => setSelectedPeriod(period)}
-                  className="!rounded-button"
-                  style={{
-                    padding: '8px 16px',
-                    borderRadius: '8px',
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: '12px'
+              }}>
+                <h4 style={{
+                  fontWeight: '600',
+                  color: '#1f2937',
+                  margin: 0
+                }}>{meal.name}</h4>
+                <span style={{
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#6b7280'
+                }}>{meal.calories} kcal</span>
+              </div>
+
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: '16px',
+                marginBottom: '12px'
+              }}>
+                <div style={{ textAlign: 'center' }}>
+                  <p style={{
+                    fontSize: '12px',
+                    color: '#6b7280',
+                    marginBottom: '4px',
+                    margin: '0 0 4px 0'
+                  }}>Proteínas</p>
+                  <p style={{
                     fontSize: '14px',
-                    fontWeight: '500',
-                    transition: 'all 0.2s',
-                    border: 'none',
-                    cursor: 'pointer',
-                    background: selectedPeriod === period
-                      ? 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)'
-                      : 'transparent',
-                    color: selectedPeriod === period ? 'white' : '#6b7280'
-                  }}
-                  onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => {
-                    if (selectedPeriod !== period) {
-                      (e.currentTarget).style.backgroundColor = '#f9fafb';
-                    }
-                  }}
-                  onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => {
-                    if (selectedPeriod !== period) {
-                      (e.currentTarget).style.backgroundColor = 'transparent';
-                    }
-                  }}
-                >
-                  {period === 'day' ? 'Día' : period === 'week' ? 'Semana' : 'Mes'}
-                </button>
-              ))}
+                    fontWeight: '600',
+                    color: '#ef4444',
+                    margin: 0
+                  }}>{meal.protein}g</p>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <p style={{
+                    fontSize: '12px',
+                    color: '#6b7280',
+                    marginBottom: '4px',
+                    margin: '0 0 4px 0'
+                  }}>Carbohidratos</p>
+                  <p style={{
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#f59e0b',
+                    margin: 0
+                  }}>{meal.carbs}g</p>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <p style={{
+                    fontSize: '12px',
+                    color: '#6b7280',
+                    marginBottom: '4px',
+                    margin: '0 0 4px 0'
+                  }}>Grasas</p>
+                  <p style={{
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#10b981',
+                    margin: 0
+                  }}>{meal.fats}g</p>
+                </div>
+              </div>
+
+              <div style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '8px'
+              }}>
+                {meal.foods.map((food: string, foodIndex: number) => (
+                  <span
+                    key={foodIndex}
+                    style={{
+                      fontSize: '12px',
+                      backgroundColor: '#f3f4f6',
+                      color: '#6b7280',
+                      padding: '4px 8px',
+                      borderRadius: '16px'
+                    }}
+                  >
+                    {food}
+                  </span>
+                ))}
+              </div>
             </div>
-          </div>
+          ))}
         </div>
 
         <div style={{
@@ -779,131 +844,6 @@ export default function Nutrition() {
                 margin: 0
               }}>{totalFats}g / {dailyMacros.fats.target}g</p>
             </div>
-          </div>
-        </div>
-
-        <div style={{ marginBottom: '24px' }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: '16px'
-          }}>
-            <h3 style={{
-              fontSize: '18px',
-              fontWeight: '600',
-              color: '#1f2937',
-              margin: 0
-            }}>Desglose por comidas</h3>
-            <Link href="/add-food" style={{
-              color: '#3b82f6',
-              fontSize: '14px',
-              textDecoration: 'none'
-            }}>Agregar comida</Link>
-          </div>
-
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '16px'
-          }}>
-            {mealBreakdown.map((meal, index: number) => (
-              <div key={index} style={{
-                backgroundColor: 'white',
-                borderRadius: '12px',
-                padding: '16px',
-                boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-              }}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  marginBottom: '12px'
-                }}>
-                  <h4 style={{
-                    fontWeight: '600',
-                    color: '#1f2937',
-                    margin: 0
-                  }}>{meal.name}</h4>
-                  <span style={{
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    color: '#6b7280'
-                  }}>{meal.calories} kcal</span>
-                </div>
-
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(3, 1fr)',
-                  gap: '16px',
-                  marginBottom: '12px'
-                }}>
-                  <div style={{ textAlign: 'center' }}>
-                    <p style={{
-                      fontSize: '12px',
-                      color: '#6b7280',
-                      marginBottom: '4px',
-                      margin: '0 0 4px 0'
-                    }}>Proteínas</p>
-                    <p style={{
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      color: '#ef4444',
-                      margin: 0
-                    }}>{meal.protein}g</p>
-                  </div>
-                  <div style={{ textAlign: 'center' }}>
-                    <p style={{
-                      fontSize: '12px',
-                      color: '#6b7280',
-                      marginBottom: '4px',
-                      margin: '0 0 4px 0'
-                    }}>Carbohidratos</p>
-                    <p style={{
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      color: '#f59e0b',
-                      margin: 0
-                    }}>{meal.carbs}g</p>
-                  </div>
-                  <div style={{ textAlign: 'center' }}>
-                    <p style={{
-                      fontSize: '12px',
-                      color: '#6b7280',
-                      marginBottom: '4px',
-                      margin: '0 0 4px 0'
-                    }}>Grasas</p>
-                    <p style={{
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      color: '#10b981',
-                      margin: 0
-                    }}>{meal.fats}g</p>
-                  </div>
-                </div>
-
-                <div style={{
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  gap: '8px'
-                }}>
-                  {meal.foods.map((food: string, foodIndex: number) => (
-                    <span
-                      key={foodIndex}
-                      style={{
-                        fontSize: '12px',
-                        backgroundColor: '#f3f4f6',
-                        color: '#6b7280',
-                        padding: '4px 8px',
-                        borderRadius: '16px'
-                      }}
-                    >
-                      {food}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ))}
           </div>
         </div>
 
