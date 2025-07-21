@@ -83,7 +83,7 @@ export default function Nutrition() {
 
   const mealBreakdown = getMealBreakdown();
 
-  const formatDate = (dateString: string | null | undefined): string => {
+  const formatDate = (dateString: string): string => {
     if (!dateString || dateString === '') return getCurrentDate();
     try {
       const date = new Date(dateString + 'T00:00:00');
