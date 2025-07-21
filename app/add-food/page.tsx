@@ -409,12 +409,12 @@ export default function AddFood() {
                 fontSize: '14px'
               }}
               onFocus={(e) => {
-                e.target.style.borderColor = '#3b82f6';
-                e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                (e.target as HTMLInputElement).style.borderColor = '#3b82f6';
+                (e.target as HTMLInputElement).style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
               }}
               onBlur={(e) => {
-                e.target.style.borderColor = '#e5e7eb';
-                e.target.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+                (e.target as HTMLInputElement).style.borderColor = '#e5e7eb';
+                (e.target as HTMLInputElement).style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
               }}
             />
           </div>
@@ -466,7 +466,8 @@ export default function AddFood() {
                 </div>
                 <span style={{ fontSize: '12px', fontWeight: '500' }}>{meal.name}</span>
               </button>
-            ))}
+            ))
+            }
           </div>
         </div>
 
@@ -610,7 +611,8 @@ export default function AddFood() {
                   <i className="ri-add-line" style={{ color: '#3b82f6', fontSize: '20px' }}></i>
                 </div>
               </button>
-            ))}
+            ))
+            }
           </div>
         </div>
 
@@ -673,7 +675,8 @@ export default function AddFood() {
                   <i className="ri-add-line" style={{ color: '#3b82f6', fontSize: '20px' }}></i>
                 </div>
               </button>
-            ))}
+            ))
+            }
           </div>
         </div>
       </main>
@@ -755,12 +758,12 @@ export default function AddFood() {
                     fontSize: '14px'
                   }}
                   onFocus={(e) => {
-                    e.target.style.borderColor = '#3b82f6';
-                    e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                    (e.target as HTMLInputElement).style.borderColor = '#3b82f6';
+                    (e.target as HTMLInputElement).style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
                   }}
                   onBlur={(e) => {
-                    e.target.style.borderColor = '#e5e7eb';
-                    e.target.style.boxShadow = 'none';
+                    (e.target as HTMLInputElement).style.borderColor = '#e5e7eb';
+                    (e.target as HTMLInputElement).style.boxShadow = 'none';
                   }}
                 />
               </div>
@@ -789,12 +792,12 @@ export default function AddFood() {
                     fontSize: '14px'
                   }}
                   onFocus={(e) => {
-                    e.target.style.borderColor = '#3b82f6';
-                    e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                    (e.target as HTMLInputElement).style.borderColor = '#3b82f6';
+                    (e.target as HTMLInputElement).style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
                   }}
                   onBlur={(e) => {
-                    e.target.style.borderColor = '#e5e7eb';
-                    e.target.style.boxShadow = 'none';
+                    (e.target as HTMLInputElement).style.borderColor = '#e5e7eb';
+                    (e.target as HTMLInputElement).style.boxShadow = 'none';
                   }}
                 />
                 <p style={{
@@ -831,12 +834,12 @@ export default function AddFood() {
                     fontSize: '14px'
                   }}
                   onFocus={(e) => {
-                    e.target.style.borderColor = '#3b82f6';
-                    e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                    (e.target as HTMLInputElement).style.borderColor = '#3b82f6';
+                    (e.target as HTMLInputElement).style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
                   }}
                   onBlur={(e) => {
-                    e.target.style.borderColor = '#e5e7eb';
-                    e.target.style.boxShadow = 'none';
+                    (e.target as HTMLInputElement).style.borderColor = '#e5e7eb';
+                    (e.target as HTMLInputElement).style.boxShadow = 'none';
                   }}
                 />
               </div>
@@ -871,12 +874,12 @@ export default function AddFood() {
                       backgroundColor: newFood.calories && findFoodInDatabase(newFood.name) ? '#f9fafb' : 'white'
                     }}
                     onFocus={(e) => {
-                      e.target.style.borderColor = '#3b82f6';
-                      e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                      (e.target as HTMLInputElement).style.borderColor = '#3b82f6';
+                      (e.target as HTMLInputElement).style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
                     }}
                     onBlur={(e) => {
-                      e.target.style.borderColor = '#e5e7eb';
-                      e.target.style.boxShadow = 'none';
+                      (e.target as HTMLInputElement).style.borderColor = '#e5e7eb';
+                      (e.target as HTMLInputElement).style.boxShadow = 'none';
                     }}
                   />
                 </div>
@@ -906,12 +909,12 @@ export default function AddFood() {
                       backgroundColor: newFood.protein && findFoodInDatabase(newFood.name) ? '#f9fafb' : 'white'
                     }}
                     onFocus={(e) => {
-                      e.target.style.borderColor = '#3b82f6';
-                      e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                      (e.target as HTMLInputElement).style.borderColor = '#3b82f6';
+                      (e.target as HTMLInputElement).style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
                     }}
                     onBlur={(e) => {
-                      e.target.style.borderColor = '#e5e7eb';
-                      e.target.style.boxShadow = 'none';
+                      (e.target as HTMLInputElement).style.borderColor = '#e5e7eb';
+                      (e.target as HTMLInputElement).style.boxShadow = 'none';
                     }}
                   />
                 </div>
@@ -948,12 +951,12 @@ export default function AddFood() {
                       backgroundColor: newFood.carbs && findFoodInDatabase(newFood.name) ? '#f9fafb' : 'white'
                     }}
                     onFocus={(e) => {
-                      e.target.style.borderColor = '#3b82f6';
-                      e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                      (e.target as HTMLInputElement).style.borderColor = '#3b82f6';
+                      (e.target as HTMLInputElement).style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
                     }}
                     onBlur={(e) => {
-                      e.target.style.borderColor = '#e5e7eb';
-                      e.target.style.boxShadow = 'none';
+                      (e.target as HTMLInputElement).style.borderColor = '#e5e7eb';
+                      (e.target as HTMLInputElement).style.boxShadow = 'none';
                     }}
                   />
                 </div>
@@ -983,12 +986,12 @@ export default function AddFood() {
                       backgroundColor: newFood.fats && findFoodInDatabase(newFood.name) ? '#f9fafb' : 'white'
                     }}
                     onFocus={(e) => {
-                      e.target.style.borderColor = '#3b82f6';
-                      e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                      (e.target as HTMLInputElement).style.borderColor = '#3b82f6';
+                      (e.target as HTMLInputElement).style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
                     }}
                     onBlur={(e) => {
-                      e.target.style.borderColor = '#e5e7eb';
-                      e.target.style.boxShadow = 'none';
+                      (e.target as HTMLInputElement).style.borderColor = '#e5e7eb';
+                      (e.target as HTMLInputElement).style.boxShadow = 'none';
                     }}
                   />
                 </div>
@@ -1039,8 +1042,7 @@ export default function AddFood() {
             </div>
           </div>
         </div>
-      )
-    }
+      )}
     </div>
   );
 }

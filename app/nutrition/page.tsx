@@ -85,7 +85,7 @@ export default function Nutrition() {
 
   const mealBreakdown = getMealBreakdown();
 
-  const formatDate = (dateString) => {
+  const formatDate = (dateString: string): string => {
     if (!dateString) return getCurrentDate();
     const date = new Date(dateString + 'T00:00:00');
     return date.toLocaleDateString('es-ES', {
@@ -95,7 +95,7 @@ export default function Nutrition() {
     });
   };
 
-  const handleDateChange = (date) => {
+  const handleDateChange = (date: string): void => {
     console.log('Fecha cambiada a:', date);
     changeDate(date);
     setShowDatePicker(false);
@@ -120,7 +120,7 @@ export default function Nutrition() {
     setShowHydrationModal(true);
   };
 
-  const handleAddWater = (amount) => {
+  const handleAddWater = (amount: number) => {
     const newAmount = Math.min(currentHydration + amount / 1000, hydrationGoal);
     setCurrentHydration(parseFloat(newAmount.toFixed(1)));
   };
@@ -151,7 +151,7 @@ export default function Nutrition() {
     setShowHydrationSettings(false);
   };
 
-  const calculateTotalActiveHours = (startTime, endTime) => {
+  const calculateTotalActiveHours = (startTime: string, endTime: string): number => {
     const [startHour, startMin] = startTime.split(':').map(Number);
     const [endHour, endMin] = endTime.split(':').map(Number);
 
@@ -163,11 +163,11 @@ export default function Nutrition() {
     return Math.round(totalMinutes / 60);
   };
 
-  const getHydrationPercentage = () => {
+  const getHydrationPercentage = (): number => {
     return Math.min((currentHydration / hydrationGoal) * 100, 100);
   };
 
-  const handleAddLiquid = (amount, type = 'water') => {
+  const handleAddLiquid = (amount: number, type: string = 'water'): void => {
     if (type === 'water') {
       const newAmount = Math.min(currentHydration + amount / 1000, hydrationGoal);
       setCurrentHydration(parseFloat(newAmount.toFixed(1)));
@@ -180,7 +180,7 @@ export default function Nutrition() {
     );
   };
 
-  const handleCustomAmountAdd = () => {
+  const handleCustomAmountAdd = (): void => {
     const amount = parseInt(customAmount);
     if (amount && amount > 0 && amount <= 2000) {
       handleAddLiquid(amount, selectedLiquidType);
@@ -188,26 +188,26 @@ export default function Nutrition() {
     }
   };
 
-  const getTotalLiquidIntake = () => {
+  const getTotalLiquidIntake = (): number => {
     return liquidIntake.reduce((total, liquid) => total + liquid.amount, 0);
   };
 
-  const getFiberPercentage = () => {
+  const getFiberPercentage = (): number => {
     return Math.min((currentFiber / fiberGoal) * 100, 100);
   };
 
-  const handleAddFiber = (fiberAmount) => {
+  const handleAddFiber = (fiberAmount: number): void => {
     const newAmount = Math.min(currentFiber + fiberAmount, fiberGoal * 1.5);
     setCurrentFiber(newAmount);
   };
 
-  const handleFiberSettings = () => {
+  const handleFiberSettings = (): void => {
     setTempFiberGoal(fiberGoal);
     setShowFiberModal(false);
     setShowFiberSettings(true);
   };
 
-  const handleSaveFiberSettings = () => {
+  const handleSaveFiberSettings = (): void => {
     setFiberGoal(tempFiberGoal);
     setShowFiberSettings(false);
   };
@@ -228,7 +228,7 @@ export default function Nutrition() {
     return recommendations.filter((rec) => rec.fiber <= remaining + 3);
   };
 
-  const loadExtraData = () => {
+  const loadExtraData = (): void => {
     try {
       const savedHydration = localStorage.getItem('currentHydration');
       const savedFiber = localStorage.getItem('currentFiber');
@@ -248,7 +248,7 @@ export default function Nutrition() {
     }
   };
 
-  const saveExtraData = () => {
+  const saveExtraData = (): void => {
     localStorage.setItem('currentHydration', currentHydration.toString());
     localStorage.setItem('currentFiber', currentFiber.toString());
     localStorage.setItem('liquidIntake', JSON.stringify(liquidIntake));
@@ -387,8 +387,8 @@ export default function Nutrition() {
                       cursor: 'pointer',
                       transition: 'background-color 0.2s'
                     }}
-                    onMouseEnter={(e) => e.target.style.backgroundColor = '#f9fafb'}
-                    onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                    onMouseEnter={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#f9fafb'}
+                    onMouseLeave={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent'}
                   >
                     <div style={{
                       width: '32px',
@@ -417,8 +417,8 @@ export default function Nutrition() {
                       cursor: 'pointer',
                       transition: 'background-color 0.2s'
                     }}
-                    onMouseEnter={(e) => e.target.style.backgroundColor = '#f9fafb'}
-                    onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                    onMouseEnter={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#f9fafb'}
+                    onMouseLeave={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent'}
                   >
                     <div style={{
                       width: '32px',
@@ -447,8 +447,8 @@ export default function Nutrition() {
                       cursor: 'pointer',
                       transition: 'background-color 0.2s'
                     }}
-                    onMouseEnter={(e) => e.target.style.backgroundColor = '#f9fafb'}
-                    onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                    onMouseEnter={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#f9fafb'}
+                    onMouseLeave={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent'}
                   >
                     <div style={{
                       width: '32px',
@@ -484,8 +484,8 @@ export default function Nutrition() {
                       cursor: 'pointer',
                       transition: 'background-color 0.2s'
                     }}
-                      onMouseEnter={(e) => e.target.style.backgroundColor = '#f9fafb'}
-                      onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                      onMouseEnter={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#f9fafb'}
+                      onMouseLeave={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent'}
                     >
                       <div style={{
                         width: '32px',
@@ -562,12 +562,12 @@ export default function Nutrition() {
                   }}
                   onMouseEnter={(e) => {
                     if (selectedPeriod !== period) {
-                      e.target.style.backgroundColor = '#f9fafb';
+                      (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#f9fafb';
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (selectedPeriod !== period) {
-                      e.target.style.backgroundColor = 'transparent';
+                      (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent';
                     }
                   }}
                 >
@@ -925,8 +925,8 @@ export default function Nutrition() {
               cursor: 'pointer',
               transition: 'background-color 0.2s'
             }}
-            onMouseEnter={(e) => e.target.style.backgroundColor = '#f0f9ff'}
-            onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
+            onMouseEnter={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#f0f9ff'}
+            onMouseLeave={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'white'}
           >
             <div style={{
               width: '40px',
@@ -988,8 +988,8 @@ export default function Nutrition() {
               cursor: 'pointer',
               transition: 'background-color 0.2s'
             }}
-            onMouseEnter={(e) => e.target.style.backgroundColor = '#f0fdf4'}
-            onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
+            onMouseEnter={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#f0fdf4'}
+            onMouseLeave={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'white'}
           >
             <div style={{
               width: '40px',
@@ -1385,8 +1385,8 @@ export default function Nutrition() {
                       cursor: 'pointer',
                       transition: 'all 0.2s'
                     }}
-                    onMouseEnter={(e) => e.target.style.backgroundColor = '#bfdbfe'}
-                    onMouseLeave={(e) => e.target.style.backgroundColor = '#dbeafe'}
+                    onMouseEnter={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#bfdbfe'}
+                    onMouseLeave={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#dbeafe'}
                   >
                     +{amount}ml
                   </button>
@@ -1827,8 +1827,8 @@ export default function Nutrition() {
                       transition: 'all 0.2s',
                       textAlign: 'left'
                     }}
-                    onMouseEnter={(e) => e.target.style.backgroundColor = '#dcfce7'}
-                    onMouseLeave={(e) => e.target.style.backgroundColor = '#f0fdf4'}
+                    onMouseEnter={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#dcfce7'}
+                    onMouseLeave={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#f0fdf4'}
                   >
                     <div style={{
                       display: 'flex',
