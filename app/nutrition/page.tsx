@@ -13,6 +13,8 @@ export default function Nutrition() {
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
   const [showHydrationModal, setShowHydrationModal] = useState(false);
   const [showHydrationSettings, setShowHydrationSettings] = useState(false);
+  const [showFiberModal, setShowFiberModal] = useState(false);
+  const [showFiberSettings, setShowFiberSettings] = useState(false);
   const [hydrationGoal, setHydrationGoal] = useState(2.5);
   const [currentHydration, setCurrentHydration] = useState(0);
   const [hydrationReminders, setHydrationReminders] = useState({
@@ -30,8 +32,9 @@ export default function Nutrition() {
     startTime: '07:00',
     endTime: '22:00'
   });
-
-  const [showLiquidIntakeModal, setShowLiquidIntakeModal] = useState(false);
+  const [fiberGoal, setFiberGoal] = useState(30);
+  const [currentFiber, setCurrentFiber] = useState(0);
+  const [tempFiberGoal, setTempFiberGoal] = useState(30);
   const [liquidIntake, setLiquidIntake] = useState([
     { type: 'water', name: 'Agua', amount: 0, icon: 'ri-drop-line', color: 'blue' },
     { type: 'coffee', name: 'Café', amount: 0, icon: 'ri-cup-line', color: 'orange' },
@@ -40,11 +43,6 @@ export default function Nutrition() {
   ]);
   const [selectedLiquidType, setSelectedLiquidType] = useState('water');
   const [customAmount, setCustomAmount] = useState('');
-  const [showFiberModal, setShowFiberModal] = useState(false);
-  const [fiberGoal, setFiberGoal] = useState(30);
-  const [currentFiber, setCurrentFiber] = useState(0);
-  const [showFiberSettings, setShowFiberSettings] = useState(false);
-  const [tempFiberGoal, setTempFiberGoal] = useState(30);
   const [fiberFoods, setFiberFoods] = useState([
     { name: 'Avena', fiber: 10, icon: 'ri-bowl-line', category: 'Cereales' },
     { name: 'Manzana', fiber: 4, icon: 'ri-apple-line', category: 'Frutas' },
@@ -524,7 +522,7 @@ export default function Nutrition() {
               fontWeight: '600',
               color: '#1f2937',
               margin: 0
-            }}>{getCurrentDate()}</p>
+            }}>{formatDate(dailyData.date || getCurrentDateISO())}</p>
           </div>
         </div>
 
