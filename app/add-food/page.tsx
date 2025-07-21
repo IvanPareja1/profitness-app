@@ -3,6 +3,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import { useNutritionData } from '../../hooks/useNutritionData';
 
 // Tipo para los valores nutricionales
 type NutritionInfo = {
@@ -107,6 +108,9 @@ export default function AddFood() {
     quantity: ''
   });
 
+  // Usar el hook de nutrición
+  const { addFood } = useNutritionData();
+
   // Función para buscar alimento en la base de datos
   const findFoodInDatabase = (foodName: string): NutritionInfo | null => {
     const normalizedName = foodName.toLowerCase().trim();
@@ -178,7 +182,7 @@ export default function AddFood() {
       protein: Math.round(baseNutrition.protein * multiplier * 10) / 10,
       carbs: Math.round(baseNutrition.carbs * multiplier * 10) / 10,
       fats: Math.round(baseNutrition.fats * multiplier * 10) / 10
-    };
+    }
   };
 
   // Efecto para auto-completar macronutrientes
@@ -237,8 +241,20 @@ export default function AddFood() {
         serving: newFood.serving || newFood.quantity || '1 porción'
       };
 
+      // Agregar a la lista de alimentos recientes
       setRecentFoods(prev => [foodToAdd, ...prev]);
 
+      // Agregar a los datos nutricionales diarios
+      addFood({
+        name: foodToAdd.name,
+        mealType: selectedMeal as 'breakfast' | 'lunch' | 'dinner' | 'snack',
+        calories: foodToAdd.calories,
+        protein: foodToAdd.protein,
+        carbs: foodToAdd.carbs,
+        fats: foodToAdd.fats
+      });
+
+      // Limpiar el formulario
       setNewFood({
         name: '',
         calories: '',
@@ -258,6 +274,16 @@ export default function AddFood() {
 
   const addFoodToMeal = (food: Food): void => {
     console.log(`Agregando ${food.name} a ${selectedMeal}`);
+
+    // Agregar el alimento a los datos nutricionales
+    addFood({
+      name: food.name,
+      mealType: selectedMeal as 'breakfast' | 'lunch' | 'dinner' | 'snack',
+      calories: food.calories,
+      protein: food.protein,
+      carbs: food.carbs,
+      fats: food.fats
+    });
 
     setShowSuccess(true);
     setTimeout(() => setShowSuccess(false), 2000);
@@ -480,7 +506,9 @@ export default function AddFood() {
               fontSize: '12px',
               color: '#6b7280',
               margin: 0
-            }}>Código de barras</p>
+            }}>
+              Código de barras
+            </p>
           </Link>
           <button
             onClick={() => setShowCreateFood(true)}
@@ -517,7 +545,9 @@ export default function AddFood() {
               fontSize: '12px',
               color: '#6b7280',
               margin: 0
-            }}>Alimento personalizado</p>
+            }}>
+              Alimento personalizado
+            </p>
           </button>
         </div>
 
@@ -545,14 +575,16 @@ export default function AddFood() {
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   padding: '16px',
+                  borderTop: 'none',
+                  borderLeft: 'none',
+                  borderRight: 'none',
                   borderBottom: index < recentFoods.length - 1 ? '1px solid #f3f4f6' : 'none',
-                  border: 'none',
                   backgroundColor: 'transparent',
                   cursor: 'pointer',
                   transition: 'background-color 0.2s'
                 }}
-                onMouseEnter={(e) => e.target.style.backgroundColor = '#f9fafb'}
-                onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                onMouseEnter={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#f9fafb'}
+                onMouseLeave={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent'}
               >
                 <div style={{ flex: 1, textAlign: 'left' }}>
                   <h4 style={{
@@ -606,14 +638,16 @@ export default function AddFood() {
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   padding: '16px',
+                  borderTop: 'none',
+                  borderLeft: 'none',
+                  borderRight: 'none',
                   borderBottom: index < popularFoods.length - 1 ? '1px solid #f3f4f6' : 'none',
-                  border: 'none',
                   backgroundColor: 'transparent',
                   cursor: 'pointer',
                   transition: 'background-color 0.2s'
                 }}
-                onMouseEnter={(e) => e.target.style.backgroundColor = '#f9fafb'}
-                onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                onMouseEnter={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#f9fafb'}
+                onMouseLeave={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent'}
               >
                 <div style={{ flex: 1, textAlign: 'left' }}>
                   <h4 style={{
@@ -1005,124 +1039,8 @@ export default function AddFood() {
             </div>
           </div>
         </div>
-      )}
-
-      <nav style={{
-        position: 'fixed',
-        bottom: 0,
-        width: '100%',
-        backgroundColor: 'white',
-        borderTop: '1px solid #e5e7eb'
-      }}>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(5, 1fr)',
-          padding: '8px 0'
-        }}>
-          <Link href="/" style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '8px 4px',
-            textDecoration: 'none'
-          }}>
-            <div style={{
-              width: '24px',
-              height: '24px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: '4px'
-            }}>
-              <i className="ri-home-line" style={{ color: '#9ca3af', fontSize: '18px' }}></i>
-            </div>
-            <span style={{ fontSize: '12px', color: '#9ca3af' }}>Inicio</span>
-          </Link>
-          <Link href="/nutrition" style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '8px 4px',
-            textDecoration: 'none'
-          }}>
-            <div style={{
-              width: '24px',
-              height: '24px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: '4px'
-            }}>
-              <i className="ri-pie-chart-line" style={{ color: '#9ca3af', fontSize: '18px' }}></i>
-            </div>
-            <span style={{ fontSize: '12px', color: '#9ca3af' }}>Nutrición</span>
-          </Link>
-          <Link href="/add-food" style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '8px 4px',
-            textDecoration: 'none'
-          }}>
-            <div style={{
-              width: '32px',
-              height: '32px',
-              background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: '4px'
-            }}>
-              <i className="ri-add-line" style={{ color: 'white', fontSize: '18px' }}></i>
-            </div>
-            <span style={{ fontSize: '12px', color: '#3b82f6', fontWeight: '500' }}>Agregar</span>
-          </Link>
-          <Link href="/progress" style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '8px 4px',
-            textDecoration: 'none'
-          }}>
-            <div style={{
-              width: '24px',
-              height: '24px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: '4px'
-            }}>
-              <i className="ri-line-chart-line" style={{ color: '#9ca3af', fontSize: '18px' }}></i>
-            </div>
-            <span style={{ fontSize: '12px', color: '#9ca3af' }}>Progreso</span>
-          </Link>
-          <Link href="/profile" style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '8px 4px',
-            textDecoration: 'none'
-          }}>
-            <div style={{
-              width: '24px',
-              height: '24px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: '4px'
-            }}>
-              <i className="ri-user-line" style={{ color: '#9ca3af', fontSize: '18px' }}></i>
-            </div>
-            <span style={{ fontSize: '12px', color: '#9ca3af' }}>Perfil</span>
-          </Link>
-        </div>
-      </nav>
+      )
+    }
     </div>
   );
 }

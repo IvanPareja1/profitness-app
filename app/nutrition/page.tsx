@@ -3,12 +3,13 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import { useNutritionData } from '../../hooks/useNutritionData';
+import { useUserProfile } from '../../hooks/useUserProfile';
 
 export default function Nutrition() {
   const [selectedPeriod, setSelectedPeriod] = useState('day');
   const [mounted, setMounted] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
   const [showHydrationModal, setShowHydrationModal] = useState(false);
   const [showHydrationSettings, setShowHydrationSettings] = useState(false);
@@ -16,8 +17,8 @@ export default function Nutrition() {
   const [currentHydration, setCurrentHydration] = useState(0);
   const [hydrationReminders, setHydrationReminders] = useState({
     enabled: false,
-    interval: 3, // horas
-    amount: 250, // ml
+    interval: 3,
+    amount: 250,
     startTime: '07:00',
     endTime: '22:00'
   });
@@ -51,184 +52,52 @@ export default function Nutrition() {
     { name: 'Lentejas', fiber: 6, icon: 'ri-bowl-line', category: 'Legumbres' }
   ]);
 
-  const [dailyMacros, setDailyMacros] = useState({
-    protein: { consumed: 0, target: 140, percentage: 0 },
-    carbs: { consumed: 0, target: 215, percentage: 0 },
-    fats: { consumed: 0, target: 72, percentage: 0 }
-  });
+  const {
+    totalCalories,
+    totalProtein,
+    totalCarbs,
+    totalFats,
+    getMealBreakdown,
+    dailyData,
+    changeDate,
+    forceReset,
+    mounted: nutritionMounted
+  } = useNutritionData();
 
-  const [mealBreakdown, setMealBreakdown] = useState([
-    { 
-      name: 'Desayuno', 
-      calories: 0, 
-      protein: 0, 
-      carbs: 0, 
-      fats: 0,
-      foods: []
-    },
-    { 
-      name: 'Almuerzo', 
-      calories: 0, 
-      protein: 0, 
-      carbs: 0, 
-      fats: 0,
-      foods: []
-    },
-    { 
-      name: 'Merienda', 
-      calories: 0, 
-      protein: 0, 
-      carbs: 0, 
-      fats: 0,
-      foods: []
-    },
-    { 
-      name: 'Cena', 
-      calories: 0, 
-      protein: 0, 
-      carbs: 0, 
-      fats: 0,
-      foods: []
-    }
-  ]);
-
-  const totalCalories = mealBreakdown.reduce((sum, meal) => sum + meal.calories, 0);
-  const calorieTarget = 2150;
+  const { dailyCalories, dailyMacros, mounted: profileMounted } = useUserProfile();
 
   const getCurrentDate = () => {
-    return new Date().toISOString().split('T')[0];
-  };
-
-  const checkDailyReset = () => {
-    const today = getCurrentDate();
-    const lastResetDate = localStorage.getItem('lastResetDate');
-    
-    if (lastResetDate !== today) {
-      console.log('Reiniciando datos diarios - Nueva fecha:', today);
-      
-      if (lastResetDate && (currentHydration > 0 || currentFiber > 0 || totalCalories > 0)) {
-        const historicalData = {
-          date: lastResetDate,
-          hydration: currentHydration,
-          fiber: currentFiber,
-          calories: totalCalories,
-          macros: dailyMacros,
-          meals: mealBreakdown
-        };
-        
-        const existingHistory = localStorage.getItem('dailyNutritionHistory');
-        let history = [];
-        if (existingHistory) {
-          try {
-            history = JSON.parse(existingHistory);
-          } catch (e) {
-            history = [];
-          }
-        }
-        
-        history.push(historicalData);
-        if (history.length > 30) {
-          history = history.slice(-30);
-        }
-        
-        localStorage.setItem('dailyNutritionHistory', JSON.stringify(history));
-      }
-      
-      resetDailyData();
-      
-      localStorage.setItem('lastResetDate', today);
-    }
-  };
-
-  const resetDailyData = () => {
-    console.log('Reiniciando datos diarios a cero');
-    
-    setCurrentHydration(0);
-    localStorage.setItem('currentHydration', '0');
-    
-    setCurrentFiber(0);
-    localStorage.setItem('currentFiber', '0');
-    
-    const resetLiquids = [
-      { type: 'water', name: 'Agua', amount: 0, icon: 'ri-drop-line', color: 'blue' },
-      { type: 'coffee', name: 'Café', amount: 0, icon: 'ri-cup-line', color: 'orange' },
-      { type: 'tea', name: 'Té', amount: 0, icon: 'ri-cup-line', color: 'green' },
-      { type: 'juice', name: 'Jugos', amount: 0, icon: 'ri-glass-line', color: 'purple' }
-    ];
-    setLiquidIntake(resetLiquids);
-    localStorage.setItem('liquidIntake', JSON.stringify(resetLiquids));
-    
-    const resetMacros = {
-      protein: { consumed: 0, target: 140, percentage: 0 },
-      carbs: { consumed: 0, target: 215, percentage: 0 },
-      fats: { consumed: 0, target: 72, percentage: 0 }
-    };
-    setDailyMacros(resetMacros);
-    localStorage.setItem('dailyMacros', JSON.stringify(resetMacros));
-    
-    const resetMeals = [
-      { name: 'Desayuno', calories: 0, protein: 0, carbs: 0, fats: 0, foods: [] },
-      { name: 'Almuerzo', calories: 0, protein: 0, carbs: 0, fats: 0, foods: [] },
-      { name: 'Merienda', calories: 0, protein: 0, carbs: 0, fats: 0, foods: [] },
-      { name: 'Cena', calories: 0, protein: 0, carbs: 0, fats: 0, foods: [] }
-    ];
-    setMealBreakdown(resetMeals);
-    localStorage.setItem('mealBreakdown', JSON.stringify(resetMeals));
-  };
-
-  const loadDailyData = () => {
-    try {
-      const today = getCurrentDate();
-      const savedDate = localStorage.getItem('currentDataDate');
-      
-      if (savedDate === today) {
-        const savedHydration = localStorage.getItem('currentHydration');
-        const savedFiber = localStorage.getItem('currentFiber');
-        const savedLiquids = localStorage.getItem('liquidIntake');
-        const savedMacros = localStorage.getItem('dailyMacros');
-        const savedMeals = localStorage.getItem('mealBreakdown');
-        
-        if (savedHydration) setCurrentHydration(parseFloat(savedHydration));
-        if (savedFiber) setCurrentFiber(parseFloat(savedFiber));
-        if (savedLiquids) setLiquidIntake(JSON.parse(savedLiquids));
-        if (savedMacros) setDailyMacros(JSON.parse(savedMacros));
-        if (savedMeals) setMealBreakdown(JSON.parse(savedMeals));
-      }
-      
-      const savedHydrationGoal = localStorage.getItem('hydrationGoal');
-      const savedReminders = localStorage.getItem('hydrationReminders');
-      const savedFiberGoal = localStorage.getItem('fiberGoal');
-
-      if (savedHydrationGoal) setHydrationGoal(parseFloat(savedHydrationGoal));
-      if (savedReminders) setHydrationReminders(JSON.parse(savedReminders));
-      if (savedFiberGoal) setFiberGoal(parseFloat(savedFiberGoal));
-      
-    } catch (error) {
-      console.error('Error cargando datos:', error);
-    }
-  };
-
-  const saveDailyData = () => {
-    const today = getCurrentDate();
-    localStorage.setItem('currentDataDate', today);
-    localStorage.setItem('currentHydration', currentHydration.toString());
-    localStorage.setItem('currentFiber', currentFiber.toString());
-    localStorage.setItem('liquidIntake', JSON.stringify(liquidIntake));
-    localStorage.setItem('dailyMacros', JSON.stringify(dailyMacros));
-    localStorage.setItem('mealBreakdown', JSON.stringify(mealBreakdown));
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('es-ES', { 
-      day: 'numeric', 
+    const now = new Date();
+    return now.toLocaleDateString('es-ES', {
+      day: 'numeric',
       month: 'long',
       year: 'numeric'
     });
   };
 
-  const handleDateChange = (date: string) => {
-    setSelectedDate(date);
+  const getCurrentDateISO = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const mealBreakdown = getMealBreakdown();
+
+  const formatDate = (dateString) => {
+    if (!dateString) return getCurrentDate();
+    const date = new Date(dateString + 'T00:00:00');
+    return date.toLocaleDateString('es-ES', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+  };
+
+  const handleDateChange = (date) => {
+    console.log('Fecha cambiada a:', date);
+    changeDate(date);
     setShowDatePicker(false);
   };
 
@@ -251,7 +120,7 @@ export default function Nutrition() {
     setShowHydrationModal(true);
   };
 
-  const handleAddWater = (amount: number) => {
+  const handleAddWater = (amount) => {
     const newAmount = Math.min(currentHydration + amount / 1000, hydrationGoal);
     setCurrentHydration(parseFloat(newAmount.toFixed(1)));
   };
@@ -272,14 +141,8 @@ export default function Nutrition() {
       const reminderCount = Math.floor(totalHours / tempReminders.interval);
       const calculatedAmount = Math.round((tempHydrationGoal * 1000) / reminderCount);
 
-      setTempReminders(prev => ({ 
-        ...prev, 
-        amount: calculatedAmount 
-      }));
-      setHydrationReminders(prev => ({ 
-        ...prev, 
-        amount: calculatedAmount 
-      }));
+      setTempReminders((prev) => ({ ...prev, amount: calculatedAmount }));
+      setHydrationReminders((prev) => ({ ...prev, amount: calculatedAmount }));
 
       console.log(`Configurado: ${calculatedAmount}ml cada ${tempReminders.interval} horas`);
       console.log(`Total de recordatorios: ${reminderCount} durante ${totalHours} horas`);
@@ -288,16 +151,14 @@ export default function Nutrition() {
     setShowHydrationSettings(false);
   };
 
-  const calculateTotalActiveHours = (startTime: string, endTime: string) => {
+  const calculateTotalActiveHours = (startTime, endTime) => {
     const [startHour, startMin] = startTime.split(':').map(Number);
     const [endHour, endMin] = endTime.split(':').map(Number);
 
     const startMinutes = startHour * 60 + startMin;
     const endMinutes = endHour * 60 + endMin;
 
-    const totalMinutes = endMinutes > startMinutes ? 
-      endMinutes - startMinutes : 
-      (24 * 60) - startMinutes + endMinutes;
+    const totalMinutes = endMinutes > startMinutes ? endMinutes - startMinutes : (24 * 60) - startMinutes + endMinutes;
 
     return Math.round(totalMinutes / 60);
   };
@@ -306,17 +167,15 @@ export default function Nutrition() {
     return Math.min((currentHydration / hydrationGoal) * 100, 100);
   };
 
-  const handleAddLiquid = (amount: number, type: string = 'water') => {
+  const handleAddLiquid = (amount, type = 'water') => {
     if (type === 'water') {
       const newAmount = Math.min(currentHydration + amount / 1000, hydrationGoal);
       setCurrentHydration(parseFloat(newAmount.toFixed(1)));
     }
 
-    setLiquidIntake(prev => 
-      prev.map(liquid => 
-        liquid.type === type 
-          ? { ...liquid, amount: liquid.amount + amount }
-          : liquid
+    setLiquidIntake((prev) =>
+      prev.map((liquid) =>
+        liquid.type === type ? { ...liquid, amount: liquid.amount + amount } : liquid
       )
     );
   };
@@ -366,28 +225,56 @@ export default function Nutrition() {
       { name: '2 cucharadas de semillas de chía', fiber: 10, icon: 'ri-seedling-line' }
     ];
 
-    return recommendations.filter(rec => rec.fiber <= remaining + 3);
+    return recommendations.filter((rec) => rec.fiber <= remaining + 3);
+  };
+
+  const loadExtraData = () => {
+    try {
+      const savedHydration = localStorage.getItem('currentHydration');
+      const savedFiber = localStorage.getItem('currentFiber');
+      const savedLiquids = localStorage.getItem('liquidIntake');
+      const savedHydrationGoal = localStorage.getItem('hydrationGoal');
+      const savedReminders = localStorage.getItem('hydrationReminders');
+      const savedFiberGoal = localStorage.getItem('fiberGoal');
+
+      if (savedHydration) setCurrentHydration(parseFloat(savedHydration));
+      if (savedFiber) setCurrentFiber(parseFloat(savedFiber));
+      if (savedLiquids) setLiquidIntake(JSON.parse(savedLiquids));
+      if (savedHydrationGoal) setHydrationGoal(parseFloat(savedHydrationGoal));
+      if (savedReminders) setHydrationReminders(JSON.parse(savedReminders));
+      if (savedFiberGoal) setFiberGoal(parseFloat(savedFiberGoal));
+    } catch (error) {
+      console.error('Error cargando datos adicionales:', error);
+    }
+  };
+
+  const saveExtraData = () => {
+    localStorage.setItem('currentHydration', currentHydration.toString());
+    localStorage.setItem('currentFiber', currentFiber.toString());
+    localStorage.setItem('liquidIntake', JSON.stringify(liquidIntake));
+    localStorage.setItem('hydrationGoal', hydrationGoal.toString());
+    localStorage.setItem('hydrationReminders', JSON.stringify(hydrationReminders));
+    localStorage.setItem('fiberGoal', fiberGoal.toString());
   };
 
   useEffect(() => {
     setMounted(true);
-    
-    checkDailyReset();
-    
-    loadDailyData();
+    loadExtraData();
   }, []);
 
   useEffect(() => {
-    if (mounted) {
-      saveDailyData();
-      
-      localStorage.setItem('hydrationGoal', hydrationGoal.toString());
-      localStorage.setItem('hydrationReminders', JSON.stringify(hydrationReminders));
-      localStorage.setItem('fiberGoal', fiberGoal.toString());
+    if (mounted && nutritionMounted) {
+      forceReset();
     }
-  }, [hydrationGoal, currentHydration, hydrationReminders, fiberGoal, currentFiber, liquidIntake, dailyMacros, mealBreakdown, mounted]);
+  }, [mounted, nutritionMounted]);
 
-  if (!mounted) {
+  useEffect(() => {
+    if (mounted) {
+      saveExtraData();
+    }
+  }, [hydrationGoal, currentHydration, hydrationReminders, fiberGoal, currentFiber, liquidIntake, mounted]);
+
+  if (!mounted || !nutritionMounted || !profileMounted) {
     return (
       <div style={{
         minHeight: '100vh',
@@ -417,7 +304,6 @@ export default function Nutrition() {
       minHeight: '100vh',
       background: 'linear-gradient(135deg, #f0f9ff 0%, #e0e7ff 100%)'
     }}>
-      {/* Header */}
       <header style={{
         position: 'fixed',
         top: 0,
@@ -444,7 +330,7 @@ export default function Nutrition() {
             alignItems: 'center',
             gap: '12px'
           }}>
-            <button 
+            <button
               onClick={() => setShowDatePicker(true)}
               style={{
                 width: '32px',
@@ -460,7 +346,7 @@ export default function Nutrition() {
               <i className="ri-calendar-line" style={{ color: '#6b7280', fontSize: '18px' }}></i>
             </button>
             <div style={{ position: 'relative' }}>
-              <button 
+              <button
                 onClick={() => setShowOptionsMenu(!showOptionsMenu)}
                 style={{
                   width: '32px',
@@ -476,7 +362,6 @@ export default function Nutrition() {
                 <i className="ri-more-line" style={{ color: '#6b7280', fontSize: '18px' }}></i>
               </button>
 
-              {/* Options Menu Dropdown */}
               {showOptionsMenu && (
                 <div style={{
                   position: 'absolute',
@@ -599,8 +484,8 @@ export default function Nutrition() {
                       cursor: 'pointer',
                       transition: 'background-color 0.2s'
                     }}
-                    onMouseEnter={(e) => e.target.style.backgroundColor = '#f9fafb'}
-                    onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                      onMouseEnter={(e) => e.target.style.backgroundColor = '#f9fafb'}
+                      onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
                     >
                       <div style={{
                         width: '32px',
@@ -629,7 +514,6 @@ export default function Nutrition() {
         paddingBottom: '80px',
         padding: '64px 16px 80px 16px'
       }}>
-        {/* Selected Date Display */}
         <div style={{ marginTop: '24px', marginBottom: '16px' }}>
           <div style={{ textAlign: 'center' }}>
             <p style={{
@@ -642,11 +526,10 @@ export default function Nutrition() {
               fontWeight: '600',
               color: '#1f2937',
               margin: 0
-            }}>{formatDate(selectedDate)}</p>
+            }}>{getCurrentDate()}</p>
           </div>
         </div>
 
-        {/* Period Selector */}
         <div style={{ marginBottom: '24px' }}>
           <div style={{
             backgroundColor: 'white',
@@ -659,14 +542,10 @@ export default function Nutrition() {
               gridTemplateColumns: 'repeat(3, 1fr)',
               gap: '4px'
             }}>
-              {[ 
-                { id: 'day', label: 'Día' },
-                { id: 'week', label: 'Semana' },
-                { id: 'month', label: 'Mes' }
-              ].map((period) => (
+              {['day', 'week', 'month'].map((period) => (
                 <button
-                  key={period.id}
-                  onClick={() => setSelectedPeriod(period.id)}
+                  key={period}
+                  onClick={() => setSelectedPeriod(period)}
                   className="!rounded-button"
                   style={{
                     padding: '8px 16px',
@@ -676,30 +555,29 @@ export default function Nutrition() {
                     transition: 'all 0.2s',
                     border: 'none',
                     cursor: 'pointer',
-                    background: selectedPeriod === period.id 
+                    background: selectedPeriod === period
                       ? 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)'
                       : 'transparent',
-                    color: selectedPeriod === period.id ? 'white' : '#6b7280'
+                    color: selectedPeriod === period ? 'white' : '#6b7280'
                   }}
                   onMouseEnter={(e) => {
-                    if (selectedPeriod !== period.id) {
+                    if (selectedPeriod !== period) {
                       e.target.style.backgroundColor = '#f9fafb';
                     }
                   }}
                   onMouseLeave={(e) => {
-                    if (selectedPeriod !== period.id) {
+                    if (selectedPeriod !== period) {
                       e.target.style.backgroundColor = 'transparent';
                     }
                   }}
                 >
-                  {period.label}
+                  {period === 'day' ? 'Día' : period === 'week' ? 'Semana' : 'Mes'}
                 </button>
               ))}
             </div>
           </div>
         </div>
 
-        {/* Calories Overview */}
         <div style={{
           backgroundColor: 'white',
           borderRadius: '16px',
@@ -721,7 +599,7 @@ export default function Nutrition() {
             <p style={{
               color: '#6b7280',
               margin: 0
-            }}>de {calorieTarget} kcal objetivo</p>
+            }}>de {dailyCalories} kcal objetivo</p>
             <div style={{
               width: '100%',
               backgroundColor: '#e5e7eb',
@@ -730,19 +608,18 @@ export default function Nutrition() {
               marginTop: '12px',
               overflow: 'hidden'
             }}>
-              <div 
+              <div
                 style={{
                   background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
                   height: '8px',
                   borderRadius: '12px',
                   transition: 'all 0.3s',
-                  width: `${Math.min((totalCalories / calorieTarget) * 100, 100)}%`
+                  width: `${Math.min((totalCalories / dailyCalories) * 100, 100)}%`
                 }}
               ></div>
             </div>
           </div>
 
-          {/* Macros Breakdown */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(3, 1fr)',
@@ -767,7 +644,7 @@ export default function Nutrition() {
                     fill="none"
                     stroke="#ef4444"
                     strokeWidth="3"
-                    strokeDasharray={`${dailyMacros.protein.percentage}, 100`}
+                    strokeDasharray={`${Math.min((totalProtein / dailyMacros.protein.target) * 100, 100)}, 100`}
                   />
                 </svg>
                 <div style={{
@@ -784,7 +661,7 @@ export default function Nutrition() {
                     fontSize: '12px',
                     fontWeight: '600',
                     color: '#ef4444'
-                  }}>{dailyMacros.protein.percentage}%</span>
+                  }}>{Math.round((totalProtein / dailyMacros.protein.target) * 100)}%</span>
                 </div>
               </div>
               <p style={{
@@ -797,7 +674,7 @@ export default function Nutrition() {
                 fontSize: '12px',
                 color: '#6b7280',
                 margin: 0
-              }}>{dailyMacros.protein.consumed}g / {dailyMacros.protein.target}g</p>
+              }}>{totalProtein}g / {dailyMacros.protein.target}g</p>
             </div>
 
             <div style={{ textAlign: 'center' }}>
@@ -819,7 +696,7 @@ export default function Nutrition() {
                     fill="none"
                     stroke="#f59e0b"
                     strokeWidth="3"
-                    strokeDasharray={`${dailyMacros.carbs.percentage}, 100`}
+                    strokeDasharray={`${Math.min((totalCarbs / dailyMacros.carbs.target) * 100, 100)}, 100`}
                   />
                 </svg>
                 <div style={{
@@ -836,7 +713,7 @@ export default function Nutrition() {
                     fontSize: '12px',
                     fontWeight: '600',
                     color: '#f59e0b'
-                  }}>{dailyMacros.carbs.percentage}%</span>
+                  }}>{Math.round((totalCarbs / dailyMacros.carbs.target) * 100)}%</span>
                 </div>
               </div>
               <p style={{
@@ -849,7 +726,7 @@ export default function Nutrition() {
                 fontSize: '12px',
                 color: '#6b7280',
                 margin: 0
-              }}>{dailyMacros.carbs.consumed}g / {dailyMacros.carbs.target}g</p>
+              }}>{totalCarbs}g / {dailyMacros.carbs.target}g</p>
             </div>
 
             <div style={{ textAlign: 'center' }}>
@@ -871,7 +748,7 @@ export default function Nutrition() {
                     fill="none"
                     stroke="#10b981"
                     strokeWidth="3"
-                    strokeDasharray={`${dailyMacros.fats.percentage}, 100`}
+                    strokeDasharray={`${Math.min((totalFats / dailyMacros.fats.target) * 100, 100)}, 100`}
                   />
                 </svg>
                 <div style={{
@@ -888,7 +765,7 @@ export default function Nutrition() {
                     fontSize: '12px',
                     fontWeight: '600',
                     color: '#10b981'
-                  }}>{dailyMacros.fats.percentage}%</span>
+                  }}>{Math.round((totalFats / dailyMacros.fats.target) * 100)}%</span>
                 </div>
               </div>
               <p style={{
@@ -901,12 +778,11 @@ export default function Nutrition() {
                 fontSize: '12px',
                 color: '#6b7280',
                 margin: 0
-              }}>{dailyMacros.fats.consumed}g / {dailyMacros.fats.target}g</p>
+              }}>{totalFats}g / {dailyMacros.fats.target}g</p>
             </div>
           </div>
         </div>
 
-        {/* Meal Breakdown */}
         <div style={{ marginBottom: '24px' }}>
           <div style={{
             display: 'flex',
@@ -1013,7 +889,7 @@ export default function Nutrition() {
                   gap: '8px'
                 }}>
                   {meal.foods.map((food, foodIndex) => (
-                    <span 
+                    <span
                       key={foodIndex}
                       style={{
                         fontSize: '12px',
@@ -1032,13 +908,12 @@ export default function Nutrition() {
           </div>
         </div>
 
-        {/* Quick Stats */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(2, 1fr)',
           gap: '16px'
         }}>
-          <button 
+          <button
             onClick={handleHydrationClick}
             style={{
               backgroundColor: 'white',
@@ -1089,7 +964,7 @@ export default function Nutrition() {
               height: '4px',
               marginTop: '8px'
             }}>
-              <div 
+              <div
                 style={{
                   backgroundColor: '#3b82f6',
                   height: '4px',
@@ -1101,7 +976,7 @@ export default function Nutrition() {
             </div>
           </button>
 
-          <button 
+          <button
             onClick={() => setShowFiberModal(true)}
             style={{
               backgroundColor: 'white',
@@ -1152,7 +1027,7 @@ export default function Nutrition() {
               height: '4px',
               marginTop: '8px'
             }}>
-              <div 
+              <div
                 style={{
                   backgroundColor: '#16a34a',
                   height: '4px',
@@ -1164,10 +1039,8 @@ export default function Nutrition() {
             </div>
           </button>
         </div>
-
       </main>
 
-      {/* Bottom Navigation */}
       <nav style={{
         position: 'fixed',
         bottom: 0,
@@ -1285,7 +1158,6 @@ export default function Nutrition() {
         </div>
       </nav>
 
-      {/* Date Picker Modal */}
       {showDatePicker && (
         <div style={{
           position: 'fixed',
@@ -1337,14 +1209,15 @@ export default function Nutrition() {
 
             <input
               type="date"
-              value={selectedDate}
+              value={dailyData.date || getCurrentDateISO()}
               onChange={(e) => handleDateChange(e.target.value)}
               style={{
                 width: '100%',
                 padding: '12px 16px',
                 borderRadius: '12px',
                 border: '1px solid #e5e7eb',
-                fontSize: '16px'
+                fontSize: '16px',
+                marginBottom: '16px'
               }}
             />
 
@@ -1389,7 +1262,6 @@ export default function Nutrition() {
         </div>
       )}
 
-      {/* Hydration Modal */}
       {showHydrationModal && (
         <div style={{
           position: 'fixed',
@@ -1473,7 +1345,7 @@ export default function Nutrition() {
                 height: '8px',
                 overflow: 'hidden'
               }}>
-                <div 
+                <div
                   style={{
                     backgroundColor: '#3b82f6',
                     height: '8px',
@@ -1601,7 +1473,6 @@ export default function Nutrition() {
         </div>
       )}
 
-      {/* Hydration Settings Modal */}
       {showHydrationSettings && (
         <div style={{
           position: 'fixed',
@@ -1651,7 +1522,6 @@ export default function Nutrition() {
               </button>
             </div>
 
-            {/* Meta diaria */}
             <div style={{ marginBottom: '24px' }}>
               <label style={{
                 fontSize: '14px',
@@ -1677,7 +1547,6 @@ export default function Nutrition() {
               />
             </div>
 
-            {/* Recordatorios */}
             <div style={{ marginBottom: '24px' }}>
               <div style={{
                 display: 'flex',
@@ -1691,7 +1560,7 @@ export default function Nutrition() {
                   color: '#1f2937'
                 }}>Recordatorios automáticos</label>
                 <button
-                  onClick={() => setTempReminders(prev => ({ ...prev, enabled: !prev.enabled }))}
+                  onClick={() => setTempReminders((prev) => ({ ...prev, enabled: !prev.enabled }))}
                   style={{
                     width: '48px',
                     height: '28px',
@@ -1731,7 +1600,7 @@ export default function Nutrition() {
                     }}>Cada cuántas horas</label>
                     <select
                       value={tempReminders.interval}
-                      onChange={(e) => setTempReminders(prev => ({ ...prev, interval: parseInt(e.target.value) }))}
+                      onChange={(e) => setTempReminders((prev) => ({ ...prev, interval: parseInt(e.target.value) }))}
                       style={{
                         width: '100%',
                         padding: '8px 12px',
@@ -1762,7 +1631,7 @@ export default function Nutrition() {
                       <input
                         type="time"
                         value={tempReminders.startTime}
-                        onChange={(e) => setTempReminders(prev => ({ ...prev, startTime: e.target.value }))}
+                        onChange={(e) => setTempReminders((prev) => ({ ...prev, startTime: e.target.value }))}
                         style={{
                           width: '100%',
                           padding: '8px 12px',
@@ -1782,7 +1651,7 @@ export default function Nutrition() {
                       <input
                         type="time"
                         value={tempReminders.endTime}
-                        onChange={(e) => setTempReminders(prev => ({ ...prev, endTime: e.target.value }))}
+                        onChange={(e) => setTempReminders((prev) => ({ ...prev, endTime: e.target.value }))}
                         style={{
                           width: '100%',
                           padding: '8px 12px',
@@ -1838,7 +1707,6 @@ export default function Nutrition() {
         </div>
       )}
 
-      {/* Fiber Modal */}
       {showFiberModal && (
         <div style={{
           position: 'fixed',
@@ -1922,7 +1790,7 @@ export default function Nutrition() {
                 height: '8px',
                 overflow: 'hidden'
               }}>
-                <div 
+                <div
                   style={{
                     backgroundColor: '#16a34a',
                     height: '8px',
@@ -2116,7 +1984,6 @@ export default function Nutrition() {
         </div>
       )}
 
-      {/* Fiber Settings Modal */}
       {showFiberSettings && (
         <div style={{
           position: 'fixed',
@@ -2166,7 +2033,6 @@ export default function Nutrition() {
               </button>
             </div>
 
-            {/* Meta diaria de fibra */}
             <div style={{ marginBottom: '24px' }}>
               <label style={{
                 fontSize: '14px',
@@ -2198,7 +2064,6 @@ export default function Nutrition() {
               }}>Recomendado: 25-35g diarios para adultos</p>
             </div>
 
-            {/* Info sobre fibra */}
             <div style={{
               backgroundColor: '#f0fdf4',
               borderRadius: '12px',
@@ -2286,21 +2151,6 @@ export default function Nutrition() {
             </div>
           </div>
         </div>
-      )}
-
-      {/* Overlay to close menu when clicking outside */}
-      {showOptionsMenu && (
-        <div 
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            zIndex: 40
-          }}
-          onClick={() => setShowOptionsMenu(false)}
-        ></div>
       )}
     </div>
   );
