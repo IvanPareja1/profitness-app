@@ -174,9 +174,7 @@ export default function Nutrition() {
     }
 
     setLiquidIntake((prev) =>
-      prev.map((liquid) =>
-        liquid.type === type ? { ...liquid, amount: liquid.amount + amount } : liquid
-      )
+      prev.map((liquid) => (liquid.type === type ? { ...liquid, amount: liquid.amount + amount } : liquid))
     );
   };
 
