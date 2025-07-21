@@ -83,14 +83,18 @@ export default function Nutrition() {
 
   const mealBreakdown = getMealBreakdown();
 
-  const formatDate = (dateString: string): string => {
-    if (!dateString) return getCurrentDate();
-    const date = new Date(dateString + 'T00:00:00');
-    return date.toLocaleDateString('es-ES', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    });
+  const formatDate = (dateString: string | null | undefined): string => {
+    if (!dateString || dateString === '') return getCurrentDate();
+    try {
+      const date = new Date(dateString + 'T00:00:00');
+      return date.toLocaleDateString('es-ES', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      });
+    } catch (error) {
+      return getCurrentDate();
+    }
   };
 
   const handleDateChange = (date: string): void => {
