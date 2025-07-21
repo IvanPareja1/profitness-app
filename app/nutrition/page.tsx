@@ -66,7 +66,7 @@ export default function Nutrition() {
 
   const { dailyCalories, dailyMacros, mounted: profileMounted } = useUserProfile();
 
-  const getCurrentDate = () => {
+  const getCurrentDate = (): string => {
     const now = new Date();
     return now.toLocaleDateString('es-ES', {
       day: 'numeric',
@@ -75,7 +75,7 @@ export default function Nutrition() {
     });
   };
 
-  const getCurrentDateISO = () => {
+  const getCurrentDateISO = (): string => {
     const now = new Date();
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -101,38 +101,38 @@ export default function Nutrition() {
     setShowDatePicker(false);
   };
 
-  const handleExportData = () => {
+  const handleExportData = (): void => {
     setShowOptionsMenu(false);
     console.log('Exportando datos de nutrición...');
   };
 
-  const handleShareProgress = () => {
+  const handleShareProgress = (): void => {
     setShowOptionsMenu(false);
     console.log('Compartiendo progreso...');
   };
 
-  const handlePrintReport = () => {
+  const handlePrintReport = (): void => {
     setShowOptionsMenu(false);
     console.log('Imprimiendo reporte...');
   };
 
-  const handleHydrationClick = () => {
+  const handleHydrationClick = (): void => {
     setShowHydrationModal(true);
   };
 
-  const handleAddWater = (amount: number) => {
+  const handleAddWater = (amount: number): void => {
     const newAmount = Math.min(currentHydration + amount / 1000, hydrationGoal);
     setCurrentHydration(parseFloat(newAmount.toFixed(1)));
   };
 
-  const handleHydrationSettings = () => {
+  const handleHydrationSettings = (): void => {
     setTempHydrationGoal(hydrationGoal);
     setTempReminders(hydrationReminders);
     setShowHydrationModal(false);
     setShowHydrationSettings(true);
   };
 
-  const handleSaveHydrationSettings = () => {
+  const handleSaveHydrationSettings = (): void => {
     setHydrationGoal(tempHydrationGoal);
     setHydrationReminders(tempReminders);
 
