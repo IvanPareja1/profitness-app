@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -7,16 +6,16 @@ import { useNutritionData } from '../../hooks/useNutritionData';
 import { useUserProfile } from '../../hooks/useUserProfile';
 
 export default function Nutrition() {
-  const [selectedPeriod, setSelectedPeriod] = useState('day');
-  const [mounted, setMounted] = useState(false);
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showOptionsMenu, setShowOptionsMenu] = useState(false);
-  const [showHydrationModal, setShowHydrationModal] = useState(false);
-  const [showHydrationSettings, setShowHydrationSettings] = useState(false);
-  const [showFiberModal, setShowFiberModal] = useState(false);
-  const [showFiberSettings, setShowFiberSettings] = useState(false);
-  const [hydrationGoal, setHydrationGoal] = useState(2.5);
-  const [currentHydration, setCurrentHydration] = useState(0);
+  const [selectedPeriod, setSelectedPeriod] = useState<string>('day');
+  const [mounted, setMounted] = useState<boolean>(false);
+  const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
+  const [showOptionsMenu, setShowOptionsMenu] = useState<boolean>(false);
+  const [showHydrationModal, setShowHydrationModal] = useState<boolean>(false);
+  const [showHydrationSettings, setShowHydrationSettings] = useState<boolean>(false);
+  const [showFiberModal, setShowFiberModal] = useState<boolean>(false);
+  const [showFiberSettings, setShowFiberSettings] = useState<boolean>(false);
+  const [hydrationGoal, setHydrationGoal] = useState<number>(2.5);
+  const [currentHydration, setCurrentHydration] = useState<number>(0);
   const [hydrationReminders, setHydrationReminders] = useState({
     enabled: false,
     interval: 3,
@@ -24,7 +23,7 @@ export default function Nutrition() {
     startTime: '07:00',
     endTime: '22:00'
   });
-  const [tempHydrationGoal, setTempHydrationGoal] = useState(2.5);
+  const [tempHydrationGoal, setTempHydrationGoal] = useState<number>(2.5);
   const [tempReminders, setTempReminders] = useState({
     enabled: false,
     interval: 3,
@@ -32,17 +31,17 @@ export default function Nutrition() {
     startTime: '07:00',
     endTime: '22:00'
   });
-  const [fiberGoal, setFiberGoal] = useState(30);
-  const [currentFiber, setCurrentFiber] = useState(0);
-  const [tempFiberGoal, setTempFiberGoal] = useState(30);
+  const [fiberGoal, setFiberGoal] = useState<number>(30);
+  const [currentFiber, setCurrentFiber] = useState<number>(0);
+  const [tempFiberGoal, setTempFiberGoal] = useState<number>(30);
   const [liquidIntake, setLiquidIntake] = useState([
     { type: 'water', name: 'Agua', amount: 0, icon: 'ri-drop-line', color: 'blue' },
     { type: 'coffee', name: 'Café', amount: 0, icon: 'ri-cup-line', color: 'orange' },
     { type: 'tea', name: 'Té', amount: 0, icon: 'ri-cup-line', color: 'green' },
     { type: 'juice', name: 'Jugos', amount: 0, icon: 'ri-glass-line', color: 'purple' }
   ]);
-  const [selectedLiquidType, setSelectedLiquidType] = useState('water');
-  const [customAmount, setCustomAmount] = useState('');
+  const [selectedLiquidType, setSelectedLiquidType] = useState<string>('water');
+  const [customAmount, setCustomAmount] = useState<string>('');
   const [fiberFoods, setFiberFoods] = useState([
     { name: 'Avena', fiber: 10, icon: 'ri-bowl-line', category: 'Cereales' },
     { name: 'Manzana', fiber: 4, icon: 'ri-apple-line', category: 'Frutas' },
@@ -387,8 +386,8 @@ export default function Nutrition() {
                       cursor: 'pointer',
                       transition: 'background-color 0.2s'
                     }}
-                    onMouseEnter={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#f9fafb'}
-                    onMouseLeave={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent'}
+                    onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => (e.currentTarget).style.backgroundColor = '#f9fafb'}
+                    onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => (e.currentTarget).style.backgroundColor = 'transparent'}
                   >
                     <div style={{
                       width: '32px',
@@ -417,8 +416,8 @@ export default function Nutrition() {
                       cursor: 'pointer',
                       transition: 'background-color 0.2s'
                     }}
-                    onMouseEnter={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#f9fafb'}
-                    onMouseLeave={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent'}
+                    onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => (e.currentTarget).style.backgroundColor = '#f9fafb'}
+                    onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => (e.currentTarget).style.backgroundColor = 'transparent'}
                   >
                     <div style={{
                       width: '32px',
@@ -447,8 +446,8 @@ export default function Nutrition() {
                       cursor: 'pointer',
                       transition: 'background-color 0.2s'
                     }}
-                    onMouseEnter={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#f9fafb'}
-                    onMouseLeave={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent'}
+                    onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => (e.currentTarget).style.backgroundColor = '#f9fafb'}
+                    onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => (e.currentTarget).style.backgroundColor = 'transparent'}
                   >
                     <div style={{
                       width: '32px',
@@ -484,8 +483,8 @@ export default function Nutrition() {
                       cursor: 'pointer',
                       transition: 'background-color 0.2s'
                     }}
-                      onMouseEnter={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#f9fafb'}
-                      onMouseLeave={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent'}
+                      onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => (e.currentTarget).style.backgroundColor = '#f9fafb'}
+                      onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => (e.currentTarget).style.backgroundColor = 'transparent'}
                     >
                       <div style={{
                         width: '32px',
@@ -542,7 +541,7 @@ export default function Nutrition() {
               gridTemplateColumns: 'repeat(3, 1fr)',
               gap: '4px'
             }}>
-              {['day', 'week', 'month'].map((period) => (
+              {['day', 'week', 'month'].map((period: string) => (
                 <button
                   key={period}
                   onClick={() => setSelectedPeriod(period)}
@@ -560,14 +559,14 @@ export default function Nutrition() {
                       : 'transparent',
                     color: selectedPeriod === period ? 'white' : '#6b7280'
                   }}
-                  onMouseEnter={(e) => {
+                  onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => {
                     if (selectedPeriod !== period) {
-                      (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#f9fafb';
+                      (e.currentTarget).style.backgroundColor = '#f9fafb';
                     }
                   }}
-                  onMouseLeave={(e) => {
+                  onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => {
                     if (selectedPeriod !== period) {
-                      (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent';
+                      (e.currentTarget).style.backgroundColor = 'transparent';
                     }
                   }}
                 >
@@ -808,7 +807,7 @@ export default function Nutrition() {
             flexDirection: 'column',
             gap: '16px'
           }}>
-            {mealBreakdown.map((meal, index) => (
+            {mealBreakdown.map((meal, index: number) => (
               <div key={index} style={{
                 backgroundColor: 'white',
                 borderRadius: '12px',
@@ -888,7 +887,7 @@ export default function Nutrition() {
                   flexWrap: 'wrap',
                   gap: '8px'
                 }}>
-                  {meal.foods.map((food, foodIndex) => (
+                  {meal.foods.map((food: string, foodIndex: number) => (
                     <span
                       key={foodIndex}
                       style={{
@@ -925,8 +924,8 @@ export default function Nutrition() {
               cursor: 'pointer',
               transition: 'background-color 0.2s'
             }}
-            onMouseEnter={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#f0f9ff'}
-            onMouseLeave={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'white'}
+            onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => (e.currentTarget).style.backgroundColor = '#f0f9ff'}
+            onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => (e.currentTarget).style.backgroundColor = 'white'}
           >
             <div style={{
               width: '40px',
@@ -988,8 +987,8 @@ export default function Nutrition() {
               cursor: 'pointer',
               transition: 'background-color 0.2s'
             }}
-            onMouseEnter={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#f0fdf4'}
-            onMouseLeave={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'white'}
+            onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => (e.currentTarget).style.backgroundColor = '#f0fdf4'}
+            onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => (e.currentTarget).style.backgroundColor = 'white'}
           >
             <div style={{
               width: '40px',
@@ -1210,7 +1209,7 @@ export default function Nutrition() {
             <input
               type="date"
               value={dailyData.date || getCurrentDateISO()}
-              onChange={(e) => handleDateChange(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleDateChange(e.target.value)}
               style={{
                 width: '100%',
                 padding: '12px 16px',
@@ -1255,897 +1254,6 @@ export default function Nutrition() {
                 }}
               >
                 Confirmar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showHydrationModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 50
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '16px',
-            padding: '24px',
-            width: '360px',
-            maxHeight: '90vh',
-            overflowY: 'auto'
-          }}>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              marginBottom: '16px'
-            }}>
-              <h3 style={{
-                fontSize: '18px',
-                fontWeight: '600',
-                color: '#1f2937',
-                margin: 0
-              }}>Control de Hidratación</h3>
-              <button
-                onClick={() => setShowHydrationModal(false)}
-                style={{
-                  width: '32px',
-                  height: '32px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  border: 'none',
-                  backgroundColor: 'transparent',
-                  cursor: 'pointer'
-                }}
-              >
-                <i className="ri-close-line" style={{ color: '#6b7280', fontSize: '18px' }}></i>
-              </button>
-            </div>
-
-            <div style={{
-              textAlign: 'center',
-              marginBottom: '24px'
-            }}>
-              <div style={{
-                width: '80px',
-                height: '80px',
-                backgroundColor: '#dbeafe',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 16px auto'
-              }}>
-                <i className="ri-drop-line" style={{ color: '#2563eb', fontSize: '32px' }}></i>
-              </div>
-              <p style={{
-                fontSize: '36px',
-                fontWeight: '700',
-                color: '#1f2937',
-                margin: '0 0 8px 0'
-              }}>{currentHydration}L</p>
-              <p style={{
-                fontSize: '14px',
-                color: '#6b7280',
-                margin: '0 0 16px 0'
-              }}>de {hydrationGoal}L objetivo</p>
-              <div style={{
-                width: '100%',
-                backgroundColor: '#e5e7eb',
-                borderRadius: '12px',
-                height: '8px',
-                overflow: 'hidden'
-              }}>
-                <div
-                  style={{
-                    backgroundColor: '#3b82f6',
-                    height: '8px',
-                    borderRadius: '12px',
-                    transition: 'all 0.3s',
-                    width: `${getHydrationPercentage()}%`
-                  }}
-                ></div>
-              </div>
-            </div>
-
-            <div style={{ marginBottom: '24px' }}>
-              <p style={{
-                fontSize: '14px',
-                fontWeight: '500',
-                color: '#1f2937',
-                marginBottom: '12px'
-              }}>Agregar agua:</p>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
-                gap: '12px',
-                marginBottom: '16px'
-              }}>
-                {[250, 500, 750].map((amount) => (
-                  <button
-                    key={amount}
-                    onClick={() => handleAddWater(amount)}
-                    style={{
-                      backgroundColor: '#dbeafe',
-                      color: '#2563eb',
-                      padding: '16px 12px',
-                      borderRadius: '12px',
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      border: 'none',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s'
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#bfdbfe'}
-                    onMouseLeave={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#dbeafe'}
-                  >
-                    +{amount}ml
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div style={{
-              backgroundColor: '#f0f9ff',
-              borderRadius: '12px',
-              padding: '16px',
-              marginBottom: '16px'
-            }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px'
-              }}>
-                <div style={{
-                  width: '32px',
-                  height: '32px',
-                  backgroundColor: '#dbeafe',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <i className="ri-lightbulb-line" style={{ color: '#2563eb', fontSize: '16px' }}></i>
-                </div>
-                <div>
-                  <p style={{
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    color: '#1f2937',
-                    margin: '0 0 4px 0'
-                  }}>Consejo del día</p>
-                  <p style={{
-                    fontSize: '12px',
-                    color: '#6b7280',
-                    margin: 0
-                  }}>Bebe agua regularmente durante el día para mantener una hidratación óptima y mejorar tu rendimiento</p>
-                </div>
-              </div>
-            </div>
-
-            <div style={{
-              display: 'flex',
-              gap: '8px'
-            }}>
-              <button
-                onClick={handleHydrationSettings}
-                style={{
-                  flex: 1,
-                  padding: '12px 16px',
-                  borderRadius: '12px',
-                  border: '1px solid #e5e7eb',
-                  backgroundColor: 'white',
-                  color: '#6b7280',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: 'pointer'
-                }}
-              >
-                Configurar
-              </button>
-              <button
-                onClick={() => setShowHydrationModal(false)}
-                style={{
-                  flex: 1,
-                  padding: '12px 16px',
-                  borderRadius: '12px',
-                  border: 'none',
-                  backgroundColor: '#3b82f6',
-                  color: 'white',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: 'pointer'
-                }}
-              >
-                Listo
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showHydrationSettings && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 50
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '16px',
-            padding: '24px',
-            width: '360px',
-            maxHeight: '90vh',
-            overflowY: 'auto'
-          }}>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              marginBottom: '16px'
-            }}>
-              <h3 style={{
-                fontSize: '18px',
-                fontWeight: '600',
-                color: '#1f2937',
-                margin: 0
-              }}>Configuración de Hidratación</h3>
-              <button
-                onClick={() => setShowHydrationSettings(false)}
-                style={{
-                  width: '32px',
-                  height: '32px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  border: 'none',
-                  backgroundColor: 'transparent',
-                  cursor: 'pointer'
-                }}
-              >
-                <i className="ri-close-line" style={{ color: '#6b7280', fontSize: '18px' }}></i>
-              </button>
-            </div>
-
-            <div style={{ marginBottom: '24px' }}>
-              <label style={{
-                fontSize: '14px',
-                fontWeight: '500',
-                color: '#1f2937',
-                marginBottom: '8px',
-                display: 'block'
-              }}>Meta diaria de hidratación (L)</label>
-              <input
-                type="number"
-                min="1"
-                max="5"
-                step="0.1"
-                value={tempHydrationGoal}
-                onChange={(e) => setTempHydrationGoal(parseFloat(e.target.value) || 2.5)}
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  borderRadius: '12px',
-                  border: '1px solid #e5e7eb',
-                  fontSize: '16px'
-                }}
-              />
-            </div>
-
-            <div style={{ marginBottom: '24px' }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: '16px'
-              }}>
-                <label style={{
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: '#1f2937'
-                }}>Recordatorios automáticos</label>
-                <button
-                  onClick={() => setTempReminders((prev) => ({ ...prev, enabled: !prev.enabled }))}
-                  style={{
-                    width: '48px',
-                    height: '28px',
-                    backgroundColor: tempReminders.enabled ? '#3b82f6' : '#e5e7eb',
-                    borderRadius: '14px',
-                    border: 'none',
-                    cursor: 'pointer',
-                    position: 'relative',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  <div style={{
-                    width: '20px',
-                    height: '20px',
-                    backgroundColor: 'white',
-                    borderRadius: '50%',
-                    position: 'absolute',
-                    top: '4px',
-                    left: tempReminders.enabled ? '24px' : '4px',
-                    transition: 'all 0.2s'
-                  }}></div>
-                </button>
-              </div>
-
-              {tempReminders.enabled && (
-                <div style={{
-                  backgroundColor: '#f0f9ff',
-                  borderRadius: '12px',
-                  padding: '16px'
-                }}>
-                  <div style={{ marginBottom: '16px' }}>
-                    <label style={{
-                      fontSize: '12px',
-                      color: '#6b7280',
-                      marginBottom: '4px',
-                      display: 'block'
-                    }}>Cada cuántas horas</label>
-                    <select
-                      value={tempReminders.interval}
-                      onChange={(e) => setTempReminders((prev) => ({ ...prev, interval: parseInt(e.target.value) }))}
-                      style={{
-                        width: '100%',
-                        padding: '8px 12px',
-                        borderRadius: '8px',
-                        border: '1px solid #e5e7eb',
-                        fontSize: '14px'
-                      }}
-                    >
-                      <option value={1}>Cada hora</option>
-                      <option value={2}>Cada 2 horas</option>
-                      <option value={3}>Cada 3 horas</option>
-                      <option value={4}>Cada 4 horas</option>
-                    </select>
-                  </div>
-
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: '1fr 1fr',
-                    gap: '12px'
-                  }}>
-                    <div>
-                      <label style={{
-                        fontSize: '12px',
-                        color: '#6b7280',
-                        marginBottom: '4px',
-                        display: 'block'
-                      }}>Desde</label>
-                      <input
-                        type="time"
-                        value={tempReminders.startTime}
-                        onChange={(e) => setTempReminders((prev) => ({ ...prev, startTime: e.target.value }))}
-                        style={{
-                          width: '100%',
-                          padding: '8px 12px',
-                          borderRadius: '8px',
-                          border: '1px solid #e5e7eb',
-                          fontSize: '14px'
-                        }}
-                      />
-                    </div>
-                    <div>
-                      <label style={{
-                        fontSize: '12px',
-                        color: '#6b7280',
-                        marginBottom: '4px',
-                        display: 'block'
-                      }}>Hasta</label>
-                      <input
-                        type="time"
-                        value={tempReminders.endTime}
-                        onChange={(e) => setTempReminders((prev) => ({ ...prev, endTime: e.target.value }))}
-                        style={{
-                          width: '100%',
-                          padding: '8px 12px',
-                          borderRadius: '8px',
-                          border: '1px solid #e5e7eb',
-                          fontSize: '14px'
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div style={{
-              display: 'flex',
-              gap: '8px'
-            }}>
-              <button
-                onClick={() => setShowHydrationSettings(false)}
-                style={{
-                  flex: 1,
-                  padding: '12px 16px',
-                  borderRadius: '12px',
-                  border: '1px solid #e5e7eb',
-                  backgroundColor: 'white',
-                  color: '#6b7280',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: 'pointer'
-                }}
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleSaveHydrationSettings}
-                style={{
-                  flex: 1,
-                  padding: '12px 16px',
-                  borderRadius: '12px',
-                  border: 'none',
-                  backgroundColor: '#3b82f6',
-                  color: 'white',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: 'pointer'
-                }}
-              >
-                Guardar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showFiberModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 50
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '16px',
-            padding: '24px',
-            width: '360px',
-            maxHeight: '90vh',
-            overflowY: 'auto'
-          }}>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              marginBottom: '16px'
-            }}>
-              <h3 style={{
-                fontSize: '18px',
-                fontWeight: '600',
-                color: '#1f2937',
-                margin: 0
-              }}>Control de Fibra</h3>
-              <button
-                onClick={() => setShowFiberModal(false)}
-                style={{
-                  width: '32px',
-                  height: '32px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  border: 'none',
-                  backgroundColor: 'transparent',
-                  cursor: 'pointer'
-                }}
-              >
-                <i className="ri-close-line" style={{ color: '#6b7280', fontSize: '18px' }}></i>
-              </button>
-            </div>
-
-            <div style={{
-              textAlign: 'center',
-              marginBottom: '24px'
-            }}>
-              <div style={{
-                width: '80px',
-                height: '80px',
-                backgroundColor: '#dcfce7',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 16px auto'
-              }}>
-                <i className="ri-leaf-line" style={{ color: '#16a34a', fontSize: '32px' }}></i>
-              </div>
-              <p style={{
-                fontSize: '36px',
-                fontWeight: '700',
-                color: '#1f2937',
-                margin: '0 0 8px 0'
-              }}>{currentFiber}g</p>
-              <p style={{
-                fontSize: '14px',
-                color: '#6b7280',
-                margin: '0 0 16px 0'
-              }}>de {fiberGoal}g objetivo</p>
-              <div style={{
-                width: '100%',
-                backgroundColor: '#e5e7eb',
-                borderRadius: '12px',
-                height: '8px',
-                overflow: 'hidden'
-              }}>
-                <div
-                  style={{
-                    backgroundColor: '#16a34a',
-                    height: '8px',
-                    borderRadius: '12px',
-                    transition: 'all 0.3s',
-                    width: `${getFiberPercentage()}%`
-                  }}
-                ></div>
-              </div>
-            </div>
-
-            <div style={{ marginBottom: '24px' }}>
-              <p style={{
-                fontSize: '14px',
-                fontWeight: '500',
-                color: '#1f2937',
-                marginBottom: '12px'
-              }}>Fuentes de fibra:</p>
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '8px'
-              }}>
-                {fiberFoods.map((food, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleAddFiber(food.fiber)}
-                    style={{
-                      backgroundColor: '#f0fdf4',
-                      padding: '12px 16px',
-                      borderRadius: '12px',
-                      border: 'none',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                      textAlign: 'left'
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#dcfce7'}
-                    onMouseLeave={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#f0fdf4'}
-                  >
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between'
-                    }}>
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '12px'
-                      }}>
-                        <div style={{
-                          width: '32px',
-                          height: '32px',
-                          backgroundColor: '#dcfce7',
-                          borderRadius: '50%',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}>
-                          <i className={food.icon} style={{ color: '#16a34a', fontSize: '16px' }}></i>
-                        </div>
-                        <div>
-                          <p style={{
-                            fontSize: '14px',
-                            fontWeight: '500',
-                            color: '#1f2937',
-                            margin: '0 0 2px 0'
-                          }}>{food.name}</p>
-                          <p style={{
-                            fontSize: '12px',
-                            color: '#6b7280',
-                            margin: 0
-                          }}>{food.category}</p>
-                        </div>
-                      </div>
-                      <span style={{
-                        fontSize: '14px',
-                        fontWeight: '600',
-                        color: '#16a34a'
-                      }}>+{food.fiber}g</span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {getFiberRecommendations().length > 0 && (
-              <div style={{
-                backgroundColor: '#f0fdf4',
-                borderRadius: '12px',
-                padding: '16px',
-                marginBottom: '16px'
-              }}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  marginBottom: '12px'
-                }}>
-                  <div style={{
-                    width: '32px',
-                    height: '32px',
-                    backgroundColor: '#dcfce7',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    <i className="ri-information-line" style={{ color: '#16a34a', fontSize: '16px' }}></i>
-                  </div>
-                  <div>
-                    <p style={{
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      color: '#1f2937',
-                      margin: '0 0 4px 0'
-                    }}>Recomendaciones</p>
-                    <p style={{
-                      fontSize: '12px',
-                      color: '#6b7280',
-                      margin: 0
-                    }}>Te faltan {Math.max(0, fiberGoal - currentFiber)}g para alcanzar tu meta diaria</p>
-                  </div>
-                </div>
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '6px'
-                }}>
-                  {getFiberRecommendations().slice(0, 3).map((rec, index) => (
-                    <div key={index} style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '8px 12px',
-                      backgroundColor: '#dcfce7',
-                      borderRadius: '8px'
-                    }}>
-                      <span style={{
-                        fontSize: '12px',
-                        color: '#1f2937'
-                      }}>{rec.name}</span>
-                      <span style={{
-                        fontSize: '12px',
-                        fontWeight: '600',
-                        color: '#16a34a'
-                      }}>{rec.fiber}g</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div style={{
-              display: 'flex',
-              gap: '8px'
-            }}>
-              <button
-                onClick={handleFiberSettings}
-                style={{
-                  flex: 1,
-                  padding: '12px 16px',
-                  borderRadius: '12px',
-                  border: '1px solid #e5e7eb',
-                  backgroundColor: 'white',
-                  color: '#6b7280',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: 'pointer'
-                }}
-              >
-                Configurar
-              </button>
-              <button
-                onClick={() => setShowFiberModal(false)}
-                style={{
-                  flex: 1,
-                  padding: '12px 16px',
-                  borderRadius: '12px',
-                  border: 'none',
-                  backgroundColor: '#16a34a',
-                  color: 'white',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: 'pointer'
-                }}
-              >
-                Listo
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showFiberSettings && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 50
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '16px',
-            padding: '24px',
-            width: '360px',
-            maxHeight: '90vh',
-            overflowY: 'auto'
-          }}>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              marginBottom: '16px'
-            }}>
-              <h3 style={{
-                fontSize: '18px',
-                fontWeight: '600',
-                color: '#1f2937',
-                margin: 0
-              }}>Configuración de Fibra</h3>
-              <button
-                onClick={() => setShowFiberSettings(false)}
-                style={{
-                  width: '32px',
-                  height: '32px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  border: 'none',
-                  backgroundColor: 'transparent',
-                  cursor: 'pointer'
-                }}
-              >
-                <i className="ri-close-line" style={{ color: '#6b7280', fontSize: '18px' }}></i>
-              </button>
-            </div>
-
-            <div style={{ marginBottom: '24px' }}>
-              <label style={{
-                fontSize: '14px',
-                fontWeight: '500',
-                color: '#1f2937',
-                marginBottom: '8px',
-                display: 'block'
-              }}>Meta diaria de fibra (g)</label>
-              <input
-                type="number"
-                min="10"
-                max="60"
-                step="1"
-                value={tempFiberGoal}
-                onChange={(e) => setTempFiberGoal(parseFloat(e.target.value) || 30)}
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  borderRadius: '12px',
-                  border: '1px solid #e5e7eb',
-                  fontSize: '16px'
-                }}
-              />
-              <p style={{
-                fontSize: '12px',
-                color: '#6b7280',
-                marginTop: '8px',
-                margin: '8px 0 0 0'
-              }}>Recomendado: 25-35g diarios para adultos</p>
-            </div>
-
-            <div style={{
-              backgroundColor: '#f0fdf4',
-              borderRadius: '12px',
-              padding: '16px',
-              marginBottom: '24px'
-            }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                marginBottom: '12px'
-              }}>
-                <div style={{
-                  width: '32px',
-                  height: '32px',
-                  backgroundColor: '#dcfce7',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <i className="ri-information-line" style={{ color: '#16a34a', fontSize: '16px' }}></i>
-                </div>
-                <div>
-                  <p style={{
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    color: '#1f2937',
-                    margin: '0 0 4px 0'
-                  }}>Beneficios de la fibra</p>
-                  <p style={{
-                    fontSize: '12px',
-                    color: '#6b7280',
-                    margin: 0
-                  }}>Mejora la digestión, controla el azúcar en sangre y reduce el colesterol</p>
-                </div>
-              </div>
-              <div style={{
-                fontSize: '12px',
-                color: '#6b7280',
-                lineHeight: '1.4'
-              }}>
-                <p style={{ margin: '0 0 8px 0' }}>• Mujeres: 21-25g diarios</p>
-                <p style={{ margin: '0 0 8px 0' }}>• Hombres: 30-38g diarios</p>
-                <p style={{ margin: 0 }}>• Aumenta gradualmente para evitar molestias</p>
-              </div>
-            </div>
-
-            <div style={{
-              display: 'flex',
-              gap: '8px'
-            }}>
-              <button
-                onClick={() => setShowFiberSettings(false)}
-                style={{
-                  flex: 1,
-                  padding: '12px 16px',
-                  borderRadius: '12px',
-                  border: '1px solid #e5e7eb',
-                  backgroundColor: 'white',
-                  color: '#6b7280',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: 'pointer'
-                }}
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleSaveFiberSettings}
-                style={{
-                  flex: 1,
-                  padding: '12px 16px',
-                  borderRadius: '12px',
-                  border: 'none',
-                  backgroundColor: '#16a34a',
-                  color: 'white',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: 'pointer'
-                }}
-              >
-                Guardar
               </button>
             </div>
           </div>
