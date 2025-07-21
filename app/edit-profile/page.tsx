@@ -31,10 +31,7 @@ export default function EditProfile() {
   const [currentPhoto, setCurrentPhoto] = useState(profilePhoto);
 
   const handleInputChange = (field: string, value: string | number) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const handlePhotoOption = (option: string) => {
@@ -113,7 +110,7 @@ export default function EditProfile() {
             color: '#1f2937',
             margin: 0
           }}>Editar Perfil</h1>
-          <button 
+          <button
             onClick={handleSave}
             style={{
               color: '#3b82f6',
@@ -156,7 +153,7 @@ export default function EditProfile() {
               overflow: 'hidden'
             }}>
               {currentPhoto ? (
-                <img 
+                <img
                   src={currentPhoto}
                   alt="Foto de perfil"
                   style={{
@@ -173,7 +170,7 @@ export default function EditProfile() {
                 }}>MG</span>
               )}
             </div>
-            <button 
+            <button
               onClick={() => setShowPhotoModal(true)}
               style={{
                 color: '#3b82f6',
@@ -203,7 +200,7 @@ export default function EditProfile() {
             marginBottom: '16px',
             margin: '0 0 16px 0'
           }}>Información Personal</h3>
-          
+
           <div style={{
             display: 'flex',
             flexDirection: 'column',
@@ -306,12 +303,12 @@ export default function EditProfile() {
                   }}
                   onMouseEnter={(e) => {
                     if (formData.gender !== 'female') {
-                      e.target.style.backgroundColor = '#f9fafb';
+                      (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#f9fafb';
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (formData.gender !== 'female') {
-                      e.target.style.backgroundColor = 'white';
+                      (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'white';
                     }
                   }}
                 >
@@ -354,12 +351,12 @@ export default function EditProfile() {
                   }}
                   onMouseEnter={(e) => {
                     if (formData.gender !== 'male') {
-                      e.target.style.backgroundColor = '#f9fafb';
+                      (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#f9fafb';
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (formData.gender !== 'male') {
-                      e.target.style.backgroundColor = 'white';
+                      (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'white';
                     }
                   }}
                 >
@@ -479,7 +476,7 @@ export default function EditProfile() {
             marginBottom: '16px',
             margin: '0 0 16px 0'
           }}>Métricas Corporales</h3>
-          
+
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(2, 1fr)',
@@ -570,7 +567,7 @@ export default function EditProfile() {
             marginBottom: '16px',
             margin: '0 0 16px 0'
           }}>Nivel de Actividad</h3>
-          
+
           <div style={{
             display: 'flex',
             flexDirection: 'column',
@@ -593,12 +590,12 @@ export default function EditProfile() {
                 }}
                 onMouseEnter={(e) => {
                   if (formData.activityLevel !== level.id) {
-                    e.target.style.backgroundColor = '#f9fafb';
+                    (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#f9fafb';
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (formData.activityLevel !== level.id) {
-                    e.target.style.backgroundColor = 'white';
+                    (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'white';
                   }
                 }}
               >
@@ -656,7 +653,7 @@ export default function EditProfile() {
             marginBottom: '16px',
             margin: '0 0 16px 0'
           }}>Objetivo</h3>
-          
+
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(2, 1fr)',
@@ -678,12 +675,12 @@ export default function EditProfile() {
                 }}
                 onMouseEnter={(e) => {
                   if (formData.goal !== goal.id) {
-                    e.target.style.backgroundColor = '#f9fafb';
+                    (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#f9fafb';
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (formData.goal !== goal.id) {
-                    e.target.style.backgroundColor = 'white';
+                    (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'white';
                   }
                 }}
               >
@@ -768,7 +765,7 @@ export default function EditProfile() {
                 color: '#1f2937',
                 margin: 0
               }}>Cambiar Foto</h3>
-              <button 
+              <button
                 onClick={() => setShowPhotoModal(false)}
                 style={{
                   width: '32px',
@@ -804,8 +801,8 @@ export default function EditProfile() {
                   cursor: 'pointer',
                   transition: 'background-color 0.2s'
                 }}
-                onMouseEnter={(e) => e.target.style.backgroundColor = '#dbeafe'}
-                onMouseLeave={(e) => e.target.style.backgroundColor = '#eff6ff'}
+                onMouseEnter={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#dbeafe'}
+                onMouseLeave={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#eff6ff'}
               >
                 <div style={{
                   width: '40px',
@@ -847,8 +844,8 @@ export default function EditProfile() {
                   cursor: 'pointer',
                   transition: 'background-color 0.2s'
                 }}
-                onMouseEnter={(e) => e.target.style.backgroundColor = '#dcfce7'}
-                onMouseLeave={(e) => e.target.style.backgroundColor = '#f0fdf4'}
+                onMouseEnter={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#dcfce7'}
+                onMouseLeave={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#f0fdf4'}
               >
                 <div style={{
                   width: '40px',
@@ -891,8 +888,8 @@ export default function EditProfile() {
                     cursor: 'pointer',
                     transition: 'background-color 0.2s'
                   }}
-                  onMouseEnter={(e) => e.target.style.backgroundColor = '#fee2e2'}
-                  onMouseLeave={(e) => e.target.style.backgroundColor = '#fef2f2'}
+                  onMouseEnter={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#fee2e2'}
+                  onMouseLeave={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#fef2f2'}
                 >
                   <div style={{
                     width: '40px',
