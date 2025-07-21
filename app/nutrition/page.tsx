@@ -212,7 +212,7 @@ export default function Nutrition() {
     setShowFiberSettings(false);
   };
 
-  const getFiberRecommendations = () => {
+  const getFiberRecommendations = (): Array<{ name: string; fiber: number; icon: string }> => {
     const remaining = fiberGoal - currentFiber;
     if (remaining <= 0) return [];
 
