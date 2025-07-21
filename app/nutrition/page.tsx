@@ -1212,8 +1212,7 @@ export default function Nutrition() {
                 padding: '12px 16px',
                 borderRadius: '12px',
                 border: '1px solid #e5e7eb',
-                fontSize: '16px',
-                marginBottom: '16px'
+                fontSize: '16px'
               }}
             />
 
