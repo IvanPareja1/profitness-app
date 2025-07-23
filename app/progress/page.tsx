@@ -50,7 +50,7 @@ export default function Progress() {
 
   const weightRange = getWeightRange();
 
-  const handleShareProgress = (platform) => {
+  const handleShareProgress = (platform: string) => {
     const progressMessage = `¡Mi progreso en Profitness!
     
     Peso perdido: -${progressStats.totalWeightLoss} kg
@@ -289,7 +289,7 @@ Días activos: ${progressStats.daysTracked}
               gridTemplateColumns: 'repeat(4, 1fr)',
               gap: '4px'
             }}>
-              {[
+              {[ 
                 { id: 'week', label: 'Semana' }, 
                 { id: 'month', label: 'Mes' }, 
                 { id: 'quarter', label: '3M' }, 
