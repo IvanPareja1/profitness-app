@@ -4,32 +4,49 @@
 import Link from 'next/link';
 import { useState } from 'react';
 
+interface ScannedProduct {
+  code: string;
+  name: string;
+  brand: string;
+  calories: number;
+}
+
 export default function ScanBarcode() {
   const [isScanning, setIsScanning] = useState(false);
   const [scannedCode, setScannedCode] = useState('');
+  const [manualCode, setManualCode] = useState('');
 
   const handleStartScan = () => {
     setIsScanning(true);
-    // Simular escaneo después de 3 segundos
     setTimeout(() => {
       setScannedCode('7501234567890');
       setIsScanning(false);
     }, 3000);
   };
 
-  const recentScans = [
+  const handleManualSearch = () => {
+    if (manualCode.trim()) {
+      setScannedCode(manualCode);
+      setManualCode('');
+    }
+  };
+
+  const recentScans: ScannedProduct[] = [
     { code: '7501234567890', name: 'Cereal Fitness Original', brand: 'Nestlé', calories: 110 },
     { code: '7506174507234', name: 'Yogurt Griego Natural', brand: 'Alpura', calories: 100 },
     { code: '7501000673209', name: 'Atún en Agua', brand: 'Dolores', calories: 120 },
     { code: '7501030485739', name: 'Pan Integral', brand: 'Bimbo', calories: 80 }
   ];
 
+  const handleRecentScanClick = (product: ScannedProduct) => {
+    setScannedCode(product.code);
+  };
+
   return (
     <div style={{
       minHeight: '100vh',
       background: 'linear-gradient(135deg, #f0f9ff 0%, #e0e7ff 100%)'
     }}>
-      {/* Header */}
       <header style={{
         position: 'fixed',
         top: 0,
@@ -70,7 +87,6 @@ export default function ScanBarcode() {
         paddingBottom: '80px',
         padding: '64px 16px 80px 16px'
       }}>
-        {/* Scanner Area */}
         <div style={{
           marginTop: '24px',
           marginBottom: '24px'
@@ -255,7 +271,6 @@ export default function ScanBarcode() {
           </div>
         </div>
 
-        {/* Manual Input */}
         <div style={{ marginBottom: '24px' }}>
           <h3 style={{
             fontSize: '18px',
@@ -277,6 +292,8 @@ export default function ScanBarcode() {
               <input
                 type="text"
                 placeholder="Ingresa el código manualmente"
+                value={manualCode}
+                onChange={(e) => setManualCode(e.target.value)}
                 style={{
                   flex: 1,
                   padding: '12px 16px',
@@ -293,17 +310,24 @@ export default function ScanBarcode() {
                   e.target.style.borderColor = '#e5e7eb';
                   e.target.style.boxShadow = 'none';
                 }}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    handleManualSearch();
+                  }
+                }}
               />
               <button
+                onClick={handleManualSearch}
+                disabled={!manualCode.trim()}
                 className="!rounded-button"
                 style={{
-                  background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+                  background: manualCode.trim() ? 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)' : '#9ca3af',
                   color: 'white',
                   padding: '12px 24px',
                   borderRadius: '12px',
                   fontWeight: '500',
                   border: 'none',
-                  cursor: 'pointer',
+                  cursor: manualCode.trim() ? 'pointer' : 'not-allowed',
                   fontSize: '14px'
                 }}
               >
@@ -313,7 +337,6 @@ export default function ScanBarcode() {
           </div>
         </div>
 
-        {/* Recent Scans */}
         <div style={{ marginBottom: '24px' }}>
           <h3 style={{
             fontSize: '18px',
@@ -331,6 +354,7 @@ export default function ScanBarcode() {
             {recentScans.map((item, index) => (
               <button
                 key={index}
+                onClick={() => handleRecentScanClick(item)}
                 style={{
                   width: '100%',
                   display: 'flex',
@@ -343,8 +367,8 @@ export default function ScanBarcode() {
                   cursor: 'pointer',
                   transition: 'background-color 0.2s'
                 }}
-                onMouseEnter={(e) => e.target.style.backgroundColor = '#f9fafb'}
-                onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                onMouseEnter={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#f9fafb'}
+                onMouseLeave={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent'}
               >
                 <div style={{
                   display: 'flex',
@@ -394,7 +418,6 @@ export default function ScanBarcode() {
           </div>
         </div>
 
-        {/* Tips */}
         <div style={{
           backgroundColor: '#eff6ff',
           borderRadius: '12px',
@@ -440,7 +463,6 @@ export default function ScanBarcode() {
         </div>
       </main>
 
-      {/* Bottom Navigation */}
       <nav style={{
         position: 'fixed',
         bottom: 0,

@@ -4,46 +4,78 @@
 import Link from 'next/link';
 import { useState } from 'react';
 
+interface NotificationSettings {
+  pushNotifications: boolean;
+  emailReminders: boolean;
+  weeklyReports: boolean;
+  mealReminders: boolean;
+}
+
+interface PreferenceSettings {
+  units: string;
+  language: string;
+  theme: string;
+  startWeek: string;
+}
+
+interface PrivacySettings {
+  profileVisibility: string;
+  dataSharing: boolean;
+  analytics: boolean;
+}
+
 export default function Settings() {
-  const [notifications, setNotifications] = useState({
+  const [notifications, setNotifications] = useState<NotificationSettings>({
     pushNotifications: true,
     emailReminders: false,
     weeklyReports: true,
     mealReminders: true
   });
 
-  const [preferences, setPreferences] = useState({
-    units: 'metric', // metric or imperial
+  const [preferences, setPreferences] = useState<PreferenceSettings>({
+    units: 'metric',
     language: 'es',
     theme: 'light',
     startWeek: 'monday'
   });
 
-  const [privacy, setPrivacy] = useState({
+  const [privacy, setPrivacy] = useState<PrivacySettings>({
     profileVisibility: 'private',
     dataSharing: false,
     analytics: true
   });
 
-  const handleNotificationToggle = (key: string) => {
+  const handleNotificationToggle = (key: keyof NotificationSettings) => {
     setNotifications(prev => ({
       ...prev,
-      [key]: !prev[key as keyof typeof prev]
+      [key]: !prev[key]
     }));
   };
 
-  const handlePreferenceChange = (key: string, value: string) => {
+  const handlePreferenceChange = (key: keyof PreferenceSettings, value: string) => {
     setPreferences(prev => ({
       ...prev,
       [key]: value
     }));
   };
 
-  const handlePrivacyToggle = (key: string) => {
+  const handlePrivacyToggle = (key: keyof PrivacySettings) => {
     setPrivacy(prev => ({
       ...prev,
-      [key]: !prev[key as keyof typeof prev]
+      [key]: !prev[key]
     }));
+  };
+
+  const handleExportData = () => {
+    console.log('Exportando datos...');
+  };
+
+  const handleResetData = () => {
+    console.log('Reiniciando datos...');
+  };
+
+  const handleDeleteAccount = () => {
+    console.log('Eliminando cuenta...');
   };
 
   return (
@@ -51,7 +83,6 @@ export default function Settings() {
       minHeight: '100vh',
       background: 'linear-gradient(135deg, #f0f9ff 0%, #e0e7ff 100%)'
     }}>
-      {/* Header */}
       <header style={{
         position: 'fixed',
         top: 0,
@@ -92,7 +123,6 @@ export default function Settings() {
         paddingBottom: '80px',
         padding: '64px 16px 80px 16px'
       }}>
-        {/* Notifications Section */}
         <div style={{
           backgroundColor: 'white',
           borderRadius: '16px',
@@ -114,181 +144,63 @@ export default function Settings() {
             flexDirection: 'column',
             gap: '16px'
           }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between'
-            }}>
-              <div>
-                <p style={{
-                  fontWeight: '500',
-                  color: '#1f2937',
-                  margin: '0 0 4px 0'
-                }}>Notificaciones Push</p>
-                <p style={{
-                  fontSize: '14px',
-                  color: '#6b7280',
-                  margin: 0
-                }}>Recibe alertas en tu dispositivo</p>
+            {Object.entries(notifications).map(([key, value]) => (
+              <div key={key} style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}>
+                <div>
+                  <p style={{
+                    fontWeight: '500',
+                    color: '#1f2937',
+                    margin: '0 0 4px 0'
+                  }}>
+                    {key === 'pushNotifications' ? 'Notificaciones Push' :
+                     key === 'emailReminders' ? 'Recordatorios por Email' :
+                     key === 'weeklyReports' ? 'Reportes Semanales' :
+                     'Recordatorios de Comida'}
+                  </p>
+                  <p style={{
+                    fontSize: '14px',
+                    color: '#6b7280',
+                    margin: 0
+                  }}>
+                    {key === 'pushNotifications' ? 'Recibe alertas en tu dispositivo' :
+                     key === 'emailReminders' ? 'Recibe recordatorios vía correo' :
+                     key === 'weeklyReports' ? 'Resumen de tu progreso' :
+                     'Recordatorios para registrar comidas'}
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleNotificationToggle(key as keyof NotificationSettings)}
+                  style={{
+                    position: 'relative',
+                    width: '48px',
+                    height: '24px',
+                    borderRadius: '24px',
+                    transition: 'background-color 0.2s',
+                    backgroundColor: value ? '#3b82f6' : '#d1d5db',
+                    border: 'none',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <div style={{
+                    position: 'absolute',
+                    top: '2px',
+                    width: '20px',
+                    height: '20px',
+                    backgroundColor: 'white',
+                    borderRadius: '50%',
+                    transition: 'transform 0.2s',
+                    transform: value ? 'translateX(24px)' : 'translateX(2px)'
+                  }}></div>
+                </button>
               </div>
-              <button
-                onClick={() => handleNotificationToggle('pushNotifications')}
-                style={{
-                  position: 'relative',
-                  width: '48px',
-                  height: '24px',
-                  borderRadius: '24px',
-                  transition: 'background-color 0.2s',
-                  backgroundColor: notifications.pushNotifications ? '#3b82f6' : '#d1d5db',
-                  border: 'none',
-                  cursor: 'pointer'
-                }}
-              >
-                <div style={{
-                  position: 'absolute',
-                  top: '2px',
-                  width: '20px',
-                  height: '20px',
-                  backgroundColor: 'white',
-                  borderRadius: '50%',
-                  transition: 'transform 0.2s',
-                  transform: notifications.pushNotifications ? 'translateX(24px)' : 'translateX(2px)'
-                }}></div>
-              </button>
-            </div>
-
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between'
-            }}>
-              <div>
-                <p style={{
-                  fontWeight: '500',
-                  color: '#1f2937',
-                  margin: '0 0 4px 0'
-                }}>Recordatorios por Email</p>
-                <p style={{
-                  fontSize: '14px',
-                  color: '#6b7280',
-                  margin: 0
-                }}>Recibe recordatorios vía correo</p>
-              </div>
-              <button
-                onClick={() => handleNotificationToggle('emailReminders')}
-                style={{
-                  position: 'relative',
-                  width: '48px',
-                  height: '24px',
-                  borderRadius: '24px',
-                  transition: 'background-color 0.2s',
-                  backgroundColor: notifications.emailReminders ? '#3b82f6' : '#d1d5db',
-                  border: 'none',
-                  cursor: 'pointer'
-                }}
-              >
-                <div style={{
-                  position: 'absolute',
-                  top: '2px',
-                  width: '20px',
-                  height: '20px',
-                  backgroundColor: 'white',
-                  borderRadius: '50%',
-                  transition: 'transform 0.2s',
-                  transform: notifications.emailReminders ? 'translateX(24px)' : 'translateX(2px)'
-                }}></div>
-              </button>
-            </div>
-
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between'
-            }}>
-              <div>
-                <p style={{
-                  fontWeight: '500',
-                  color: '#1f2937',
-                  margin: '0 0 4px 0'
-                }}>Reportes Semanales</p>
-                <p style={{
-                  fontSize: '14px',
-                  color: '#6b7280',
-                  margin: 0
-                }}>Resumen de tu progreso</p>
-              </div>
-              <button
-                onClick={() => handleNotificationToggle('weeklyReports')}
-                style={{
-                  position: 'relative',
-                  width: '48px',
-                  height: '24px',
-                  borderRadius: '24px',
-                  transition: 'background-color 0.2s',
-                  backgroundColor: notifications.weeklyReports ? '#3b82f6' : '#d1d5db',
-                  border: 'none',
-                  cursor: 'pointer'
-                }}
-              >
-                <div style={{
-                  position: 'absolute',
-                  top: '2px',
-                  width: '20px',
-                  height: '20px',
-                  backgroundColor: 'white',
-                  borderRadius: '50%',
-                  transition: 'transform 0.2s',
-                  transform: notifications.weeklyReports ? 'translateX(24px)' : 'translateX(2px)'
-                }}></div>
-              </button>
-            </div>
-
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between'
-            }}>
-              <div>
-                <p style={{
-                  fontWeight: '500',
-                  color: '#1f2937',
-                  margin: '0 0 4px 0'
-                }}>Recordatorios de Comida</p>
-                <p style={{
-                  fontSize: '14px',
-                  color: '#6b7280',
-                  margin: 0
-                }}>Recordatorios para registrar comidas</p>
-              </div>
-              <button
-                onClick={() => handleNotificationToggle('mealReminders')}
-                style={{
-                  position: 'relative',
-                  width: '48px',
-                  height: '24px',
-                  borderRadius: '24px',
-                  transition: 'background-color 0.2s',
-                  backgroundColor: notifications.mealReminders ? '#3b82f6' : '#d1d5db',
-                  border: 'none',
-                  cursor: 'pointer'
-                }}
-              >
-                <div style={{
-                  position: 'absolute',
-                  top: '2px',
-                  width: '20px',
-                  height: '20px',
-                  backgroundColor: 'white',
-                  borderRadius: '50%',
-                  transition: 'transform 0.2s',
-                  transform: notifications.mealReminders ? 'translateX(24px)' : 'translateX(2px)'
-                }}></div>
-              </button>
-            </div>
+            ))}
           </div>
         </div>
 
-        {/* Preferences Section */}
         <div style={{
           backgroundColor: 'white',
           borderRadius: '16px',
@@ -460,7 +372,6 @@ export default function Settings() {
           </div>
         </div>
 
-        {/* Privacy Section */}
         <div style={{
           backgroundColor: 'white',
           borderRadius: '16px',
@@ -569,7 +480,6 @@ export default function Settings() {
           </div>
         </div>
 
-        {/* Account Actions */}
         <div style={{
           backgroundColor: 'white',
           borderRadius: '16px',
@@ -577,20 +487,22 @@ export default function Settings() {
           marginBottom: '24px',
           overflow: 'hidden'
         }}>
-          <button style={{
-            width: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '16px',
-            borderBottom: '1px solid #f3f4f6',
-            border: 'none',
-            backgroundColor: 'transparent',
-            cursor: 'pointer',
-            transition: 'background-color 0.2s'
-          }}
-          onMouseEnter={(e) => e.target.style.backgroundColor = '#f9fafb'}
-          onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+          <button 
+            onClick={handleExportData}
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '16px',
+              borderBottom: '1px solid #f3f4f6',
+              border: 'none',
+              backgroundColor: 'transparent',
+              cursor: 'pointer',
+              transition: 'background-color 0.2s'
+            }}
+            onMouseEnter={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#f9fafb'}
+            onMouseLeave={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent'}
           >
             <div style={{
               display: 'flex',
@@ -613,20 +525,22 @@ export default function Settings() {
             <i className="ri-arrow-right-s-line" style={{ color: '#9ca3af', fontSize: '18px' }}></i>
           </button>
           
-          <button style={{
-            width: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '16px',
-            borderBottom: '1px solid #f3f4f6',
-            border: 'none',
-            backgroundColor: 'transparent',
-            cursor: 'pointer',
-            transition: 'background-color 0.2s'
-          }}
-          onMouseEnter={(e) => e.target.style.backgroundColor = '#f9fafb'}
-          onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+          <button 
+            onClick={handleResetData}
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '16px',
+              borderBottom: '1px solid #f3f4f6',
+              border: 'none',
+              backgroundColor: 'transparent',
+              cursor: 'pointer',
+              transition: 'background-color 0.2s'
+            }}
+            onMouseEnter={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#f9fafb'}
+            onMouseLeave={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent'}
           >
             <div style={{
               display: 'flex',
@@ -649,19 +563,21 @@ export default function Settings() {
             <i className="ri-arrow-right-s-line" style={{ color: '#9ca3af', fontSize: '18px' }}></i>
           </button>
           
-          <button style={{
-            width: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '16px',
-            border: 'none',
-            backgroundColor: 'transparent',
-            cursor: 'pointer',
-            transition: 'background-color 0.2s'
-          }}
-          onMouseEnter={(e) => e.target.style.backgroundColor = '#f9fafb'}
-          onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+          <button 
+            onClick={handleDeleteAccount}
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '16px',
+              border: 'none',
+              backgroundColor: 'transparent',
+              cursor: 'pointer',
+              transition: 'background-color 0.2s'
+            }}
+            onMouseEnter={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#f9fafb'}
+            onMouseLeave={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent'}
           >
             <div style={{
               display: 'flex',
@@ -685,7 +601,6 @@ export default function Settings() {
           </button>
         </div>
 
-        {/* App Info */}
         <div style={{ textAlign: 'center' }}>
           <p style={{
             fontSize: '14px',
@@ -700,7 +615,6 @@ export default function Settings() {
         </div>
       </main>
 
-      {/* Bottom Navigation */}
       <nav style={{
         position: 'fixed',
         bottom: 0,

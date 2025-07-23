@@ -1,6 +1,11 @@
+
 'use client';
 
-export default function LoadingSpinner({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
+interface LoadingSpinnerProps {
+  size?: 'sm' | 'md' | 'lg';
+}
+
+export default function LoadingSpinner({ size = 'md' }: LoadingSpinnerProps) {
   const sizeMap = {
     sm: { width: '16px', height: '16px' },
     md: { width: '32px', height: '32px' },
@@ -11,23 +16,17 @@ export default function LoadingSpinner({ size = 'md' }: { size?: 'sm' | 'md' | '
 
   return (
     <div style={{
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #eff6ff 0%, #e0e7ff 100%)'
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
     }}>
       <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '100vh'
-      }}>
-        <div style={{
-          ...spinnerSize,
-          border: '4px solid #3b82f6',
-          borderTop: '4px solid transparent',
-          borderRadius: '50%',
-          animation: 'spin 1s linear infinite'
-        }}></div>
-      </div>
+        ...spinnerSize,
+        border: '4px solid #3b82f6',
+        borderTop: '4px solid transparent',
+        borderRadius: '50%',
+        animation: 'spin 1s linear infinite'
+      }}></div>
       
       <style jsx>{`
         @keyframes spin {

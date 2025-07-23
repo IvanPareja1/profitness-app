@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -161,8 +160,8 @@ Días activos: ${progressStats.daysTracked}
                 cursor: 'pointer',
                 transition: 'background-color 0.2s'
               }}
-              onMouseEnter={(e) => e.target.style.backgroundColor = '#f3f4f6'}
-              onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+              onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#f3f4f6'}
+              onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = 'transparent'}
             >
               <i className="ri-share-line" style={{ color: '#6b7280', fontSize: '18px' }}></i>
             </button>
@@ -182,8 +181,8 @@ Días activos: ${progressStats.daysTracked}
                   cursor: 'pointer',
                   transition: 'background-color 0.2s'
                 }}
-                onMouseEnter={(e) => e.target.style.backgroundColor = '#f3f4f6'}
-                onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#f3f4f6'}
+                onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = 'transparent'}
               >
                 <i className="ri-more-line" style={{ color: '#6b7280', fontSize: '18px' }}></i>
               </button>
@@ -216,8 +215,8 @@ Días activos: ${progressStats.daysTracked}
                       cursor: 'pointer',
                       transition: 'background-color 0.2s'
                     }}
-                    onMouseEnter={(e) => e.target.style.backgroundColor = '#f9fafb'}
-                    onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                    onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#f9fafb'}
+                    onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = 'transparent'}
                   >
                     <div style={{
                       width: '32px',
@@ -249,8 +248,8 @@ Días activos: ${progressStats.daysTracked}
                       cursor: 'pointer',
                       transition: 'background-color 0.2s'
                     }}
-                    onMouseEnter={(e) => e.target.style.backgroundColor = '#f9fafb'}
-                    onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                    onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#f9fafb'}
+                    onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = 'transparent'}
                   >
                     <div style={{
                       width: '32px',
@@ -794,8 +793,8 @@ Días activos: ${progressStats.daysTracked}
                   cursor: 'pointer',
                   transition: 'background-color 0.2s'
                 }}
-                onMouseEnter={(e) => e.target.style.backgroundColor = '#f3f4f6'}
-                onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#f3f4f6'}
+                onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = 'transparent'}
               >
                 <i className="ri-close-line" style={{ color: '#6b7280', fontSize: '20px' }}></i>
               </button>
@@ -839,8 +838,8 @@ Días activos: ${progressStats.daysTracked}
                   cursor: 'pointer',
                   transition: 'background-color 0.2s'
                 }}
-                onMouseEnter={(e) => e.target.style.backgroundColor = '#bbf7d0'}
-                onMouseLeave={(e) => e.target.style.backgroundColor = '#dcfce7'}
+                onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#bbf7d0'}
+                onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#dcfce7'}
               >
                 <div style={{
                   width: '48px',
@@ -883,8 +882,8 @@ Días activos: ${progressStats.daysTracked}
                   cursor: 'pointer',
                   transition: 'background-color 0.2s'
                 }}
-                onMouseEnter={(e) => e.target.style.backgroundColor = '#f3f4f6'}
-                onMouseLeave={(e) => e.target.style.backgroundColor = '#f9fafb'}
+                onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#f3f4f6'}
+                onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#f9fafb'}
               >
                 <div style={{
                   width: '48px',

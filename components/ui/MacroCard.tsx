@@ -1,3 +1,4 @@
+
 'use client';
 
 interface MacroCardProps {
@@ -11,28 +12,38 @@ interface MacroCardProps {
 export default function MacroCard({ label, consumed, target, color, unit = 'g' }: MacroCardProps) {
   const percentage = Math.min((consumed / target) * 100, 100);
   
-  const colorClasses = {
-    red: {
-      bg: 'bg-red-100',
-      text: 'text-red-600',
-      stroke: '#ef4444'
-    },
-    yellow: {
-      bg: 'bg-yellow-100', 
-      text: 'text-yellow-600',
-      stroke: '#f59e0b'
-    },
-    green: {
-      bg: 'bg-green-100',
-      text: 'text-green-600', 
-      stroke: '#10b981'
-    }
+  const colorMap = {
+    red: '#ef4444',
+    yellow: '#f59e0b',
+    green: '#10b981'
+  };
+
+  const bgColorMap = {
+    red: '#fef2f2',
+    yellow: '#fffbeb',
+    green: '#f0fdf4'
+  };
+
+  const textColorMap = {
+    red: '#dc2626',
+    yellow: '#d97706',
+    green: '#059669'
   };
 
   return (
-    <div className="text-center">
-      <div className="relative w-16 h-16 mx-auto mb-2">
-        <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+    <div style={{
+      textAlign: 'center',
+      backgroundColor: bgColorMap[color],
+      borderRadius: '12px',
+      padding: '16px'
+    }}>
+      <div style={{
+        position: 'relative',
+        width: '64px',
+        height: '64px',
+        margin: '0 auto 12px auto'
+      }}>
+        <svg style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }} viewBox="0 0 36 36">
           <path
             d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
             fill="none"
@@ -42,19 +53,41 @@ export default function MacroCard({ label, consumed, target, color, unit = 'g' }
           <path
             d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
             fill="none"
-            stroke={colorClasses[color].stroke}
+            stroke={colorMap[color]}
             strokeWidth="3"
             strokeDasharray={`${percentage}, 100`}
           />
         </svg>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className={`text-xs font-bold ${colorClasses[color].text}`}>
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <span style={{
+            fontSize: '12px',
+            fontWeight: '700',
+            color: textColorMap[color]
+          }}>
             {Math.round(percentage)}%
           </span>
         </div>
       </div>
-      <p className="text-sm font-semibold text-gray-800">{label}</p>
-      <p className="text-xs text-gray-500">{consumed}{unit} / {target}{unit}</p>
+      <p style={{
+        fontSize: '14px',
+        fontWeight: '600',
+        color: '#1f2937',
+        margin: '0 0 4px 0'
+      }}>{label}</p>
+      <p style={{
+        fontSize: '12px',
+        color: '#6b7280',
+        margin: 0
+      }}>{consumed}{unit} / {target}{unit}</p>
     </div>
   );
 }
