@@ -50,26 +50,6 @@ export function useNutritionData() {
     return `${year}-${month}-${day}`;
   };
 
-  const checkDailyReset = () => {
-    const today = getCurrentDate();
-    const lastDate = dailyData.date;
-
-    console.log('Verificando reset diario - Hoy:', today, 'Última fecha:', lastDate);
-
-    // Si no hay fecha o la fecha es diferente, resetear
-    if (!lastDate || lastDate !== today) {
-      console.log('Reiniciando datos nutricionales - Nueva fecha:', today);
-
-      // Guardar datos históricos solo si hay datos del día anterior
-      if (lastDate && (dailyData.totalCalories > 0 || dailyData.foods.length > 0)) {
-        saveToHistory(lastDate, dailyData);
-      }
-
-      // Resetear datos diarios completamente
-      resetDailyData(today);
-    }
-  };
-
   const saveToHistory = (date: string, data: DailyNutritionData) => {
     try {
       const historicalData = localStorage.getItem('nutritionHistory');
@@ -83,7 +63,7 @@ export function useNutritionData() {
       }
 
       // Verificar si ya existe un registro para esta fecha
-      const existingIndex = history.findIndex(entry => entry.date === date);
+      const existingIndex = history.findIndex((entry: any) => entry.date === date);
       const historyEntry = {
         date: date,
         totalCalories: data.totalCalories,
@@ -128,6 +108,26 @@ export function useNutritionData() {
     setDailyData(newData);
   };
 
+  const checkDailyReset = () => {
+    const today = getCurrentDate();
+    const lastDate = dailyData.date;
+
+    console.log('Verificando reset diario - Hoy:', today, 'Última fecha:', lastDate);
+
+    // Si no hay fecha o la fecha es diferente, resetear
+    if (!lastDate || lastDate !== today) {
+      console.log('Reiniciando datos nutricionales - Nueva fecha:', today);
+
+      // Guardar datos históricos solo si hay datos del día anterior
+      if (lastDate && (dailyData.totalCalories > 0 || dailyData.foods.length > 0)) {
+        saveToHistory(lastDate, dailyData);
+      }
+
+      // Resetear datos diarios completamente
+      resetDailyData(today);
+    }
+  };
+
   // Función para cambiar fecha manualmente
   const changeDate = (newDate: string) => {
     console.log('Cambiando fecha manualmente a:', newDate);
@@ -148,7 +148,7 @@ export function useNutritionData() {
       }
     }
 
-    const existingData = history.find(entry => entry.date === newDate);
+    const existingData = history.find((entry: any) => entry.date === newDate);
     
     if (existingData) {
       // Cargar datos existentes para esta fecha
@@ -253,7 +253,7 @@ export function useNutritionData() {
         checkDailyReset();
       }
     }
-  }, [mounted]);
+  }, [mounted, dailyData.date]);
 
   // Verificar reset cada 30 segundos para detectar cambios de día más rápido
   useEffect(() => {
@@ -264,7 +264,7 @@ export function useNutritionData() {
     }, 30000); // Cada 30 segundos
 
     return () => clearInterval(interval);
-  }, [mounted, dailyData.date]);
+  }, [mounted, dailyData.date, dailyData.totalCalories, dailyData.foods.length]);
 
   return {
     mounted,
