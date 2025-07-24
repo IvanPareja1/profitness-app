@@ -1,44 +1,73 @@
+
 'use client';
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { useNutritionData } from '../hooks/useNutritionData';
-import { useUserProfile } from '../hooks/useUserProfile';
-import { useWeightData } from '../hooks/useWeightData';
-import AuthGuard from '../components/ui/AuthGuard';
 
 export default function Home() {
-  return (
-    <AuthGuard>
-      <HomePage />
-    </AuthGuard>
-  );
-}
-
-function HomePage() {
   const [mounted, setMounted] = useState(false);
-  const { totalCalories, totalProtein, totalCarbs, totalFats, mounted: nutritionMounted } = useNutritionData();
-  const { userProfile, dailyCalories, dailyMacros, mounted: profileMounted } = useUserProfile();
-  const { getCurrentWeight, getTotalWeightLoss, mounted: weightMounted } = useWeightData();
-
-  // Función para formatear fecha igual que en la página de nutrición
-  const formatDate = (date: Date): string => {
-    return date.toLocaleDateString('es-ES', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    });
-  };
-
-  const getCurrentDateFormatted = (): string => {
-    return formatDate(new Date());
-  };
+  const [currentDate, setCurrentDate] = useState('');
+  const [nutritionData, setNutritionData] = useState({
+    calories: 0,
+    protein: 0,
+    carbs: 0,
+    fats: 0,
+    targetCalories: 2000,
+    targetProtein: 120,
+    targetCarbs: 250,
+    targetFats: 67,
+    meals: []
+  });
 
   useEffect(() => {
     setMounted(true);
+
+    const today = new Date();
+    const formattedDate = today.toLocaleDateString('es-ES', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+    setCurrentDate(formattedDate);
+
+    // Load data for current day
+    const loadTodayData = () => {
+      try {
+        const todayKey = today.toISOString().split('T')[0];
+        const savedData = localStorage.getItem(`nutrition_${todayKey}`);
+        if (savedData) {
+          const parsed = JSON.parse(savedData);
+          setNutritionData(prev => ({
+            ...prev,
+            calories: parsed.calories || 0,
+            protein: parsed.protein || 0,
+            carbs: parsed.carbs || 0,
+            fats: parsed.fats || 0,
+            meals: parsed.meals || []
+          }));
+        }
+      } catch (error) {
+        console.log('Error loading data:', error);
+      }
+    };
+
+    loadTodayData();
+
+    // Listen for nutrition updates
+    const handleNutritionUpdate = () => {
+      loadTodayData();
+    };
+
+    window.addEventListener('nutritionDataUpdated', handleNutritionUpdate);
+
+    return () => {
+      window.removeEventListener('nutritionDataUpdated', handleNutritionUpdate);
+    };
   }, []);
 
-  if (!mounted || !nutritionMounted || !profileMounted || !weightMounted) {
+  // Prevent hydration mismatch
+  if (!mounted) {
     return (
       <div style={{
         minHeight: '100vh',
@@ -50,14 +79,80 @@ function HomePage() {
         <div style={{
           width: '32px',
           height: '32px',
-          border: '4px solid #3b82f6',
-          borderTop: '4px solid transparent',
+          border: '3px solid #e5e7eb',
+          borderTop: '3px solid #3b82f6',
           borderRadius: '50%',
           animation: 'spin 1s linear infinite'
-        }}></div>
+        }}>
+          <style jsx>{`
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          `}</style>
+        </div>
       </div>
     );
   }
+
+  const getPercentage = (current: number, target: number) => {
+    return Math.min((current / target) * 100, 100);
+  };
+
+  const getProgressColor = (percentage: number) => {
+    if (percentage >= 100) return '#10b981';
+    if (percentage >= 75) return '#3b82f6';
+    if (percentage >= 50) return '#f59e0b';
+    return '#ef4444';
+  };
+
+  const getMealTypeLabel = (mealType: string) => {
+    const labels = {
+      'desayuno': 'Desayuno',
+      'almuerzo': 'Almuerzo',
+      'cena': 'Cena',
+      'snack': 'Snack'
+    };
+    return labels[mealType] || mealType;
+  };
+
+  const getMealTypeIcon = (mealType: string) => {
+    const icons = {
+      'desayuno': 'ri-sun-line',
+      'almuerzo': 'ri-restaurant-line',
+      'cena': 'ri-moon-line',
+      'snack': 'ri-cake-line'
+    };
+    return icons[mealType] || 'ri-restaurant-line';
+  };
+
+  const getMealTypeColor = (mealType: string) => {
+    const colors = {
+      'desayuno': '#fbbf24',
+      'almuerzo': '#10b981',
+      'cena': '#6366f1',
+      'snack': '#f59e0b'
+    };
+    return colors[mealType] || '#6b7280';
+  };
+
+  const formatTime = (timestamp: string) => {
+    return new Date(timestamp).toLocaleTimeString('es-ES', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const groupMealsByType = (meals: any[]) => {
+    const grouped = meals.reduce((acc, meal) => {
+      if (!acc[meal.mealType]) {
+        acc[meal.mealType] = [];
+      }
+      acc[meal.mealType].push(meal);
+      return acc;
+    }, {});
+    return grouped;
+  };
 
   return (
     <div style={{
@@ -66,430 +161,63 @@ function HomePage() {
     }}>
       {/* Header */}
       <header style={{
-        position: 'fixed',
-        top: 0,
-        width: '100%',
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-        backdropFilter: 'blur(8px)',
-        borderBottom: '1px solid #e5e7eb',
-        zIndex: 50
+        padding: '20px 16px',
+        background: 'white',
+        borderBottom: '1px solid #e5e7eb'
       }}>
         <div style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '16px'
+          marginBottom: '12px'
         }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px'
-          }}>
-            <div style={{
-              fontFamily: 'Pacifico, serif',
-              fontSize: '20px',
-              fontWeight: '400',
-              color: '#3b82f6'
+          <div>
+            <h1 style={{
+              fontSize: '24px',
+              fontWeight: '700',
+              color: '#1f2937',
+              margin: '0 0 4px 0',
+              fontFamily: 'Pacifico, serif'
             }}>
-              logo
-            </div>
+              ProFitness
+            </h1>
+            <p style={{
+              color: '#6b7280',
+              fontSize: '14px',
+              margin: 0,
+              textTransform: 'capitalize'
+            }} suppressHydrationWarning={true}>
+              {currentDate}
+            </p>
           </div>
-          <Link href="/profile" style={{
-            width: '40px',
-            height: '40px',
+          <div style={{
+            width: '48px',
+            height: '48px',
+            background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
             borderRadius: '50%',
-            backgroundColor: '#f3f4f6',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            textDecoration: 'none',
-            transition: 'background-color 0.2s'
+            justifyContent: 'center'
           }}>
-            <i className="ri-user-line" style={{ color: '#6b7280', fontSize: '18px' }}></i>
-          </Link>
+            <span style={{
+              color: 'white',
+              fontWeight: '600',
+              fontSize: '16px'
+            }}>MG</span>
+          </div>
         </div>
       </header>
 
+      {/* Main Content */}
       <main style={{
-        paddingTop: '80px',
-        paddingBottom: '96px',
-        padding: '80px 16px 96px 16px'
+        padding: '24px 16px 100px 16px'
       }}>
-        {/* Welcome Section */}
+        {/* Progress Summary */}
         <div style={{
-          backgroundColor: 'white',
-          borderRadius: '24px',
+          background: 'white',
+          borderRadius: '20px',
           padding: '24px',
-          boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
-          marginBottom: '24px'
-        }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '16px',
-            marginBottom: '16px'
-          }}>
-            <div style={{
-              width: '64px',
-              height: '64px',
-              background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <span style={{
-                fontSize: '20px',
-                fontWeight: 'bold',
-                color: 'white'
-              }}>MG</span>
-            </div>
-            <div>
-              <h2 style={{
-                fontSize: '20px',
-                fontWeight: 'bold',
-                color: '#1f2937',
-                margin: '0 0 4px 0'
-              }}>¡Hola, {userProfile.name}!</h2>
-              <p style={{
-                color: '#6b7280',
-                margin: 0,
-                fontSize: '14px'
-              }}>
-                {getCurrentDateFormatted()}
-              </p>
-            </div>
-          </div>
-          <div style={{
-            backgroundColor: '#f0f9ff',
-            borderRadius: '16px',
-            padding: '16px',
-            border: '1px solid #e0e7ff'
-          }}>
-            <p style={{
-              color: '#1e40af',
-              fontSize: '14px',
-              fontWeight: '500',
-              margin: 0
-            }}>
-              💪 ¡Sigue así! Has consumido {totalCalories} de {dailyCalories} calorías hoy
-            </p>
-          </div>
-        </div>
-
-        {/* Today's Summary */}
-        <div style={{
-          backgroundColor: 'white',
-          borderRadius: '24px',
-          padding: '24px',
-          boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
-          marginBottom: '24px'
-        }}>
-          <h3 style={{
-            fontSize: '18px',
-            fontWeight: 'bold',
-            color: '#1f2937',
-            marginBottom: '20px',
-            margin: '0 0 20px 0'
-          }}>Resumen de Hoy</h3>
-          
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, 1fr)',
-            gap: '16px',
-            marginBottom: '20px'
-          }}>
-            <div style={{
-              textAlign: 'center',
-              backgroundColor: '#fef2f2',
-              borderRadius: '16px',
-              padding: '20px'
-            }}>
-              <div style={{
-                width: '48px',
-                height: '48px',
-                backgroundColor: '#fee2e2',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 12px auto'
-              }}>
-                <i className="ri-flash-line" style={{ color: '#dc2626', fontSize: '20px' }}></i>
-              </div>
-              <p style={{
-                fontSize: '24px',
-                fontWeight: 'bold',
-                color: '#1f2937',
-                margin: '0 0 4px 0'
-              }}>{totalCalories}</p>
-              <p style={{
-                fontSize: '12px',
-                color: '#6b7280',
-                fontWeight: '500',
-                margin: 0
-              }}>Calorías</p>
-            </div>
-
-            <div style={{
-              textAlign: 'center',
-              backgroundColor: '#f0fdf4',
-              borderRadius: '16px',
-              padding: '20px'
-            }}>
-              <div style={{
-                width: '48px',
-                height: '48px',
-                backgroundColor: '#dcfce7',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 12px auto'
-              }}>
-                <i className="ri-scales-3-line" style={{ color: '#16a34a', fontSize: '20px' }}></i>
-              </div>
-              <p style={{
-                fontSize: '24px',
-                fontWeight: 'bold',
-                color: '#1f2937',
-                margin: '0 0 4px 0'
-              }}>{getCurrentWeight()}</p>
-              <p style={{
-                fontSize: '12px',
-                color: '#6b7280',
-                fontWeight: '500',
-                margin: 0
-              }}>Peso (kg)</p>
-            </div>
-          </div>
-
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '12px'
-          }}>
-            <div style={{
-              textAlign: 'center',
-              backgroundColor: '#fef2f2',
-              borderRadius: '12px',
-              padding: '16px'
-            }}>
-              <p style={{
-                fontSize: '18px',
-                fontWeight: 'bold',
-                color: '#dc2626',
-                margin: '0 0 4px 0'
-              }}>{totalProtein}g</p>
-              <p style={{
-                fontSize: '11px',
-                color: '#6b7280',
-                fontWeight: '500',
-                margin: 0
-              }}>Proteínas</p>
-            </div>
-            <div style={{
-              textAlign: 'center',
-              backgroundColor: '#fffbeb',
-              borderRadius: '12px',
-              padding: '16px'
-            }}>
-              <p style={{
-                fontSize: '18px',
-                fontWeight: 'bold',
-                color: '#f59e0b',
-                margin: '0 0 4px 0'
-              }}>{totalCarbs}g</p>
-              <p style={{
-                fontSize: '11px',
-                color: '#6b7280',
-                fontWeight: '500',
-                margin: 0
-              }}>Carbohidratos</p>
-            </div>
-            <div style={{
-              textAlign: 'center',
-              backgroundColor: '#f0fdf4',
-              borderRadius: '12px',
-              padding: '16px'
-            }}>
-              <p style={{
-                fontSize: '18px',
-                fontWeight: 'bold',
-                color: '#16a34a',
-                margin: '0 0 4px 0'
-              }}>{totalFats}g</p>
-              <p style={{
-                fontSize: '11px',
-                color: '#6b7280',
-                fontWeight: '500',
-                margin: 0
-              }}>Grasas</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div style={{
-          backgroundColor: 'white',
-          borderRadius: '24px',
-          padding: '24px',
-          boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
-          marginBottom: '24px'
-        }}>
-          <h3 style={{
-            fontSize: '18px',
-            fontWeight: 'bold',
-            color: '#1f2937',
-            marginBottom: '20px',
-            margin: '0 0 20px 0'
-          }}>Acciones Rápidas</h3>
-          
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, 1fr)',
-            gap: '16px'
-          }}>
-            <Link href="/add-food" style={{
-              backgroundColor: '#f0f9ff',
-              borderRadius: '16px',
-              padding: '20px',
-              textDecoration: 'none',
-              color: 'inherit',
-              transition: 'transform 0.2s, box-shadow 0.2s'
-            }} className="!rounded-button">
-              <div style={{
-                width: '48px',
-                height: '48px',
-                backgroundColor: '#dbeafe',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: '16px'
-              }}>
-                <i className="ri-add-circle-line" style={{ color: '#3b82f6', fontSize: '20px' }}></i>
-              </div>
-              <h4 style={{
-                fontWeight: 'bold',
-                color: '#1f2937',
-                marginBottom: '8px',
-                margin: '0 0 8px 0'
-              }}>Agregar Comida</h4>
-              <p style={{
-                fontSize: '14px',
-                color: '#6b7280',
-                margin: 0
-              }}>Registra tu próxima comida</p>
-            </Link>
-
-            <Link href="/weight-tracking" style={{
-              backgroundColor: '#f0fdf4',
-              borderRadius: '16px',
-              padding: '20px',
-              textDecoration: 'none',
-              color: 'inherit',
-              transition: 'transform 0.2s, box-shadow 0.2s'
-            }} className="!rounded-button">
-              <div style={{
-                width: '48px',
-                height: '48px',
-                backgroundColor: '#dcfce7',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: '16px'
-              }}>
-                <i className="ri-scales-3-line" style={{ color: '#16a34a', fontSize: '20px' }}></i>
-              </div>
-              <h4 style={{
-                fontWeight: 'bold',
-                color: '#1f2937',
-                marginBottom: '8px',
-                margin: '0 0 8px 0'
-              }}>Registrar Peso</h4>
-              <p style={{
-                fontSize: '14px',
-                color: '#6b7280',
-                margin: 0
-              }}>Actualiza tu peso diario</p>
-            </Link>
-
-            <Link href="/nutrition" style={{
-              backgroundColor: '#fef3c7',
-              borderRadius: '16px',
-              padding: '20px',
-              textDecoration: 'none',
-              color: 'inherit',
-              transition: 'transform 0.2s, box-shadow 0.2s'
-            }} className="!rounded-button">
-              <div style={{
-                width: '48px',
-                height: '48px',
-                backgroundColor: '#fed7aa',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: '16px'
-              }}>
-                <i className="ri-pie-chart-line" style={{ color: '#f59e0b', fontSize: '20px' }}></i>
-              </div>
-              <h4 style={{
-                fontWeight: 'bold',
-                color: '#1f2937',
-                marginBottom: '8px',
-                margin: '0 0 8px 0'
-              }}>Ver Nutrición</h4>
-              <p style={{
-                fontSize: '14px',
-                color: '#6b7280',
-                margin: 0
-              }}>Revisa tus macros del día</p>
-            </Link>
-
-            <Link href="/progress" style={{
-              backgroundColor: '#f3e8ff',
-              borderRadius: '16px',
-              padding: '20px',
-              textDecoration: 'none',
-              color: 'inherit',
-              transition: 'transform 0.2s, box-shadow 0.2s'
-            }} className="!rounded-button">
-              <div style={{
-                width: '48px',
-                height: '48px',
-                backgroundColor: '#e9d5ff',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: '16px'
-              }}>
-                <i className="ri-line-chart-line" style={{ color: '#8b5cf6', fontSize: '20px' }}></i>
-              </div>
-              <h4 style={{
-                fontWeight: 'bold',
-                color: '#1f2937',
-                marginBottom: '8px',
-                margin: '0 0 8px 0'
-              }}>Ver Progreso</h4>
-              <p style={{
-                fontSize: '14px',
-                color: '#6b7280',
-                margin: 0
-              }}>Revisa tu evolución</p>
-            </Link>
-          </div>
-        </div>
-
-        {/* Progress Card */}
-        <div style={{
-          backgroundColor: 'white',
-          borderRadius: '24px',
-          padding: '24px',
-          boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+          boxShadow: '0 4px 6px rgba(0,0,0,0.07)',
           marginBottom: '24px'
         }}>
           <div style={{
@@ -498,85 +226,477 @@ function HomePage() {
             justifyContent: 'space-between',
             marginBottom: '20px'
           }}>
-            <h3 style={{
+            <h2 style={{
               fontSize: '18px',
-              fontWeight: 'bold',
+              fontWeight: '600',
               color: '#1f2937',
               margin: 0
-            }}>Tu Progreso</h3>
-            <Link href="/progress" style={{
-              color: '#3b82f6',
-              fontSize: '14px',
-              textDecoration: 'none',
-              fontWeight: '500'
             }}>
-              Ver todo
+              Progreso del Día
+            </h2>
+            <Link href="/add-food" className="!rounded-button" style={{
+              background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+              color: 'white',
+              padding: '8px 16px',
+              borderRadius: '20px',
+              textDecoration: 'none',
+              fontSize: '14px',
+              fontWeight: '500',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}>
+              <i className="ri-add-line" style={{ fontSize: '16px' }}></i>
+              Agregar
             </Link>
           </div>
-          
+
+          {/* Calories Progress */}
+          <div style={{
+            marginBottom: '24px'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '8px'
+            }}>
+              <span style={{
+                fontSize: '16px',
+                fontWeight: '600',
+                color: '#1f2937'
+              }}>Calorías</span>
+              <span style={{
+                fontSize: '16px',
+                fontWeight: '600',
+                color: '#1f2937'
+              }}>
+                {nutritionData.calories} / {nutritionData.targetCalories}
+              </span>
+            </div>
+            <div style={{
+              width: '100%',
+              height: '12px',
+              backgroundColor: '#f3f4f6',
+              borderRadius: '6px',
+              overflow: 'hidden'
+            }}>
+              <div style={{
+                width: `${getPercentage(nutritionData.calories, nutritionData.targetCalories)}%`,
+                height: '100%',
+                backgroundColor: getProgressColor(getPercentage(nutritionData.calories, nutritionData.targetCalories)),
+                transition: 'width 0.3s ease'
+              }}></div>
+            </div>
+          </div>
+
+          {/* Macros Grid */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '16px'
+            gap: '12px'
           }}>
+            {/* Proteínas */}
             <div style={{
               textAlign: 'center',
-              backgroundColor: '#fef2f2',
-              borderRadius: '16px',
-              padding: '16px'
+              padding: '12px 8px',
+              backgroundColor: '#f8fafc',
+              borderRadius: '12px',
+              border: '1px solid #e2e8f0'
             }}>
-              <p style={{
-                fontSize: '20px',
-                fontWeight: 'bold',
-                color: '#dc2626',
-                margin: '0 0 4px 0'
-              }}>-{getTotalWeightLoss()}</p>
+              <div style={{
+                width: '36px',
+                height: '36px',
+                backgroundColor: '#dcfce7',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 8px auto'
+              }}>
+                <i className="ri-bread-line" style={{ color: '#16a34a', fontSize: '16px' }}></i>
+              </div>
               <p style={{
                 fontSize: '12px',
                 color: '#6b7280',
-                fontWeight: '500',
+                margin: '0 0 4px 0'
+              }}>Proteínas</p>
+              <p style={{
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#1f2937',
+                margin: '0 0 4px 0'
+              }}>
+                {Math.round(nutritionData.protein * 10) / 10}g
+              </p>
+              <p style={{
+                fontSize: '10px',
+                color: '#9ca3af',
                 margin: 0
-              }}>kg perdidos</p>
+              }}>
+                de {nutritionData.targetProtein}g
+              </p>
             </div>
+
+            {/* Carbohidratos */}
             <div style={{
               textAlign: 'center',
-              backgroundColor: '#f0f9ff',
-              borderRadius: '16px',
-              padding: '16px'
+              padding: '12px 8px',
+              backgroundColor: '#f8fafc',
+              borderRadius: '12px',
+              border: '1px solid #e2e8f0'
             }}>
-              <p style={{
-                fontSize: '20px',
-                fontWeight: 'bold',
-                color: '#3b82f6',
-                margin: '0 0 4px 0'
-              }}>12</p>
+              <div style={{
+                width: '36px',
+                height: '36px',
+                backgroundColor: '#fef3c7',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 8px auto'
+              }}>
+                <i className="ri-restaurant-line" style={{ color: '#f59e0b', fontSize: '16px' }}></i>
+              </div>
               <p style={{
                 fontSize: '12px',
                 color: '#6b7280',
-                fontWeight: '500',
+                margin: '0 0 4px 0'
+              }}>Carbohidratos</p>
+              <p style={{
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#1f2937',
+                margin: '0 0 4px 0'
+              }}>
+                {Math.round(nutritionData.carbs * 10) / 10}g
+              </p>
+              <p style={{
+                fontSize: '10px',
+                color: '#9ca3af',
                 margin: 0
-              }}>días seguidos</p>
+              }}>
+                de {nutritionData.targetCarbs}g
+              </p>
             </div>
+
+            {/* Grasas */}
             <div style={{
               textAlign: 'center',
-              backgroundColor: '#f0fdf4',
-              borderRadius: '16px',
-              padding: '16px'
+              padding: '12px 8px',
+              backgroundColor: '#f8fafc',
+              borderRadius: '12px',
+              border: '1px solid #e2e8f0'
             }}>
-              <p style={{
-                fontSize: '20px',
-                fontWeight: 'bold',
-                color: '#16a34a',
-                margin: '0 0 4px 0'
-              }}>89%</p>
+              <div style={{
+                width: '36px',
+                height: '36px',
+                backgroundColor: '#e0e7ff',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 8px auto'
+              }}>
+                <i className="ri-drop-line" style={{ color: '#6366f1', fontSize: '16px' }}></i>
+              </div>
               <p style={{
                 fontSize: '12px',
                 color: '#6b7280',
-                fontWeight: '500',
+                margin: '0 0 4px 0'
+              }}>Grasas</p>
+              <p style={{
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#1f2937',
+                margin: '0 0 4px 0'
+              }}>
+                {Math.round(nutritionData.fats * 10) / 10}g
+              </p>
+              <p style={{
+                fontSize: '10px',
+                color: '#9ca3af',
                 margin: 0
-              }}>objetivo</p>
+              }}>
+                de {nutritionData.targetFats}g
+              </p>
             </div>
           </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div style={{
+          background: 'white',
+          borderRadius: '20px',
+          padding: '24px',
+          boxShadow: '0 4px 6px rgba(0,0,0,0.07)',
+          marginBottom: '24px'
+        }}>
+          <h3 style={{
+            fontSize: '18px',
+            fontWeight: '600',
+            color: '#1f2937',
+            margin: '0 0 16px 0'
+          }}>
+            Acciones Rápidas
+          </h3>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: '12px'
+          }}>
+            <Link href="/add-food" className="!rounded-button" style={{
+              textDecoration: 'none',
+              padding: '16px',
+              backgroundColor: '#f0f9ff',
+              borderRadius: '12px',
+              border: '1px solid #e0e7ff',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              transition: 'all 0.2s'
+            }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                backgroundColor: '#dbeafe',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <i className="ri-add-line" style={{ color: '#3b82f6', fontSize: '18px' }}></i>
+              </div>
+              <div>
+                <p style={{
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#1f2937',
+                  margin: '0 0 2px 0'
+                }}>
+                  Agregar Comida
+                </p>
+                <p style={{
+                  fontSize: '12px',
+                  color: '#6b7280',
+                  margin: 0
+                }}>
+                  Registrar alimento
+                </p>
+              </div>
+            </Link>
+
+            <Link href="/nutrition" className="!rounded-button" style={{
+              textDecoration: 'none',
+              padding: '16px',
+              backgroundColor: '#f0fdf4',
+              borderRadius: '12px',
+              border: '1px solid #dcfce7',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              transition: 'all 0.2s'
+            }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                backgroundColor: '#dcfce7',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <i className="ri-pie-chart-line" style={{ color: '#16a34a', fontSize: '18px' }}></i>
+              </div>
+              <div>
+                <p style={{
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#1f2937',
+                  margin: '0 0 2px 0'
+                }}>
+                  Ver Nutrición
+                </p>
+                <p style={{
+                  fontSize: '12px',
+                  color: '#6b7280',
+                  margin: 0
+                }}>
+                  Detalles diarios
+                </p>
+              </div>
+            </Link>
+          </div>
+        </div>
+
+        {/* Today's Meals */}
+        <div style={{
+          background: 'white',
+          borderRadius: '20px',
+          padding: '24px',
+          boxShadow: '0 4px 6px rgba(0,0,0,0.07)'
+        }}>
+          <h3 style={{
+            fontSize: '18px',
+            fontWeight: '600',
+            color: '#1f2937',
+            margin: '0 0 16px 0'
+          }}>
+            Comidas de Hoy
+          </h3>
+          {nutritionData.meals.length === 0 ? (
+            <div style={{
+              textAlign: 'center',
+              padding: '40px 20px',
+              color: '#6b7280'
+            }}>
+              <i className="ri-restaurant-line" style={{ fontSize: '48px', marginBottom: '16px' }}></i>
+              <p style={{
+                fontSize: '16px',
+                fontWeight: '500',
+                margin: '0 0 8px 0'
+              }}>
+                No hay comidas registradas
+              </p>
+              <p style={{
+                fontSize: '14px',
+                margin: '0 0 16px 0'
+              }}>
+                Comienza agregando tu primera comida del día
+              </p>
+              <Link href="/add-food" className="!rounded-button" style={{
+                background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+                color: 'white',
+                padding: '12px 24px',
+                borderRadius: '20px',
+                textDecoration: 'none',
+                fontSize: '14px',
+                fontWeight: '500',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <i className="ri-add-line"></i>
+                Agregar Primera Comida
+              </Link>
+            </div>
+          ) : (
+            <div>
+              {Object.entries(groupMealsByType(nutritionData.meals)).map(([mealType, meals]) => (
+                <div key={mealType} style={{
+                  marginBottom: '20px',
+                  padding: '16px',
+                  background: '#f8fafc',
+                  borderRadius: '12px',
+                  border: '1px solid #e2e8f0'
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    marginBottom: '12px'
+                  }}>
+                    <div style={{
+                      width: '32px',
+                      height: '32px',
+                      backgroundColor: 'white',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginRight: '12px'
+                    }}>
+                      <i className={getMealTypeIcon(mealType)} style={{
+                        color: getMealTypeColor(mealType),
+                        fontSize: '16px'
+                      }}></i>
+                    </div>
+                    <h4 style={{
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      color: '#1f2937',
+                      margin: 0
+                    }}>
+                      {getMealTypeLabel(mealType)}
+                    </h4>
+                  </div>
+
+                  {meals.map((meal) => (
+                    <div key={meal.id} style={{
+                      background: 'white',
+                      padding: '12px',
+                      borderRadius: '8px',
+                      marginBottom: '8px',
+                      border: '1px solid #e5e7eb'
+                    }}>
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginBottom: '4px'
+                      }}>
+                        <span style={{
+                          fontSize: '14px',
+                          fontWeight: '500',
+                          color: '#1f2937'
+                        }}>
+                          {meal.name}
+                        </span>
+                        <span style={{
+                          fontSize: '12px',
+                          color: '#6b7280'
+                        }}>
+                          {formatTime(meal.timestamp)}
+                        </span>
+                      </div>
+
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                      }}>
+                        <div style={{
+                          display: 'flex',
+                          gap: '12px',
+                          fontSize: '12px',
+                          color: '#6b7280'
+                        }}>
+                          <span>{meal.quantity}g</span>
+                          <span>P: {Math.round(meal.protein * 10) / 10}g</span>
+                          <span>C: {Math.round(meal.carbs * 10) / 10}g</span>
+                          <span>G: {Math.round(meal.fats * 10) / 10}g</span>
+                        </div>
+                        <span style={{
+                          fontSize: '14px',
+                          fontWeight: '600',
+                          color: '#3b82f6'
+                        }}>
+                          {meal.calories} cal
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ))}
+              <Link href="/add-food" className="!rounded-button" style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                width: '100%',
+                padding: '12px 16px',
+                background: '#f0f9ff',
+                border: '1px solid #e0e7ff',
+                borderRadius: '12px',
+                color: '#3b82f6',
+                fontSize: '14px',
+                fontWeight: '500',
+                textDecoration: 'none'
+              }}>
+                <i className="ri-add-line"></i>
+                Agregar Más Comida
+              </Link>
+            </div>
+          )}
         </div>
       </main>
 
@@ -584,22 +704,25 @@ function HomePage() {
       <nav style={{
         position: 'fixed',
         bottom: 0,
-        width: '100%',
-        backgroundColor: 'white',
-        borderTop: '1px solid #e5e7eb'
+        left: 0,
+        right: 0,
+        background: 'white',
+        borderTop: '1px solid #e5e7eb',
+        padding: '8px 0'
       }}>
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(5, 1fr)',
-          padding: '8px 0'
+          maxWidth: '375px',
+          margin: '0 auto'
         }}>
           <Link href="/" style={{
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            justifyContent: 'center',
             padding: '8px 4px',
-            textDecoration: 'none'
+            textDecoration: 'none',
+            color: '#3b82f6'
           }}>
             <div style={{
               width: '24px',
@@ -609,17 +732,18 @@ function HomePage() {
               justifyContent: 'center',
               marginBottom: '4px'
             }}>
-              <i className="ri-home-line" style={{ color: '#3b82f6', fontSize: '18px' }}></i>
+              <i className="ri-home-fill" style={{ fontSize: '18px' }}></i>
             </div>
-            <span style={{ fontSize: '12px', color: '#3b82f6', fontWeight: '500' }}>Inicio</span>
+            <span style={{ fontSize: '12px', fontWeight: '500' }}>Inicio</span>
           </Link>
+
           <Link href="/nutrition" style={{
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            justifyContent: 'center',
             padding: '8px 4px',
-            textDecoration: 'none'
+            textDecoration: 'none',
+            color: '#9ca3af'
           }}>
             <div style={{
               width: '24px',
@@ -629,17 +753,18 @@ function HomePage() {
               justifyContent: 'center',
               marginBottom: '4px'
             }}>
-              <i className="ri-pie-chart-line" style={{ color: '#9ca3af', fontSize: '18px' }}></i>
+              <i className="ri-pie-chart-line" style={{ fontSize: '18px' }}></i>
             </div>
-            <span style={{ fontSize: '12px', color: '#9ca3af' }}>Nutrición</span>
+            <span style={{ fontSize: '12px' }}>Nutrición</span>
           </Link>
+
           <Link href="/add-food" style={{
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            justifyContent: 'center',
             padding: '8px 4px',
-            textDecoration: 'none'
+            textDecoration: 'none',
+            color: '#9ca3af'
           }}>
             <div style={{
               width: '32px',
@@ -653,15 +778,16 @@ function HomePage() {
             }}>
               <i className="ri-add-line" style={{ color: 'white', fontSize: '18px' }}></i>
             </div>
-            <span style={{ fontSize: '12px', color: '#9ca3af' }}>Agregar</span>
+            <span style={{ fontSize: '12px' }}>Agregar</span>
           </Link>
+
           <Link href="/progress" style={{
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            justifyContent: 'center',
             padding: '8px 4px',
-            textDecoration: 'none'
+            textDecoration: 'none',
+            color: '#9ca3af'
           }}>
             <div style={{
               width: '24px',
@@ -671,17 +797,18 @@ function HomePage() {
               justifyContent: 'center',
               marginBottom: '4px'
             }}>
-              <i className="ri-line-chart-line" style={{ color: '#9ca3af', fontSize: '18px' }}></i>
+              <i className="ri-line-chart-line" style={{ fontSize: '18px' }}></i>
             </div>
-            <span style={{ fontSize: '12px', color: '#9ca3af' }}>Progreso</span>
+            <span style={{ fontSize: '12px' }}>Progreso</span>
           </Link>
+
           <Link href="/profile" style={{
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            justifyContent: 'center',
             padding: '8px 4px',
-            textDecoration: 'none'
+            textDecoration: 'none',
+            color: '#9ca3af'
           }}>
             <div style={{
               width: '24px',
@@ -691,9 +818,9 @@ function HomePage() {
               justifyContent: 'center',
               marginBottom: '4px'
             }}>
-              <i className="ri-user-line" style={{ color: '#9ca3af', fontSize: '18px' }}></i>
+              <i className="ri-user-line" style={{ fontSize: '18px' }}></i>
             </div>
-            <span style={{ fontSize: '12px', color: '#9ca3af' }}>Perfil</span>
+            <span style={{ fontSize: '12px' }}>Perfil</span>
           </Link>
         </div>
       </nav>

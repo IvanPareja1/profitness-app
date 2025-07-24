@@ -3,1002 +3,1560 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { useNutritionData } from '../../hooks/useNutritionData';
-import { useUserProfile } from '../../hooks/useUserProfile';
 
 export default function Nutrition() {
-  const [selectedPeriod, setSelectedPeriod] = useState<string>('day');
-  const [mounted, setMounted] = useState<boolean>(false);
-  const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
-  const [showOptionsMenu, setShowOptionsMenu] = useState<boolean>(false);
-  const [showHydrationModal, setShowHydrationModal] = useState<boolean>(false);
-  const [showHydrationSettings, setShowHydrationSettings] = useState<boolean>(false);
-  const [showFiberModal, setShowFiberModal] = useState<boolean>(false);
-  const [showFiberSettings, setShowFiberSettings] = useState<boolean>(false);
-  const [hydrationGoal, setHydrationGoal] = useState<number>(2.5);
-  const [currentHydration, setCurrentHydration] = useState<number>(0);
-  const [hydrationReminders, setHydrationReminders] = useState({
+  const [mounted, setMounted] = useState(false);
+  const [selectedDate, setSelectedDate] = useState('');
+  const [nutritionData, setNutritionData] = useState({
+    calories: 0,
+    protein: 0,
+    carbs: 0,
+    fats: 0,
+    water: 0,
+    fiber: 0,
+    meals: [],
+    targetCalories: 2000,
+    targetProtein: 120,
+    targetCarbs: 250,
+    targetFats: 67,
+    targetWater: 2500,
+    targetFiber: 25
+  });
+  const [showGoalsModal, setShowGoalsModal] = useState(false);
+  const [showHydrationModal, setShowHydrationModal] = useState(false);
+  const [tempGoals, setTempGoals] = useState({
+    targetCalories: 2000,
+    targetProtein: 120,
+    targetCarbs: 250,
+    targetFats: 67,
+    targetWater: 2500,
+    targetFiber: 25
+  });
+  const [hydrationReminder, setHydrationReminder] = useState({
     enabled: false,
-    interval: 3,
-    amount: 250,
-    startTime: '07:00',
+    interval: 60, // minutos
+    startTime: '08:00',
     endTime: '22:00'
   });
-  const [tempHydrationGoal, setTempHydrationGoal] = useState<number>(2.5);
-  const [tempReminders, setTempReminders] = useState({
-    enabled: false,
-    interval: 3,
-    amount: 250,
-    startTime: '07:00',
-    endTime: '22:00'
-  });
-  const [fiberGoal, setFiberGoal] = useState<number>(30);
-  const [currentFiber, setCurrentFiber] = useState<number>(0);
-  const [tempFiberGoal, setTempFiberGoal] = useState<number>(30);
-  const [liquidIntake, setLiquidIntake] = useState([
-    { type: 'water', name: 'Agua', amount: 0, icon: 'ri-drop-line', color: 'blue' },
-    { type: 'coffee', name: 'Café', amount: 0, icon: 'ri-cup-line', color: 'orange' },
-    { type: 'tea', name: 'Té', amount: 0, icon: 'ri-cup-line', color: 'green' },
-    { type: 'juice', name: 'Jugos', amount: 0, icon: 'ri-glass-line', color: 'purple' }
-  ]);
-  const [selectedLiquidType, setSelectedLiquidType] = useState<string>('water');
-  const [customAmount, setCustomAmount] = useState<string>('');
-  const [fiberFoods, setFiberFoods] = useState([
-    { name: 'Avena', fiber: 10, icon: 'ri-bowl-line', category: 'Cereales' },
-    { name: 'Manzana', fiber: 4, icon: 'ri-apple-line', category: 'Frutas' },
-    { name: 'Brócoli', fiber: 8, icon: 'ri-leaf-line', category: 'Verduras' },
-    { name: 'Lentejas', fiber: 6, icon: 'ri-bowl-line', category: 'Legumbres' }
-  ]);
-
-  const {
-    totalCalories,
-    totalProtein,
-    totalCarbs,
-    totalFats,
-    getMealBreakdown,
-    dailyData,
-    changeDate,
-    forceReset,
-    mounted: nutritionMounted
-  } = useNutritionData();
-
-  const { dailyCalories, dailyMacros, mounted: profileMounted } = useUserProfile();
-
-  const getCurrentDateISO = (): string => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
-  const getDisplayDate = (): string => {
-    const currentDate = dailyData.date || getCurrentDateISO();
-    const today = new Date();
-    const selectedDate = new Date(currentDate + 'T00:00:00');
-
-    const day = selectedDate.getDate();
-    const month = selectedDate.toLocaleDateString('es-ES', { month: 'long' });
-    const year = selectedDate.getFullYear();
-
-    return `${day} de ${month} de ${year}`;
-  };
-
-  const mealBreakdown = getMealBreakdown();
-
-  const handleDateChange = (date: string): void => {
-    console.log('Fecha cambiada a:', date);
-    changeDate(date);
-    setShowDatePicker(false);
-  };
-
-  const handleExportData = (): void => {
-    setShowOptionsMenu(false);
-    console.log('Exportando datos de nutrición...');
-  };
-
-  const handleShareProgress = (): void => {
-    setShowOptionsMenu(false);
-    console.log('Compartiendo progreso...');
-  };
-
-  const handlePrintReport = (): void => {
-    setShowOptionsMenu(false);
-    console.log('Imprimiendo reporte...');
-  };
-
-  const handleHydrationClick = (): void => {
-    setShowHydrationModal(true);
-  };
-
-  const handleAddWater = (amount: number): void => {
-    const newAmount = Math.min(currentHydration + amount / 1000, hydrationGoal);
-    setCurrentHydration(parseFloat(newAmount.toFixed(1)));
-  };
-
-  const handleHydrationSettings = (): void => {
-    setTempHydrationGoal(hydrationGoal);
-    setTempReminders(hydrationReminders);
-    setShowHydrationModal(false);
-    setShowHydrationSettings(true);
-  };
-
-  const handleSaveHydrationSettings = (): void => {
-    setHydrationGoal(tempHydrationGoal);
-    setHydrationReminders(tempReminders);
-
-    if (tempReminders.enabled) {
-      const totalHours = calculateTotalActiveHours(tempReminders.startTime, tempReminders.endTime);
-      const reminderCount = Math.floor(totalHours / tempReminders.interval);
-      const calculatedAmount = Math.round((tempHydrationGoal * 1000) / reminderCount);
-
-      setTempReminders((prev) => ({ ...prev, amount: calculatedAmount }));
-      setHydrationReminders((prev) => ({ ...prev, amount: calculatedAmount }));
-
-      console.log(`Configurado: ${calculatedAmount}ml cada ${tempReminders.interval} horas`);
-      console.log(`Total de recordatorios: ${reminderCount} durante ${totalHours} horas`);
-    }
-
-    setShowHydrationSettings(false);
-  };
-
-  const calculateTotalActiveHours = (startTime: string, endTime: string): number => {
-    const [startHour, startMin] = startTime.split(':').map(Number);
-    const [endHour, endMin] = endTime.split(':').map(Number);
-
-    const startMinutes = startHour * 60 + startMin;
-    const endMinutes = endHour * 60 + endMin;
-
-    const totalMinutes = endMinutes > startMinutes ? endMinutes - startMinutes : (24 * 60) - startMinutes + endMinutes;
-
-    return Math.round(totalMinutes / 60);
-  };
-
-  const getHydrationPercentage = (): number => {
-    return Math.min((currentHydration / hydrationGoal) * 100, 100);
-  };
-
-  const handleAddLiquid = (amount: number, type: string = 'water'): void => {
-    if (type === 'water') {
-      const newAmount = Math.min(currentHydration + amount / 1000, hydrationGoal);
-      setCurrentHydration(parseFloat(newAmount.toFixed(1)));
-    }
-
-    setLiquidIntake((prev) =>
-      prev.map((liquid) => (liquid.type === type ? { ...liquid, amount: liquid.amount + amount } : liquid))
-    );
-  };
-
-  const handleCustomAmountAdd = (): void => {
-    const amount = parseInt(customAmount);
-    if (amount && amount > 0 && amount <= 2000) {
-      handleAddLiquid(amount, selectedLiquidType);
-      setCustomAmount('');
-    }
-  };
-
-  const getTotalLiquidIntake = (): number => {
-    return liquidIntake.reduce((total, liquid) => total + liquid.amount, 0);
-  };
-
-  const getFiberPercentage = (): number => {
-    return Math.min((currentFiber / fiberGoal) * 100, 100);
-  };
-
-  const handleAddFiber = (fiberAmount: number): void => {
-    const newAmount = Math.min(currentFiber + fiberAmount, fiberGoal * 1.5);
-    setCurrentFiber(newAmount);
-  };
-
-  const handleFiberSettings = (): void => {
-    setTempFiberGoal(fiberGoal);
-    setShowFiberModal(false);
-    setShowFiberSettings(true);
-  };
-
-  const handleSaveFiberSettings = (): void => {
-    setFiberGoal(tempFiberGoal);
-    setShowFiberSettings(false);
-  };
-
-  const getFiberRecommendations = (): Array<{ name: string; fiber: number; icon: string }> => {
-    const remaining = fiberGoal - currentFiber;
-    if (remaining <= 0) return [];
-
-    const recommendations = [
-      { name: '1 taza de frambuesas', fiber: 8, icon: 'ri-apple-line' },
-      { name: '1 pera mediana', fiber: 6, icon: 'ri-apple-line' },
-      { name: '1/2 taza de frijoles', fiber: 7, icon: 'ri-bowl-line' },
-      { name: '1 rebanada de pan integral', fiber: 3, icon: 'ri-cake-line' },
-      { name: '1 taza de espinacas', fiber: 4, icon: 'ri-leaf-line' },
-      { name: '2 cucharadas de semillas de chía', fiber: 10, icon: 'ri-seedling-line' }
-    ];
-
-    return recommendations.filter((rec) => rec.fiber <= remaining + 3);
-  };
-
-  const loadExtraData = (): void => {
-    try {
-      const savedHydration = localStorage.getItem('currentHydration');
-      const savedFiber = localStorage.getItem('currentFiber');
-      const savedLiquids = localStorage.getItem('liquidIntake');
-      const savedHydrationGoal = localStorage.getItem('hydrationGoal');
-      const savedReminders = localStorage.getItem('hydrationReminders');
-      const savedFiberGoal = localStorage.getItem('fiberGoal');
-
-      if (savedHydration) setCurrentHydration(parseFloat(savedHydration));
-      if (savedFiber) setCurrentFiber(parseFloat(savedFiber));
-      if (savedLiquids) setLiquidIntake(JSON.parse(savedLiquids));
-      if (savedHydrationGoal) setHydrationGoal(parseFloat(savedHydrationGoal));
-      if (savedReminders) setHydrationReminders(JSON.parse(savedReminders));
-      if (savedFiberGoal) setFiberGoal(parseFloat(savedFiberGoal));
-    } catch (error) {
-      console.error('Error cargando datos adicionales:', error);
-    }
-  };
-
-  const saveExtraData = (): void => {
-    localStorage.setItem('currentHydration', currentHydration.toString());
-    localStorage.setItem('currentFiber', currentFiber.toString());
-    localStorage.setItem('liquidIntake', JSON.stringify(liquidIntake));
-    localStorage.setItem('hydrationGoal', hydrationGoal.toString());
-    localStorage.setItem('hydrationReminders', JSON.stringify(hydrationReminders));
-    localStorage.setItem('fiberGoal', fiberGoal.toString());
-  };
 
   useEffect(() => {
     setMounted(true);
-    loadExtraData();
-  }, []);
 
-  useEffect(() => {
-    if (mounted && nutritionMounted) {
-      forceReset();
+    // Set today's date
+    const today = new Date().toISOString().split('T')[0];
+    setSelectedDate(today);
+
+    // Load profile goals
+    const profileData = localStorage.getItem('userProfile');
+    if (profileData) {
+      const profile = JSON.parse(profileData);
+      const updatedData = {
+        ...nutritionData,
+        targetCalories: profile.targetCalories || 2000,
+        targetProtein: profile.targetProtein || 120,
+        targetCarbs: profile.targetCarbs || 250,
+        targetFats: profile.targetFats || 67,
+        targetWater: profile.targetWater || 2500,
+        targetFiber: profile.targetFiber || 25
+      };
+      setNutritionData(updatedData);
+      setTempGoals(updatedData);
     }
-  }, [mounted, nutritionMounted]);
 
-  useEffect(() => {
-    if (mounted) {
-      saveExtraData();
+    // Check for rest day adjustments
+    const restDaySettings = localStorage.getItem('restDaySettings');
+    if (restDaySettings) {
+      const restDay = JSON.parse(restDaySettings);
+      if (restDay.enabled && restDay.todayIsRestDay && restDay.autoAdjustMacros) {
+        // Show rest day indicator
+        const restDayIndicator = document.createElement('div');
+        restDayIndicator.innerHTML = `
+          <div style="position: fixed; top: 80px; left: 50%; transform: translateX(-50%); background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 500; z-index: 999;">
+            <i class="ri-pause-circle-fill" style="margin-right: 6px;"></i>
+            Día de descanso - Macros ajustados
+          </div>
+        `;
+        document.body.appendChild(restDayIndicator);
+        // Remove after 5 seconds
+        setTimeout(() => {
+          if (document.body.contains(restDayIndicator)) {
+            document.body.removeChild(restDayIndicator);
+          }
+        }, 5000);
+      }
     }
-  }, [hydrationGoal, currentHydration, hydrationReminders, fiberGoal, currentFiber, liquidIntake, mounted]);
 
-  if (!mounted || !nutritionMounted || !profileMounted) {
+    // Load hydration reminder settings
+    const savedReminder = localStorage.getItem('hydrationReminder');
+    if (savedReminder) {
+      const reminder = JSON.parse(savedReminder);
+      setHydrationReminder(reminder);
+    }
+
+    // Load data for today
+    loadNutritionData(today);
+
+    // Listen for data updates
+    const handleNutritionUpdate = (event: CustomEvent) => {
+      if (event.detail.date === selectedDate) {
+        setNutritionData(prev => ({ ...prev, ...event.detail.data }));
+      }
+    };
+
+    window.addEventListener('nutritionDataUpdated', handleNutritionUpdate as EventListener);
+
+    return () => {
+      window.removeEventListener('nutritionDataUpdated', handleNutritionUpdate as EventListener);
+    };
+  }, [selectedDate]);
+
+  const loadNutritionData = (date: string) => {
+    const savedData = localStorage.getItem(`nutrition_${date}`);
+    if (savedData) {
+      const parsed = JSON.parse(savedData);
+      setNutritionData(prev => ({ ...prev, ...parsed }));
+    } else {
+      setNutritionData(prev => ({ ...prev, calories: 0, protein: 0, carbs: 0, fats: 0, water: 0, fiber: 0, meals: [] }));
+    }
+  };
+
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newDate = e.target.value;
+    setSelectedDate(newDate);
+    loadNutritionData(newDate);
+  };
+
+  const getPercentage = (current: number, target: number) => {
+    return Math.min((current / target) * 100, 100);
+  };
+
+  const getProgressColor = (percentage: number) => {
+    if (percentage >= 100) return '#10b981';
+    if (percentage >= 75) return '#3b82f6';
+    if (percentage >= 50) return '#f59e0b';
+    return '#ef4444';
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('es-ES', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  const groupMealsByType = (meals: any[]) => {
+    const groups: { [key: string]: any[] } = {};
+    meals.forEach(meal => {
+      if (!groups[meal.mealType]) {
+        groups[meal.mealType] = [];
+      }
+      groups[meal.mealType].push(meal);
+    });
+    return groups;
+  };
+
+  const deleteMeal = (mealId: string) => {
+    const updatedMeals = nutritionData.meals.filter(meal => meal.id !== mealId);
+    const deletedMeal = nutritionData.meals.find(meal => meal.id === mealId);
+
+    if (deletedMeal) {
+      const updatedData = {
+        ...nutritionData,
+        meals: updatedMeals,
+        calories: nutritionData.calories - deletedMeal.calories,
+        protein: nutritionData.protein - deletedMeal.protein,
+        carbs: nutritionData.carbs - deletedMeal.carbs,
+        fats: nutritionData.fats - deletedMeal.fats
+      };
+
+      setNutritionData(updatedData);
+      localStorage.setItem(`nutrition_${selectedDate}`, JSON.stringify(updatedData));
+
+      // Dispatch update event
+      window.dispatchEvent(new CustomEvent('nutritionDataUpdated', {
+        detail: { date: selectedDate, data: updatedData }
+      }));
+    }
+  };
+
+  const updateWaterIntake = (amount: number) => {
+    const newWater = Math.max(0, nutritionData.water + amount);
+    const updatedData = {
+      ...nutritionData,
+      water: newWater
+    };
+
+    setNutritionData(updatedData);
+    localStorage.setItem(`nutrition_${selectedDate}`, JSON.stringify(updatedData));
+
+    window.dispatchEvent(new CustomEvent('nutritionDataUpdated', {
+      detail: { date: selectedDate, data: updatedData }
+    }));
+  };
+
+  const updateFiberIntake = (amount: number) => {
+    const newFiber = Math.max(0, nutritionData.fiber + amount);
+    const updatedData = {
+      ...nutritionData,
+      fiber: newFiber
+    };
+
+    setNutritionData(updatedData);
+    localStorage.setItem(`nutrition_${selectedDate}`, JSON.stringify(updatedData));
+
+    window.dispatchEvent(new CustomEvent('nutritionDataUpdated', {
+      detail: { date: selectedDate, data: updatedData }
+    }));
+  };
+
+  const handleSaveGoals = () => {
+    const updatedData = {
+      ...nutritionData,
+      targetCalories: tempGoals.targetCalories,
+      targetProtein: tempGoals.targetProtein,
+      targetCarbs: tempGoals.targetCarbs,
+      targetFats: tempGoals.targetFats,
+      targetWater: tempGoals.targetWater,
+      targetFiber: tempGoals.targetFiber
+    };
+
+    setNutritionData(updatedData);
+
+    // Update profile
+    const profileData = localStorage.getItem('userProfile');
+    if (profileData) {
+      const profile = JSON.parse(profileData);
+      profile.targetCalories = tempGoals.targetCalories;
+      profile.targetProtein = tempGoals.targetProtein;
+      profile.targetCarbs = tempGoals.targetCarbs;
+      profile.targetFats = tempGoals.targetFats;
+      profile.targetWater = tempGoals.targetWater;
+      profile.targetFiber = tempGoals.targetFiber;
+      localStorage.setItem('userProfile', JSON.stringify(profile));
+    }
+
+    setShowGoalsModal(false);
+  };
+
+  const handleSaveHydrationReminder = () => {
+    localStorage.setItem('hydrationReminder', JSON.stringify(hydrationReminder));
+
+    if (hydrationReminder.enabled) {
+      // Show simple success message instead of notification
+      const successMessage = document.createElement('div');
+      successMessage.innerHTML = `
+        <div style="position: fixed; top: 80px; left: 50%; transform: translateX(-50%); background: #dcfce7; border: 1px solid #bbf7d0; color: #16a34a; padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 500; z-index: 999;">
+          <i class="ri-check-circle-fill" style="margin-right: 6px;"></i>
+          Recordatorio de hidratación activado
+        </div>
+      `;
+      document.body.appendChild(successMessage);
+      setTimeout(() => {
+        if (document.body.contains(successMessage)) {
+          document.body.removeChild(successMessage);
+        }
+      }, 3000);
+    }
+
+    setShowHydrationModal(false);
+  };
+
+  if (!mounted) {
     return (
       <div style={{
         minHeight: '100vh',
-        background: 'linear-gradient(135deg, #f0f9ff 0%, #e0e7ff 100%)'
+        background: 'linear-gradient(135deg, #f0f9ff 0%, #e0e7ff 100%)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
       }}>
         <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          minHeight: '100vh'
-        }}>
-          <div style={{
-            width: '32px',
-            height: '32px',
-            border: '4px solid #3b82f6',
-            borderTop: '4px solid transparent',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite'
-          }}></div>
-        </div>
+          width: '32px',
+          height: '32px',
+          border: '3px solid #e5e7eb',
+          borderTop: '3px solid #3b82f6',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }}></div>
+        <style jsx>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}</style>
       </div>
     );
   }
 
+  const mealGroups = groupMealsByType(nutritionData.meals);
+
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #f0f9ff 0%, #e0e7ff 100%)'
+      background: 'linear-gradient(135deg, #f0f9ff 0%, #e0e7ff 100%)',
+      paddingTop: '80px',
+      paddingBottom: '100px'
     }}>
+      {/* Header */}
       <header style={{
         position: 'fixed',
         top: 0,
-        width: '100%',
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-        backdropFilter: 'blur(8px)',
+        left: 0,
+        right: 0,
+        background: 'white',
+        padding: '20px 16px',
         borderBottom: '1px solid #e5e7eb',
-        zIndex: 50
+        zIndex: 1000
       }}>
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '12px 16px'
+          gap: '12px'
         }}>
+          <Link href="/" className="!rounded-button" style={{
+            width: '40px',
+            height: '40px',
+            background: '#f3f4f6',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            textDecoration: 'none'
+          }}>
+            <i className="ri-arrow-left-line" style={{ color: '#374151', fontSize: '18px' }}></i>
+          </Link>
           <h1 style={{
-            fontSize: '18px',
+            fontSize: '20px',
             fontWeight: '600',
             color: '#1f2937',
             margin: 0
-          }}>Nutrición</h1>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px'
           }}>
-            <button
-              onClick={() => setShowDatePicker(true)}
-              style={{
-                width: '32px',
-                height: '32px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: 'none',
-                backgroundColor: 'transparent',
-                cursor: 'pointer'
-              }}
-            >
-              <i className="ri-calendar-line" style={{ color: '#6b7280', fontSize: '18px' }}></i>
-            </button>
-            <div style={{ position: 'relative' }}>
-              <button
-                onClick={() => setShowOptionsMenu(!showOptionsMenu)}
-                style={{
-                  width: '32px',
-                  height: '32px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  border: 'none',
-                  backgroundColor: 'transparent',
-                  cursor: 'pointer'
-                }}
-              >
-                <i className="ri-more-line" style={{ color: '#6b7280', fontSize: '18px' }}></i>
-              </button>
-
-              {showOptionsMenu && (
-                <div style={{
-                  position: 'absolute',
-                  right: 0,
-                  top: '40px',
-                  backgroundColor: 'white',
-                  borderRadius: '12px',
-                  boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
-                  border: '1px solid #e5e7eb',
-                  padding: '8px 0',
-                  minWidth: '192px',
-                  zIndex: 50
-                }}>
-                  <button
-                    onClick={handleExportData}
-                    style={{
-                      width: '100%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      padding: '12px 16px',
-                      border: 'none',
-                      backgroundColor: 'transparent',
-                      cursor: 'pointer',
-                      transition: 'background-color 0.2s'
-                    }}
-                    onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => (e.currentTarget).style.backgroundColor = '#f9fafb'}
-                    onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => (e.currentTarget).style.backgroundColor = 'transparent'}
-                  >
-                    <div style={{
-                      width: '32px',
-                      height: '32px',
-                      backgroundColor: '#dbeafe',
-                      borderRadius: '50%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      marginRight: '12px'
-                    }}>
-                      <i className="ri-download-line" style={{ color: '#2563eb', fontSize: '14px' }}></i>
-                    </div>
-                    <span style={{ color: '#374151', fontSize: '14px' }}>Exportar datos</span>
-                  </button>
-
-                  <button
-                    onClick={handleShareProgress}
-                    style={{
-                      width: '100%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      padding: '12px 16px',
-                      border: 'none',
-                      backgroundColor: 'transparent',
-                      cursor: 'pointer',
-                      transition: 'background-color 0.2s'
-                    }}
-                    onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => (e.currentTarget).style.backgroundColor = '#f9fafb'}
-                    onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => (e.currentTarget).style.backgroundColor = 'transparent'}
-                  >
-                    <div style={{
-                      width: '32px',
-                      height: '32px',
-                      backgroundColor: '#dcfce7',
-                      borderRadius: '50%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      marginRight: '12px'
-                    }}>
-                      <i className="ri-share-line" style={{ color: '#16a34a', fontSize: '14px' }}></i>
-                    </div>
-                    <span style={{ color: '#374151', fontSize: '14px' }}>Compartir progreso</span>
-                  </button>
-
-                  <button
-                    onClick={handlePrintReport}
-                    style={{
-                      width: '100%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      padding: '12px 16px',
-                      border: 'none',
-                      backgroundColor: 'transparent',
-                      cursor: 'pointer',
-                      transition: 'background-color 0.2s'
-                    }}
-                    onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => (e.currentTarget).style.backgroundColor = '#f9fafb'}
-                    onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => (e.currentTarget).style.backgroundColor = 'transparent'}
-                  >
-                    <div style={{
-                      width: '32px',
-                      height: '32px',
-                      backgroundColor: '#f3e8ff',
-                      borderRadius: '50%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      marginRight: '12px'
-                    }}>
-                      <i className="ri-printer-line" style={{ color: '#9333ea', fontSize: '14px' }}></i>
-                    </div>
-                    <span style={{ color: '#374151', fontSize: '14px' }}>Imprimir reporte</span>
-                  </button>
-
-                  <div style={{
-                    borderTop: '1px solid #f3f4f6',
-                    margin: '8px 0'
-                  }}></div>
-
-                  <Link href="/nutrition-settings" style={{
-                    display: 'block',
-                    textDecoration: 'none'
-                  }}>
-                    <button style={{
-                      width: '100%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      padding: '12px 16px',
-                      border: 'none',
-                      backgroundColor: 'transparent',
-                      cursor: 'pointer',
-                      transition: 'background-color 0.2s'
-                    }}
-                      onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => (e.currentTarget).style.backgroundColor = '#f9fafb'}
-                      onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => (e.currentTarget).style.backgroundColor = 'transparent'}
-                    >
-                      <div style={{
-                        width: '32px',
-                        height: '32px',
-                        backgroundColor: '#f3f4f6',
-                        borderRadius: '50%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        marginRight: '12px'
-                      }}>
-                        <i className="ri-settings-line" style={{ color: '#6b7280', fontSize: '14px' }}></i>
-                      </div>
-                      <span style={{ color: '#374151', fontSize: '14px' }}>Configuración</span>
-                    </button>
-                  </Link>
-                </div>
-              )}
-            </div>
-          </div>
+            Nutrición
+          </h1>
         </div>
       </header>
 
-      <main style={{
-        paddingTop: '64px',
-        paddingBottom: '80px',
-        padding: '64px 16px 80px 16px'
-      }}>
-        <div style={{ marginTop: '24px', marginBottom: '16px' }}>
-          <div style={{ textAlign: 'center' }}>
-            <p style={{
-              fontSize: '14px',
-              color: '#6b7280',
-              margin: '0 0 4px 0'
-            }}>Fecha seleccionada</p>
-            <p style={{
+      {/* Main Content */}
+      <main style={{ padding: '24px 16px' }}>
+        {/* Date Selector */}
+        <div style={{
+          background: 'white',
+          borderRadius: '16px',
+          padding: '20px',
+          boxShadow: '0 4px 6px rgba(0,0,0,0.07)',
+          marginBottom: '24px'
+        }}>
+          <label style={{
+            display: 'block',
+            fontSize: '14px',
+            fontWeight: '500',
+            color: '#374151',
+            marginBottom: '8px'
+          }}>
+            Fecha
+          </label>
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={handleDateChange}
+            style={{
+              width: '100%',
+              padding: '12px 16px',
+              borderRadius: '12px',
+              border: '1px solid #e5e7eb',
+              fontSize: '16px',
+              outline: 'none',
+              backgroundColor: 'white'
+            }}
+          />
+          <p style={{
+            fontSize: '12px',
+            color: '#6b7280',
+            marginTop: '8px',
+            marginBottom: 0,
+            textTransform: 'capitalize'
+          }}>
+            {formatDate(selectedDate)}
+          </p>
+        </div>
+
+        {/* Nutrition Summary */}
+        <div style={{
+          background: 'white',
+          borderRadius: '16px',
+          padding: '24px',
+          boxShadow: '0 4px 6px rgba(0,0,0,0.07)',
+          marginBottom: '24px'
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '20px'
+          }}>
+            <h2 style={{
               fontSize: '18px',
               fontWeight: '600',
               color: '#1f2937',
               margin: 0
-            }}>{getDisplayDate()}</p>
+            }}>
+              Resumen Nutricional
+            </h2>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              {(() => {
+                const restDaySettings = localStorage.getItem('restDaySettings');
+                if (restDaySettings) {
+                  const restDay = JSON.parse(restDaySettings);
+                  if (restDay.enabled && restDay.todayIsRestDay) {
+                    return (
+                      <div style={{
+                        background: '#fef2f2',
+                        border: '1px solid #fecaca',
+                        color: '#dc2626',
+                        padding: '4px 8px',
+                        borderRadius: '12px',
+                        fontSize: '11px',
+                        fontWeight: '500',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}>
+                        <i className="ri-pause-circle-fill" style={{ fontSize: '12px' }}></i>
+                        Descanso
+                      </div>
+                    );
+                  }
+                }
+                return null;
+              })()}
+              <button
+                onClick={() => setShowGoalsModal(true)}
+                className="!rounded-button"
+                style={{
+                  background: '#f0f9ff',
+                  border: '1px solid #e0e7ff',
+                  color: '#3b82f6',
+                  padding: '8px 16px',
+                  borderRadius: '20px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <i className="ri-settings-line"></i>
+                Ajustar Metas
+              </button>
+            </div>
           </div>
-        </div>
 
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: '16px'
-        }}>
-          <h3 style={{
-            fontSize: '18px',
-            fontWeight: '600',
-            color: '#1f2937',
-            margin: 0
-          }}>Desglose por comidas</h3>
-          <Link href="/add-food" style={{
-            color: '#3b82f6',
-            fontSize: '14px',
-            textDecoration: 'none'
-          }}>Agregar comida</Link>
-        </div>
+          {/* Calories */}
+          <div style={{ marginBottom: '24px' }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '8px'
+            }}>
+              <span style={{
+                fontSize: '16px',
+                fontWeight: '600',
+                color: '#1f2937'
+              }}>
+                Calorías
+              </span>
+              <span style={{
+                fontSize: '16px',
+                fontWeight: '600',
+                color: '#1f2937'
+              }}>
+                {nutritionData.calories} / {nutritionData.targetCalories}
+              </span>
+            </div>
+            <div style={{
+              width: '100%',
+              height: '12px',
+              backgroundColor: '#f3f4f6',
+              borderRadius: '6px',
+              overflow: 'hidden'
+            }}>
+              <div style={{
+                width: `${getPercentage(nutritionData.calories, nutritionData.targetCalories)}%`,
+                height: '100%',
+                backgroundColor: getProgressColor(getPercentage(nutritionData.calories, nutritionData.targetCalories)),
+                transition: 'width 0.3s ease'
+              }}></div>
+            </div>
+          </div>
 
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '16px'
-        }}>
-          {mealBreakdown.map((meal, index: number) => (
-            <div key={index} style={{
-              backgroundColor: 'white',
+          {/* Macros */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: '8px',
+            marginBottom: '24px'
+          }}>
+            {/* Proteínas */}
+            <div style={{
+              textAlign: 'center',
+              padding: '12px 6px',
+              backgroundColor: '#f8fafc',
               borderRadius: '12px',
-              padding: '16px',
-              boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+              border: '1px solid #e2e8f0'
+            }}>
+              <div style={{
+                width: '32px',
+                height: '32px',
+                backgroundColor: '#dcfce7',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 8px auto'
+              }}>
+                <i className="ri-bread-line" style={{ color: '#16a34a', fontSize: '14px' }}></i>
+              </div>
+              <p style={{
+                fontSize: '12px',
+                color: '#6b7280',
+                margin: '0 0 4px 0'
+              }}>
+                Proteínas
+              </p>
+              <p style={{
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#1f2937',
+                margin: '0 0 4px 0'
+              }}>
+                {Math.round(nutritionData.protein * 10) / 10}g
+              </p>
+              <p style={{
+                fontSize: '10px',
+                color: '#9ca3af',
+                margin: 0
+              }}>
+                de {nutritionData.targetProtein}g
+              </p>
+            </div>
+
+            {/* Carbohidratos */}
+            <div style={{
+              textAlign: 'center',
+              padding: '12px 6px',
+              backgroundColor: '#f8fafc',
+              borderRadius: '12px',
+              border: '1px solid #e2e8f0'
+            }}>
+              <div style={{
+                width: '32px',
+                height: '32px',
+                backgroundColor: '#fef3c7',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 8px auto'
+              }}>
+                <i className="ri-restaurant-line" style={{ color: '#f59e0b', fontSize: '14px' }}></i>
+              </div>
+              <p style={{
+                fontSize: '12px',
+                color: '#6b7280',
+                margin: '0 0 4px 0'
+              }}>
+                Carbohidratos
+              </p>
+              <p style={{
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#1f2937',
+                margin: '0 0 4px 0'
+              }}>
+                {Math.round(nutritionData.carbs * 10) / 10}g
+              </p>
+              <p style={{
+                fontSize: '10px',
+                color: '#9ca3af',
+                margin: 0
+              }}>
+                de {nutritionData.targetCarbs}g
+              </p>
+            </div>
+
+            {/* Grasas */}
+            <div style={{
+              textAlign: 'center',
+              padding: '12px 6px',
+              backgroundColor: '#f8fafc',
+              borderRadius: '12px',
+              border: '1px solid #e2e8f0'
+            }}>
+              <div style={{
+                width: '32px',
+                height: '32px',
+                backgroundColor: '#e0e7ff',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 8px auto'
+              }}>
+                <i className="ri-drop-line" style={{ color: '#6366f1', fontSize: '14px' }}></i>
+              </div>
+              <p style={{
+                fontSize: '12px',
+                color: '#6b7280',
+                margin: '0 0 4px 0'
+              }}>
+                Grasas
+              </p>
+              <p style={{
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#1f2937',
+                margin: '0 0 4px 0'
+              }}>
+                {Math.round(nutritionData.fats * 10) / 10}g
+              </p>
+              <p style={{
+                fontSize: '10px',
+                color: '#9ca3af',
+                margin: 0
+              }}>
+                de {nutritionData.targetFats}g
+              </p>
+            </div>
+          </div>
+
+          {/* Hydration & Fiber */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: '10px'
+          }}>
+            {/* Hidratación */}
+            <div style={{
+              background: '#f0f9ff',
+              borderRadius: '12px',
+              padding: '14px',
+              border: '1px solid #e0e7ff'
             }}>
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                marginBottom: '12px'
+                marginBottom: '10px'
               }}>
-                <h4 style={{
-                  fontWeight: '600',
-                  color: '#1f2937',
-                  margin: 0
-                }}>{meal.name}</h4>
-                <span style={{
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: '#6b7280'
-                }}>{meal.calories} kcal</span>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}>
+                  <i className="ri-drop-line" style={{ color: '#06b6d4', fontSize: '16px' }}></i>
+                  <span style={{
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    color: '#1f2937'
+                  }}>
+                    Hidratación
+                  </span>
+                </div>
+                <button
+                  onClick={() => setShowHydrationModal(true)}
+                  className="!rounded-button"
+                  style={{
+                    width: '24px',
+                    height: '24px',
+                    background: hydrationReminder.enabled ? '#06b6d4' : '#e0e7ff',
+                    border: 'none',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <i className="ri-alarm-line" style={{
+                    color: hydrationReminder.enabled ? 'white' : '#6b7280',
+                    fontSize: '12px'
+                  }}></i>
+                </button>
               </div>
-
+              <p style={{
+                fontSize: '16px',
+                fontWeight: '700',
+                color: '#1f2937',
+                margin: '0 0 6px 0'
+              }}>
+                {nutritionData.water}ml
+              </p>
+              <p style={{
+                fontSize: '11px',
+                color: '#6b7280',
+                margin: '0 0 10px 0'
+              }}>
+                de {nutritionData.targetWater}ml
+              </p>
               <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
-                gap: '16px',
+                width: '100%',
+                height: '5px',
+                backgroundColor: '#e0e7ff',
+                borderRadius: '3px',
+                overflow: 'hidden',
+                marginBottom: '10px'
+              }}>
+                <div style={{
+                  width: `${getPercentage(nutritionData.water, nutritionData.targetWater)}%`,
+                  height: '100%',
+                  backgroundColor: '#06b6d4',
+                  transition: 'width 0.3s ease'
+                }}></div>
+              </div>
+              <div style={{
+                display: 'flex',
+                gap: '4px'
+              }}>
+                <button
+                  onClick={() => updateWaterIntake(250)}
+                  className="!rounded-button"
+                  style={{
+                    flex: 1,
+                    padding: '6px 8px',
+                    background: '#06b6d4',
+                    border: 'none',
+                    borderRadius: '6px',
+                    color: 'white',
+                    fontSize: '11px',
+                    fontWeight: '500',
+                    cursor: 'pointer'
+                  }}
+                >
+                  +250ml
+                </button>
+                <button
+                  onClick={() => updateWaterIntake(-250)}
+                  className="!rounded-button"
+                  style={{
+                    flex: 1,
+                    padding: '6px 8px',
+                    background: '#f3f4f6',
+                    border: 'none',
+                    borderRadius: '6px',
+                    color: '#374151',
+                    fontSize: '11px',
+                    fontWeight: '500',
+                    cursor: 'pointer'
+                  }}
+                >
+                  -250ml
+                </button>
+              </div>
+            </div>
+
+            {/* Fibra */}
+            <div style={{
+              background: '#f0fdf4',
+              borderRadius: '12px',
+              padding: '14px',
+              border: '1px solid #dcfce7'
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                marginBottom: '10px'
+              }}>
+                <i className="ri-plant-line" style={{ color: '#16a34a', fontSize: '16px' }}></i>
+                <span style={{
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  color: '#1f2937'
+                }}>
+                  Fibra
+                </span>
+              </div>
+              <p style={{
+                fontSize: '16px',
+                fontWeight: '700',
+                color: '#1f2937',
+                margin: '0 0 6px 0'
+              }}>
+                {Math.round(nutritionData.fiber * 10) / 10}g
+              </p>
+              <p style={{
+                fontSize: '11px',
+                color: '#6b7280',
+                margin: '0 0 10px 0'
+              }}>
+                de {nutritionData.targetFiber}g
+              </p>
+              <div style={{
+                width: '100%',
+                height: '5px',
+                backgroundColor: '#dcfce7',
+                borderRadius: '3px',
+                overflow: 'hidden',
+                marginBottom: '10px'
+              }}>
+                <div style={{
+                  width: `${getPercentage(nutritionData.fiber, nutritionData.targetFiber)}%`,
+                  height: '100%',
+                  backgroundColor: '#16a34a',
+                  transition: 'width 0.3s ease'
+                }}></div>
+              </div>
+              <div style={{
+                display: 'flex',
+                gap: '4px'
+              }}>
+                <button
+                  onClick={() => updateFiberIntake(5)}
+                  className="!rounded-button"
+                  style={{
+                    flex: 1,
+                    padding: '6px 8px',
+                    background: '#16a34a',
+                    border: 'none',
+                    borderRadius: '6px',
+                    color: 'white',
+                    fontSize: '11px',
+                    fontWeight: '500',
+                    cursor: 'pointer'
+                  }}
+                >
+                  +5g
+                </button>
+                <button
+                  onClick={() => updateFiberIntake(-5)}
+                  className="!rounded-button"
+                  style={{
+                    flex: 1,
+                    padding: '6px 8px',
+                    background: '#f3f4f6',
+                    border: 'none',
+                    borderRadius: '6px',
+                    color: '#374151',
+                    fontSize: '11px',
+                    fontWeight: '500',
+                    cursor: 'pointer'
+                  }}
+                >
+                  -5g
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Meals Section */}
+        <div style={{
+          background: 'white',
+          borderRadius: '16px',
+          padding: '24px',
+          boxShadow: '0 4px 6px rgba(0,0,0,0.07)'
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '20px'
+          }}>
+            <h2 style={{
+              fontSize: '18px',
+              fontWeight: '600',
+              color: '#1f2937',
+              margin: 0
+            }}>
+              Comidas del Día
+            </h2>
+            <Link href="/add-food" className="!rounded-button" style={{
+              background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+              color: 'white',
+              padding: '8px 16px',
+              borderRadius: '20px',
+              textDecoration: 'none',
+              fontSize: '14px',
+              fontWeight: '500',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}>
+              <i className="ri-add-line" style={{ fontSize: '16px' }}></i>
+              Agregar
+            </Link>
+          </div>
+
+          {nutritionData.meals.length === 0 ? (
+            <div style={{
+              textAlign: 'center',
+              padding: '40px 20px',
+              color: '#6b7280'
+            }}>
+              <i className="ri-restaurant-line" style={{ fontSize: '48px', marginBottom: '16px' }}></i>
+              <p style={{
+                fontSize: '16px',
+                fontWeight: '500',
+                margin: '0 0 8px 0'
+              }}>
+                No hay comidas registradas
+              </p>
+              <p style={{
+                fontSize: '14px',
+                margin: '0 0 16px 0'
+              }}>
+                Agrega tu primera comida para ver el resumen
+              </p>
+            </div>
+          ) : (
+            <div>
+              {Object.entries(mealGroups).map(([mealType, meals]) => (
+                <div key={mealType} style={{ marginBottom: '24px' }}>
+                  <h3 style={{
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    color: '#1f2937',
+                    marginBottom: '12px',
+                    textTransform: 'capitalize',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}>
+                    {mealType === 'desayuno' && <i className="ri-sun-line" style={{ color: '#f59e0b' }}></i>}
+                    {mealType === 'almuerzo' && <i className="ri-sun-fill" style={{ color: '#f97316' }}></i>}
+                    {mealType === 'cena' && <i className="ri-moon-line" style={{ color: '#6366f1' }}></i>}
+                    {mealType === 'snack' && <i className="ri-apple-line" style={{ color: '#10b981' }}></i>}
+                    {mealType === 'liquid' && <i className="ri-drop-line" style={{ color: '#06b6d4' }}></i>}
+                    {mealType === 'liquid' ? 'Líquidos' : mealType}
+                  </h3>
+                  {meals.map((meal) => (
+                    <div key={meal.id} style={{
+                      background: '#f8fafc',
+                      borderRadius: '12px',
+                      padding: '16px',
+                      marginBottom: '12px',
+                      border: '1px solid #e2e8f0'
+                    }}>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        marginBottom: '8px'
+                      }}>
+                        <h4 style={{
+                          fontSize: '16px',
+                          fontWeight: '600',
+                          color: '#1f2937',
+                          margin: 0
+                        }}>
+                          {meal.name}
+                        </h4>
+                        <button
+                          onClick={() => deleteMeal(meal.id)}
+                          className="!rounded-button"
+                          style={{
+                            width: '32px',
+                            height: '32px',
+                            background: '#fef2f2',
+                            border: '1px solid #fecaca',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <i className="ri-delete-bin-line" style={{ color: '#dc2626', fontSize: '16px' }}></i>
+                        </button>
+                      </div>
+                      <p style={{
+                        fontSize: '14px',
+                        color: '#6b7280',
+                        marginBottom: '8px'
+                      }}>
+                        {meal.quantity}{mealType === 'liquid' ? 'ml' : 'g'}
+                      </p>
+                      <div style={{
+                        display: 'flex',
+                        gap: '16px',
+                        fontSize: '14px',
+                        color: '#374151'
+                      }}>
+                        <span><strong>{meal.calories}</strong> cal</span>
+                        <span>P: <strong>{Math.round(meal.protein * 10) / 10}</strong>g</span>
+                        <span>C: <strong>{Math.round(meal.carbs * 10) / 10}</strong>g</span>
+                        <span>G: <strong>{Math.round(meal.fats * 10) / 10}</strong>g</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </main>
+
+      {/* Hydration Reminder Modal */}
+      {showHydrationModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 2000,
+          padding: '20px'
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '16px',
+            padding: '24px',
+            width: '100%',
+            maxWidth: '350px',
+            maxHeight: '80vh',
+            overflowY: 'auto'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '20px'
+            }}>
+              <h3 style={{
+                fontSize: '18px',
+                fontWeight: '600',
+                color: '#1f2937',
+                margin: 0
+              }}>
+                Recordatorio de Hidratación
+              </h3>
+              <button
+                onClick={() => setShowHydrationModal(false)}
+                className="!rounded-button"
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  background: '#f3f4f6',
+                  border: 'none',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer'
+                }}
+              >
+                <i className="ri-close-line" style={{ fontSize: '16px' }}></i>
+              </button>
+            </div>
+
+            <div style={{
+              padding: '16px',
+              backgroundColor: '#f0f9ff',
+              borderRadius: '12px',
+              marginBottom: '20px',
+              border: '1px solid #e0e7ff'
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
                 marginBottom: '12px'
               }}>
-                <div style={{ textAlign: 'center' }}>
-                  <p style={{
-                    fontSize: '12px',
-                    color: '#6b7280',
-                    marginBottom: '4px',
-                    margin: '0 0 4px 0'
-                  }}>Proteínas</p>
-                  <p style={{
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: '#ef4444',
-                    margin: 0
-                  }}>{meal.protein}g</p>
+                <div style={{
+                  width: '40px',
+                  height: '40px',
+                  background: '#06b6d4',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <i className="ri-drop-line" style={{ color: 'white', fontSize: '20px' }}></i>
                 </div>
-                <div style={{ textAlign: 'center' }}>
-                  <p style={{
-                    fontSize: '12px',
-                    color: '#6b7280',
-                    marginBottom: '4px',
-                    margin: '0 0 4px 0'
-                  }}>Carbohidratos</p>
+                <div>
                   <p style={{
                     fontSize: '14px',
                     fontWeight: '600',
-                    color: '#f59e0b',
-                    margin: 0
-                  }}>{meal.carbs}g</p>
-                </div>
-                <div style={{ textAlign: 'center' }}>
+                    color: '#1f2937',
+                    margin: '0 0 4px 0'
+                  }}>
+                    Mantente hidratado
+                  </p>
                   <p style={{
                     fontSize: '12px',
                     color: '#6b7280',
-                    marginBottom: '4px',
-                    margin: '0 0 4px 0'
-                  }}>Grasas</p>
-                  <p style={{
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: '#10b981',
                     margin: 0
-                  }}>{meal.fats}g</p>
+                  }}>
+                    Configura recordatorios automáticos
+                  </p>
                 </div>
               </div>
 
               <div style={{
                 display: 'flex',
-                flexWrap: 'wrap',
-                gap: '8px'
+                alignItems: 'center',
+                gap: '12px',
+                marginBottom: '16px'
               }}>
-                {meal.foods.map((food: string, foodIndex: number) => (
-                  <span
-                    key={foodIndex}
-                    style={{
-                      fontSize: '12px',
-                      backgroundColor: '#f3f4f6',
-                      color: '#6b7280',
-                      padding: '4px 8px',
-                      borderRadius: '16px'
-                    }}
-                  >
-                    {food}
-                  </span>
-                ))}
+                <input
+                  type="checkbox"
+                  id="enableReminder"
+                  checked={hydrationReminder.enabled}
+                  onChange={(e) => setHydrationReminder({
+                    ...hydrationReminder,
+                    enabled: e.target.checked
+                  })}
+                  style={{
+                    width: '18px',
+                    height: '18px',
+                    accentColor: '#06b6d4'
+                  }}
+                />
+                <label htmlFor="enableReminder" style={{
+                  fontSize: '14px',
+                  color: '#1f2937',
+                  fontWeight: '500'
+                }}>
+                  Activar recordatorios
+                </label>
               </div>
-            </div>
-          ))}
-        </div>
 
-        <div style={{
-          backgroundColor: 'white',
-          borderRadius: '16px',
-          padding: '24px',
-          boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
-          marginBottom: '24px'
-        }}>
-          <div style={{
-            textAlign: 'center',
-            marginBottom: '24px'
-          }}>
-            <h2 style={{
-              fontSize: '32px',
-              fontWeight: '700',
-              color: '#1f2937',
-              marginBottom: '4px',
-              margin: '0 0 4px 0'
-            }}>{totalCalories} kcal</h2>
-            <p style={{
-              color: '#6b7280',
-              margin: 0
-            }}>de {dailyCalories} kcal objetivo</p>
+              {hydrationReminder.enabled && (
+                <div style={{
+                  display: 'grid',
+                  gap: '16px'
+                }}>
+                  <div>
+                    <label style={{
+                      display: 'block',
+                      fontSize: '13px',
+                      fontWeight: '500',
+                      color: '#374151',
+                      marginBottom: '6px'
+                    }}>
+                      Recordar cada (minutos)
+                    </label>
+                    <select
+                      value={hydrationReminder.interval}
+                      onChange={(e) => setHydrationReminder({
+                        ...hydrationReminder,
+                        interval: parseInt(e.target.value)
+                      })}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        borderRadius: '8px',
+                        border: '1px solid #e5e7eb',
+                        fontSize: '14px',
+                        outline: 'none',
+                        backgroundColor: 'white'
+                      }}
+                    >
+                      <option value={30}>30 minutos</option>
+                      <option value={60}>1 hora</option>
+                      <option value={90}>1.5 horas</option>
+                      <option value={120}>2 horas</option>
+                      <option value={180}>3 horas</option>
+                    </select>
+                  </div>
+
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(2, 1fr)',
+                    gap: '12px'
+                  }}>
+                    <div>
+                      <label style={{
+                        display: 'block',
+                        fontSize: '13px',
+                        fontWeight: '500',
+                        color: '#374151',
+                        marginBottom: '6px'
+                      }}>
+                        Hora inicio
+                      </label>
+                      <input
+                        type="time"
+                        value={hydrationReminder.startTime}
+                        onChange={(e) => setHydrationReminder({
+                          ...hydrationReminder,
+                          startTime: e.target.value
+                        })}
+                        style={{
+                          width: '100%',
+                          padding: '10px 12px',
+                          borderRadius: '8px',
+                          border: '1px solid #e5e7eb',
+                          fontSize: '14px',
+                          outline: 'none',
+                          backgroundColor: 'white'
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{
+                        display: 'block',
+                        fontSize: '13px',
+                        fontWeight: '500',
+                        color: '#374151',
+                        marginBottom: '6px'
+                      }}>
+                        Hora fin
+                      </label>
+                      <input
+                        type="time"
+                        value={hydrationReminder.endTime}
+                        onChange={(e) => setHydrationReminder({
+                          ...hydrationReminder,
+                          endTime: e.target.value
+                        })}
+                        style={{
+                          width: '100%',
+                          padding: '10px 12px',
+                          borderRadius: '8px',
+                          border: '1px solid #e5e7eb',
+                          fontSize: '14px',
+                          outline: 'none',
+                          backgroundColor: 'white'
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div style={{
-              width: '100%',
-              backgroundColor: '#e5e7eb',
-              borderRadius: '12px',
-              height: '8px',
-              marginTop: '12px',
-              overflow: 'hidden'
+              display: 'flex',
+              gap: '12px'
             }}>
-              <div
+              <button
+                onClick={() => setShowHydrationModal(false)}
+                className="!rounded-button"
                 style={{
-                  background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
-                  height: '8px',
+                  flex: 1,
+                  padding: '12px 16px',
+                  background: '#f3f4f6',
+                  border: 'none',
                   borderRadius: '12px',
-                  transition: 'all 0.3s',
-                  width: `${Math.min((totalCalories / dailyCalories) * 100, 100)}%`
+                  color: '#374151',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer'
                 }}
-              ></div>
-            </div>
-          </div>
-
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '16px'
-          }}>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{
-                position: 'relative',
-                width: '64px',
-                height: '64px',
-                margin: '0 auto 8px auto'
-              }}>
-                <svg style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }} viewBox="0 0 36 36">
-                  <path
-                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                    fill="none"
-                    stroke="#f3f4f6"
-                    strokeWidth="3"
-                  />
-                  <path
-                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                    fill="none"
-                    stroke="#ef4444"
-                    strokeWidth="3"
-                    strokeDasharray={`${Math.min((totalProtein / dailyMacros.protein.target) * 100, 100)}, 100`}
-                  />
-                </svg>
-                <div style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <span style={{
-                    fontSize: '12px',
-                    fontWeight: '600',
-                    color: '#ef4444'
-                  }}>{Math.round((totalProtein / dailyMacros.protein.target) * 100)}%</span>
-                </div>
-              </div>
-              <p style={{
-                fontSize: '14px',
-                fontWeight: '600',
-                color: '#1f2937',
-                margin: '0 0 4px 0'
-              }}>Proteínas</p>
-              <p style={{
-                fontSize: '12px',
-                color: '#6b7280',
-                margin: 0
-              }}>{totalProtein}g / {dailyMacros.protein.target}g</p>
-            </div>
-
-            <div style={{ textAlign: 'center' }}>
-              <div style={{
-                position: 'relative',
-                width: '64px',
-                height: '64px',
-                margin: '0 auto 8px auto'
-              }}>
-                <svg style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }} viewBox="0 0 36 36">
-                  <path
-                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                    fill="none"
-                    stroke="#f3f4f6"
-                    strokeWidth="3"
-                  />
-                  <path
-                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                    fill="none"
-                    stroke="#f59e0b"
-                    strokeWidth="3"
-                    strokeDasharray={`${Math.min((totalCarbs / dailyMacros.carbs.target) * 100, 100)}, 100`}
-                  />
-                </svg>
-                <div style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <span style={{
-                    fontSize: '12px',
-                    fontWeight: '600',
-                    color: '#f59e0b'
-                  }}>{Math.round((totalCarbs / dailyMacros.carbs.target) * 100)}%</span>
-                </div>
-              </div>
-              <p style={{
-                fontSize: '14px',
-                fontWeight: '600',
-                color: '#1f2937',
-                margin: '0 0 4px 0'
-              }}>Carbohidratos</p>
-              <p style={{
-                fontSize: '12px',
-                color: '#6b7280',
-                margin: 0
-              }}>{totalCarbs}g / {dailyMacros.carbs.target}g</p>
-            </div>
-
-            <div style={{ textAlign: 'center' }}>
-              <div style={{
-                position: 'relative',
-                width: '64px',
-                height: '64px',
-                margin: '0 auto 8px auto'
-              }}>
-                <svg style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }} viewBox="0 0 36 36">
-                  <path
-                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                    fill="none"
-                    stroke="#f3f4f6"
-                    strokeWidth="3"
-                  />
-                  <path
-                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                    fill="none"
-                    stroke="#10b981"
-                    strokeWidth="3"
-                    strokeDasharray={`${Math.min((totalFats / dailyMacros.fats.target) * 100, 100)}, 100`}
-                  />
-                </svg>
-                <div style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <span style={{
-                    fontSize: '12px',
-                    fontWeight: '600',
-                    color: '#10b981'
-                  }}>{Math.round((totalFats / dailyMacros.fats.target) * 100)}%</span>
-                </div>
-              </div>
-              <p style={{
-                fontSize: '14px',
-                fontWeight: '600',
-                color: '#1f2937',
-                margin: '0 0 4px 0'
-              }}>Grasas</p>
-              <p style={{
-                fontSize: '12px',
-                color: '#6b7280',
-                margin: 0
-              }}>{totalFats}g / {dailyMacros.fats.target}g</p>
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSaveHydrationReminder}
+                className="!rounded-button"
+                style={{
+                  flex: 1,
+                  padding: '12px 16px',
+                  background: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
+                  border: 'none',
+                  borderRadius: '12px',
+                  color: 'white',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer'
+                }}
+              >
+                Guardar
+              </button>
             </div>
           </div>
         </div>
+      )}
 
+      {/* Goals Modal */}
+      {showGoalsModal && (
         <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(2, 1fr)',
-          gap: '16px'
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 2000,
+          padding: '20px'
         }}>
-          <button
-            onClick={handleHydrationClick}
-            style={{
-              backgroundColor: 'white',
-              borderRadius: '12px',
-              padding: '16px',
-              boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-              textAlign: 'center',
-              border: 'none',
-              cursor: 'pointer',
-              transition: 'background-color 0.2s'
-            }}
-            onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => (e.currentTarget).style.backgroundColor = '#f0f9ff'}
-            onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => (e.currentTarget).style.backgroundColor = 'white'}
-          >
+          <div style={{
+            background: 'white',
+            borderRadius: '16px',
+            padding: '24px',
+            width: '100%',
+            maxWidth: '400px',
+            maxHeight: '80vh',
+            overflowY: 'auto'
+          }}>
             <div style={{
-              width: '40px',
-              height: '40px',
-              backgroundColor: '#dbeafe',
-              borderRadius: '50%',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 8px auto'
+              justifyContent: 'space-between',
+              marginBottom: '20px'
             }}>
-              <i className="ri-drop-line" style={{ color: '#2563eb', fontSize: '18px' }}></i>
-            </div>
-            <p style={{
-              fontSize: '12px',
-              color: '#6b7280',
-              marginBottom: '4px',
-              margin: '0 0 4px 0'
-            }}>Hidratación</p>
-            <p style={{
-              fontSize: '18px',
-              fontWeight: '700',
-              color: '#1f2937',
-              margin: 0
-            }}>{currentHydration}L</p>
-            <p style={{
-              fontSize: '12px',
-              color: '#9ca3af',
-              margin: '4px 0 8px 0'
-            }}>Meta: {hydrationGoal}L</p>
-            <div style={{
-              width: '100%',
-              backgroundColor: '#e5e7eb',
-              borderRadius: '4px',
-              height: '4px',
-              marginTop: '8px'
-            }}>
-              <div
+              <h3 style={{
+                fontSize: '18px',
+                fontWeight: '600',
+                color: '#1f2937',
+                margin: 0
+              }}>
+                Configurar Metas
+              </h3>
+              <button
+                onClick={() => setShowGoalsModal(false)}
+                className="!rounded-button"
                 style={{
-                  backgroundColor: '#3b82f6',
-                  height: '4px',
-                  borderRadius: '4px',
-                  transition: 'all 0.3s',
-                  width: `${getHydrationPercentage()}%`
+                  width: '32px',
+                  height: '32px',
+                  background: '#f3f4f6',
+                  border: 'none',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer'
                 }}
-              ></div>
+              >
+                <i className="ri-close-line" style={{ fontSize: '16px' }}></i>
+              </button>
             </div>
-          </button>
 
-          <button
-            onClick={() => setShowFiberModal(true)}
-            style={{
-              backgroundColor: 'white',
-              borderRadius: '12px',
-              padding: '16px',
-              boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-              textAlign: 'center',
-              border: 'none',
-              cursor: 'pointer',
-              transition: 'background-color 0.2s'
-            }}
-            onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => (e.currentTarget).style.backgroundColor = '#f0fdf4'}
-            onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => (e.currentTarget).style.backgroundColor = 'white'}
-          >
             <div style={{
-              width: '40px',
-              height: '40px',
-              backgroundColor: '#dcfce7',
-              borderRadius: '50%',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, 1fr)',
+              gap: '16px',
+              marginBottom: '20px'
+            }}>
+              <div>
+                <label style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#374151',
+                  marginBottom: '8px'
+                }}>
+                  Calorías
+                </label>
+                <input
+                  type="number"
+                  value={tempGoals.targetCalories}
+                  onChange={(e) => setTempGoals({ ...tempGoals, targetCalories: parseInt(e.target.value) })}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    borderRadius: '12px',
+                    border: '1px solid #e5e7eb',
+                    fontSize: '16px',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#374151',
+                  marginBottom: '8px'
+                }}>
+                  Proteína (g)
+                </label>
+                <input
+                  type="number"
+                  value={tempGoals.targetProtein}
+                  onChange={(e) => setTempGoals({ ...tempGoals, targetProtein: parseInt(e.target.value) })}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    borderRadius: '12px',
+                    border: '1px solid #e5e7eb',
+                    fontSize: '16px',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#374151',
+                  marginBottom: '8px'
+                }}>
+                  Carbohidratos (g)
+                </label>
+                <input
+                  type="number"
+                  value={tempGoals.targetCarbs}
+                  onChange={(e) => setTempGoals({ ...tempGoals, targetCarbs: parseInt(e.target.value) })}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    borderRadius: '12px',
+                    border: '1px solid #e5e7eb',
+                    fontSize: '16px',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#374151',
+                  marginBottom: '8px'
+                }}>
+                  Grasas (g)
+                </label>
+                <input
+                  type="number"
+                  value={tempGoals.targetFats}
+                  onChange={(e) => setTempGoals({ ...tempGoals, targetFats: parseInt(e.target.value) })}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    borderRadius: '12px',
+                    border: '1px solid #e5e7eb',
+                    fontSize: '16px',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#374151',
+                  marginBottom: '8px'
+                }}>
+                  Hidratación (ml)
+                </label>
+                <input
+                  type="number"
+                  value={tempGoals.targetWater}
+                  onChange={(e) => setTempGoals({ ...tempGoals, targetWater: parseInt(e.target.value) })}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    borderRadius: '12px',
+                    border: '1px solid #e5e7eb',
+                    fontSize: '16px',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#374151',
+                  marginBottom: '8px'
+                }}>
+                  Fibra (g)
+                </label>
+                <input
+                  type="number"
+                  value={tempGoals.targetFiber}
+                  onChange={(e) => setTempGoals({ ...tempGoals, targetFiber: parseInt(e.target.value) })}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    borderRadius: '12px',
+                    border: '1px solid #e5e7eb',
+                    fontSize: '16px',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+            </div>
+
+            <div style={{
               display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 8px auto'
+              gap: '12px'
             }}>
-              <i className="ri-leaf-line" style={{ color: '#16a34a', fontSize: '18px' }}></i>
-            </div>
-            <p style={{
-              fontSize: '12px',
-              color: '#6b7280',
-              marginBottom: '4px',
-              margin: '0 0 4px 0'
-            }}>Fibra</p>
-            <p style={{
-              fontSize: '18px',
-              fontWeight: '700',
-              color: '#1f2937',
-              margin: 0
-            }}>{currentFiber}g</p>
-            <p style={{
-              fontSize: '12px',
-              color: '#9ca3af',
-              margin: '4px 0 8px 0'
-            }}>Meta: {fiberGoal}g</p>
-            <div style={{
-              width: '100%',
-              backgroundColor: '#e5e7eb',
-              borderRadius: '4px',
-              height: '4px',
-              marginTop: '8px'
-            }}>
-              <div
+              <button
+                onClick={() => setShowGoalsModal(false)}
+                className="!rounded-button"
                 style={{
-                  backgroundColor: '#16a34a',
-                  height: '4px',
-                  borderRadius: '4px',
-                  transition: 'all 0.3s',
-                  width: `${getFiberPercentage()}%`
+                  flex: 1,
+                  padding: '12px 16px',
+                  background: '#f3f4f6',
+                  border: 'none',
+                  borderRadius: '12px',
+                  color: '#374151',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer'
                 }}
-              ></div>
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSaveGoals}
+                className="!rounded-button"
+                style={{
+                  flex: 1,
+                  padding: '12px 16px',
+                  background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+                  border: 'none',
+                  borderRadius: '12px',
+                  color: 'white',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer'
+                }}
+              >
+                Guardar Metas
+              </button>
             </div>
-          </button>
+          </div>
         </div>
-      </main>
+      )}
 
+      {/* Bottom Navigation */}
       <nav style={{
         position: 'fixed',
         bottom: 0,
-        width: '100%',
-        backgroundColor: 'white',
-        borderTop: '1px solid #e5e7eb'
+        left: 0,
+        right: 0,
+        background: 'white',
+        borderTop: '1px solid #e5e7eb',
+        padding: '8px 0'
       }}>
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(5, 1fr)',
-          padding: '8px 0'
+          maxWidth: '375px',
+          margin: '0 auto'
         }}>
           <Link href="/" style={{
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            justifyContent: 'center',
             padding: '8px 4px',
-            textDecoration: 'none'
+            textDecoration: 'none',
+            color: '#9ca3af'
           }}>
             <div style={{
               width: '24px',
@@ -1008,17 +1566,18 @@ export default function Nutrition() {
               justifyContent: 'center',
               marginBottom: '4px'
             }}>
-              <i className="ri-home-line" style={{ color: '#9ca3af', fontSize: '18px' }}></i>
+              <i className="ri-home-line" style={{ fontSize: '18px' }}></i>
             </div>
-            <span style={{ fontSize: '12px', color: '#9ca3af' }}>Inicio</span>
+            <span style={{ fontSize: '12px' }}>Inicio</span>
           </Link>
+
           <Link href="/nutrition" style={{
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            justifyContent: 'center',
             padding: '8px 4px',
-            textDecoration: 'none'
+            textDecoration: 'none',
+            color: '#3b82f6'
           }}>
             <div style={{
               width: '24px',
@@ -1028,17 +1587,18 @@ export default function Nutrition() {
               justifyContent: 'center',
               marginBottom: '4px'
             }}>
-              <i className="ri-pie-chart-line" style={{ color: '#3b82f6', fontSize: '18px' }}></i>
+              <i className="ri-pie-chart-fill" style={{ fontSize: '18px' }}></i>
             </div>
-            <span style={{ fontSize: '12px', color: '#3b82f6', fontWeight: '500' }}>Nutrición</span>
+            <span style={{ fontSize: '12px', fontWeight: '500' }}>Nutrición</span>
           </Link>
+
           <Link href="/add-food" style={{
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            justifyContent: 'center',
             padding: '8px 4px',
-            textDecoration: 'none'
+            textDecoration: 'none',
+            color: '#9ca3af'
           }}>
             <div style={{
               width: '32px',
@@ -1052,15 +1612,16 @@ export default function Nutrition() {
             }}>
               <i className="ri-add-line" style={{ color: 'white', fontSize: '18px' }}></i>
             </div>
-            <span style={{ fontSize: '12px', color: '#9ca3af' }}>Agregar</span>
+            <span style={{ fontSize: '12px' }}>Agregar</span>
           </Link>
+
           <Link href="/progress" style={{
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            justifyContent: 'center',
             padding: '8px 4px',
-            textDecoration: 'none'
+            textDecoration: 'none',
+            color: '#9ca3af'
           }}>
             <div style={{
               width: '24px',
@@ -1070,17 +1631,18 @@ export default function Nutrition() {
               justifyContent: 'center',
               marginBottom: '4px'
             }}>
-              <i className="ri-line-chart-line" style={{ color: '#9ca3af', fontSize: '18px' }}></i>
+              <i className="ri-line-chart-line" style={{ fontSize: '18px' }}></i>
             </div>
-            <span style={{ fontSize: '12px', color: '#9ca3af' }}>Progreso</span>
+            <span style={{ fontSize: '12px' }}>Progreso</span>
           </Link>
+
           <Link href="/profile" style={{
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            justifyContent: 'center',
             padding: '8px 4px',
-            textDecoration: 'none'
+            textDecoration: 'none',
+            color: '#9ca3af'
           }}>
             <div style={{
               width: '24px',
@@ -1090,115 +1652,12 @@ export default function Nutrition() {
               justifyContent: 'center',
               marginBottom: '4px'
             }}>
-              <i className="ri-user-line" style={{ color: '#9ca3af', fontSize: '18px' }}></i>
+              <i className="ri-user-line" style={{ fontSize: '18px' }}></i>
             </div>
-            <span style={{ fontSize: '12px', color: '#9ca3af' }}>Perfil</span>
+            <span style={{ fontSize: '12px' }}>Perfil</span>
           </Link>
         </div>
       </nav>
-
-      {showDatePicker && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 50
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '16px',
-            padding: '24px',
-            width: '320px',
-            maxHeight: '90vh',
-            overflowY: 'auto'
-          }}>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              marginBottom: '16px'
-            }}>
-              <h3 style={{
-                fontSize: '18px',
-                fontWeight: '600',
-                color: '#1f2937',
-                margin: 0
-              }}>Seleccionar Fecha</h3>
-              <button
-                onClick={() => setShowDatePicker(false)}
-                style={{
-                  width: '32px',
-                  height: '32px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  border: 'none',
-                  backgroundColor: 'transparent',
-                  cursor: 'pointer'
-                }}
-              >
-                <i className="ri-close-line" style={{ color: '#6b7280', fontSize: '18px' }}></i>
-              </button>
-            </div>
-
-            <input
-              type="date"
-              value={dailyData.date || getCurrentDateISO()}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleDateChange(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '12px 16px',
-                borderRadius: '12px',
-                border: '1px solid #e5e7eb',
-                fontSize: '16px'
-              }}
-            />
-
-            <div style={{
-              display: 'flex',
-              gap: '8px'
-            }}>
-              <button
-                onClick={() => setShowDatePicker(false)}
-                style={{
-                  flex: 1,
-                  padding: '12px 16px',
-                  borderRadius: '12px',
-                  border: '1px solid #e5e7eb',
-                  backgroundColor: 'white',
-                  color: '#6b7280',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: 'pointer'
-                }}
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={() => setShowDatePicker(false)}
-                style={{
-                  flex: 1,
-                  padding: '12px 16px',
-                  borderRadius: '12px',
-                  border: 'none',
-                  background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
-                  color: 'white',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: 'pointer'
-                }}
-              >
-                Confirmar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

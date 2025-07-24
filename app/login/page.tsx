@@ -44,7 +44,7 @@ export default function Login() {
     if (window.google) {
       // IMPORTANTE: Reemplaza con tu Google Client ID real
       const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID";
-      
+
       window.google.accounts.id.initialize({
         client_id: CLIENT_ID,
         callback: handleGoogleSignIn,
@@ -72,7 +72,7 @@ export default function Login() {
     try {
       // Decodificar el JWT token
       const payload = JSON.parse(atob(response.credential.split('.')[1]));
-      
+
       // Guardar datos del usuario
       const userData = {
         name: payload.name,
@@ -112,7 +112,7 @@ export default function Login() {
 
   const handleDemoLogin = () => {
     setIsLoading(true);
-    
+
     // Datos de demostración
     const demoUserData = {
       name: 'María González',
@@ -188,13 +188,13 @@ export default function Login() {
             <i className="ri-nutrition-line" style={{ color: 'white', fontSize: '36px' }}></i>
           </div>
           <h1 style={{
-            fontSize: '32px',
+            fontSize: '28px',
             fontWeight: 'bold',
             color: '#1f2937',
             fontFamily: 'Pacifico, serif',
             marginBottom: '8px'
           }}>
-            Profitness
+            ProFitness
           </h1>
           <p style={{
             color: '#6b7280',
@@ -207,7 +207,7 @@ export default function Login() {
 
         {/* Botón de Google Sign-In */}
         <div style={{ marginBottom: '24px' }}>
-          <div 
+          <div
             id="google-signin-button"
             style={{
               width: '100%',

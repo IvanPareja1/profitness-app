@@ -1,3 +1,4 @@
+
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
@@ -5,12 +6,12 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Profitness - Nutrición Inteligente',
+  title: 'ProFitness - Nutrición Inteligente',
   description: 'Nutre tu progreso, domina tus resultados. Tu compañero perfecto para un estilo de vida saludable.',
   keywords: ['nutrición', 'fitness', 'salud', 'dieta', 'peso', 'calorías', 'macronutrientes'],
-  authors: [{ name: 'Profitness Team' }],
-  creator: 'Profitness',
-  publisher: 'Profitness',
+  authors: [{ name: 'ProFitness Team' }],
+  creator: 'ProFitness',
+  publisher: 'ProFitness',
   formatDetection: {
     email: false,
     address: false,
@@ -21,16 +22,16 @@ export const metadata: Metadata = {
     canonical: '/',
   },
   openGraph: {
-    title: 'Profitness - Nutrición Inteligente',
+    title: 'ProFitness - Nutrición Inteligente',
     description: 'Nutre tu progreso, domina tus resultados. Tu compañero perfecto para un estilo de vida saludable.',
     url: 'https://profitness.app',
-    siteName: 'Profitness',
+    siteName: 'ProFitness',
     images: [
       {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'Profitness - Nutrición Inteligente',
+        alt: 'ProFitness - Nutrición Inteligente',
       },
     ],
     locale: 'es_ES',
@@ -38,7 +39,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Profitness - Nutrición Inteligente',
+    title: 'ProFitness - Nutrición Inteligente',
     description: 'Nutre tu progreso, domina tus resultados',
     images: ['/twitter-image.png'],
     creator: '@profitness',
@@ -82,7 +83,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'Profitness',
+    title: 'ProFitness',
   },
 }
 
@@ -108,9 +109,9 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link 
-          href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" 
-          rel="stylesheet" 
+        <link
+          href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap"
+          rel="stylesheet"
         />
         <link
           href="https://cdn.jsdelivr.net/npm/remixicon@4.0.0/fonts/remixicon.css"
