@@ -2,8 +2,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useState, useEffect, useRef } from 'react';
 
 const popularFoods = [
   { name: 'Pechuga de pollo', calories: 165, protein: 31, carbs: 0, fats: 3.6, fiber: 0 },
@@ -106,6 +106,16 @@ const liquidOptions = [
   { name: 'Leche descremada', calories: 34, protein: 3.4, carbs: 5, fats: 0.1, fiber: 0, hydrating: false }
 ];
 
+const safeNumber = (value: any, defaultValue: number = 0): number => {
+  const parsed = parseFloat(value);
+  return isNaN(parsed) ? defaultValue : parsed;
+};
+
+const formatNumber = (value: any, decimals: number = 0): string => {
+  const num = safeNumber(value);
+  return decimals > 0 ? num.toFixed(decimals) : Math.round(num).toString();
+};
+
 export default function AddFood() {
   const [mounted, setMounted] = useState(false);
   const [currentTab, setCurrentTab] = useState('food');
@@ -187,24 +197,24 @@ export default function AddFood() {
   );
 
   const calculateNutrition = (food: any, qty: string) => {
-    const multiplier = parseFloat(qty) / 100;
+    const multiplier = safeNumber(qty) / 100;
     return {
-      calories: Math.round(food.calories * multiplier),
-      protein: Math.round(food.protein * multiplier * 10) / 10,
-      carbs: Math.round(food.carbs * multiplier * 10) / 10,
-      fats: Math.round(food.fats * multiplier * 10) / 10,
-      fiber: Math.round((food.fiber || 0) * multiplier * 10) / 10
+      calories: Math.round(safeNumber(food.calories) * multiplier),
+      protein: Math.round(safeNumber(food.protein) * multiplier * 10) / 10,
+      carbs: Math.round(safeNumber(food.carbs) * multiplier * 10) / 10,
+      fats: Math.round(safeNumber(food.fats) * multiplier * 10) / 10,
+      fiber: Math.round(safeNumber(food.fiber, 0) * multiplier * 10) / 10
     };
   };
 
   const calculateLiquidNutrition = (liquid: any, qty: string) => {
-    const multiplier = parseFloat(qty) / 100;
+    const multiplier = safeNumber(qty) / 100;
     return {
-      calories: Math.round(liquid.calories * multiplier),
-      protein: Math.round(liquid.protein * multiplier * 10) / 10,
-      carbs: Math.round(liquid.carbs * multiplier * 10) / 10,
-      fats: Math.round(liquid.fats * multiplier * 10) / 10,
-      fiber: Math.round((liquid.fiber || 0) * multiplier * 10) / 10,
+      calories: Math.round(safeNumber(liquid.calories) * multiplier),
+      protein: Math.round(safeNumber(liquid.protein) * multiplier * 10) / 10,
+      carbs: Math.round(safeNumber(liquid.carbs) * multiplier * 10) / 10,
+      fats: Math.round(safeNumber(liquid.fats) * multiplier * 10) / 10,
+      fiber: Math.round(safeNumber(liquid.fiber, 0) * multiplier * 10) / 10,
       hydrating: liquid.hydrating
     };
   };
@@ -214,11 +224,11 @@ export default function AddFood() {
 
     const foodToAdd = selectedFood || {
       name: customFood.name,
-      calories: parseFloat(customFood.calories),
-      protein: parseFloat(customFood.protein),
-      carbs: parseFloat(customFood.carbs),
-      fats: parseFloat(customFood.fats),
-      fiber: parseFloat(customFood.fiber || '0')
+      calories: safeNumber(customFood.calories),
+      protein: safeNumber(customFood.protein),
+      carbs: safeNumber(customFood.carbs),
+      fats: safeNumber(customFood.fats),
+      fiber: safeNumber(customFood.fiber, 0)
     };
 
     const nutrition = selectedFood
@@ -243,19 +253,19 @@ export default function AddFood() {
       name: foodToAdd.name,
       mealType,
       quantity: selectedFood ? quantity : '100',
-      calories: nutrition.calories,
-      protein: nutrition.protein,
-      carbs: nutrition.carbs,
-      fats: nutrition.fats,
-      fiber: nutrition.fiber || 0,
+      calories: safeNumber(nutrition.calories),
+      protein: safeNumber(nutrition.protein),
+      carbs: safeNumber(nutrition.carbs),
+      fats: safeNumber(nutrition.fats),
+      fiber: safeNumber(nutrition.fiber, 0),
       timestamp: new Date().toISOString()
     };
 
-    currentData.calories += nutrition.calories;
-    currentData.protein += nutrition.protein;
-    currentData.carbs += nutrition.carbs;
-    currentData.fats += nutrition.fats;
-    currentData.fiber += nutrition.fiber || 0;
+    currentData.calories += safeNumber(nutrition.calories);
+    currentData.protein += safeNumber(nutrition.protein);
+    currentData.carbs += safeNumber(nutrition.carbs);
+    currentData.fats += safeNumber(nutrition.fats);
+    currentData.fiber += safeNumber(nutrition.fiber, 0);
     currentData.meals.push(newMeal);
 
     localStorage.setItem(`nutrition_${today}`, JSON.stringify(currentData));
@@ -274,11 +284,11 @@ export default function AddFood() {
 
     const liquidToAdd = selectedLiquid || {
       name: customLiquid.name,
-      calories: parseFloat(customLiquid.calories),
-      protein: parseFloat(customLiquid.protein),
-      carbs: parseFloat(customLiquid.carbs),
-      fats: parseFloat(customLiquid.fats),
-      fiber: parseFloat(customLiquid.fiber || '0'),
+      calories: safeNumber(customLiquid.calories),
+      protein: safeNumber(customLiquid.protein),
+      carbs: safeNumber(customLiquid.carbs),
+      fats: safeNumber(customLiquid.fats),
+      fiber: safeNumber(customLiquid.fiber, 0),
       hydrating: customLiquid.hydrating
     };
 
@@ -304,23 +314,23 @@ export default function AddFood() {
       name: liquidToAdd.name,
       mealType: 'liquid',
       quantity: selectedLiquid ? liquidQuantity : '250',
-      calories: nutrition.calories,
-      protein: nutrition.protein,
-      carbs: nutrition.carbs,
-      fats: nutrition.fats,
-      fiber: nutrition.fiber || 0,
+      calories: safeNumber(nutrition.calories),
+      protein: safeNumber(nutrition.protein),
+      carbs: safeNumber(nutrition.carbs),
+      fats: safeNumber(nutrition.fats),
+      fiber: safeNumber(nutrition.fiber, 0),
       timestamp: new Date().toISOString()
     };
 
-    currentData.calories += nutrition.calories;
-    currentData.protein += nutrition.protein;
-    currentData.carbs += nutrition.carbs;
-    currentData.fats += nutrition.fats;
-    currentData.fiber += nutrition.fiber || 0;
+    currentData.calories += safeNumber(nutrition.calories);
+    currentData.protein += safeNumber(nutrition.protein);
+    currentData.carbs += safeNumber(nutrition.carbs);
+    currentData.fats += safeNumber(nutrition.fats);
+    currentData.fiber += safeNumber(nutrition.fiber, 0);
     currentData.meals.push(newMeal);
 
     if (nutrition.hydrating) {
-      currentData.water += parseFloat(liquidQuantity);
+      currentData.water += safeNumber(liquidQuantity);
     }
 
     localStorage.setItem(`nutrition_${today}`, JSON.stringify(currentData));
@@ -598,21 +608,21 @@ export default function AddFood() {
       name: food.name,
       mealType,
       quantity: food.estimatedGrams.toString(),
-      calories: food.calories,
-      protein: food.protein,
-      carbs: food.carbs,
-      fats: food.fats,
-      fiber: food.fiber,
+      calories: safeNumber(food.calories),
+      protein: safeNumber(food.protein),
+      carbs: safeNumber(food.carbs),
+      fats: safeNumber(food.fats),
+      fiber: safeNumber(food.fiber, 0),
       timestamp: new Date().toISOString(),
       detectedByAI: true,
       confidence: food.confidence
     };
 
-    currentData.calories += food.calories;
-    currentData.protein += food.protein;
-    currentData.carbs += food.carbs;
-    currentData.fats += food.fats;
-    currentData.fiber += food.fiber;
+    currentData.calories += safeNumber(food.calories);
+    currentData.protein += safeNumber(food.protein);
+    currentData.carbs += safeNumber(food.carbs);
+    currentData.fats += safeNumber(food.fats);
+    currentData.fiber += safeNumber(food.fiber, 0);
     currentData.meals.push(newMeal);
 
     localStorage.setItem(`nutrition_${today}`, JSON.stringify(currentData));
@@ -1119,7 +1129,7 @@ export default function AddFood() {
                       color: '#6b7280',
                       margin: 0
                     }}>
-                      ~{food.estimatedGrams}g • {food.calories} cal
+                      ~{food.estimatedGrams}g • {formatNumber(food.calories)} cal
                     </p>
                   </div>
 
@@ -1349,7 +1359,7 @@ export default function AddFood() {
                           fontSize: '12px',
                           color: '#6b7280'
                         }}>
-                          {food.calories} cal
+                          {formatNumber(food.calories)} cal
                         </span>
                       </div>
                       <div style={{
@@ -1359,9 +1369,9 @@ export default function AddFood() {
                         color: '#9ca3af',
                         marginTop: '4px'
                       }}>
-                        <span>P: {food.protein}g</span>
-                        <span>C: {food.carbs}g</span>
-                        <span>G: {food.fats}g</span>
+                        <span>P: {formatNumber(food.protein, 1)}g</span>
+                        <span>C: {formatNumber(food.carbs, 1)}g</span>
+                        <span>G: {formatNumber(food.fats, 1)}g</span>
                       </div>
                     </div>
                   ))}
@@ -1553,7 +1563,7 @@ export default function AddFood() {
               />
             </div>
 
-            <div style={{ marginBottom: '20px' }}>
+            <div style={{ marginBottom: '16px' }}>
               <label style={{
                 display: 'block',
                 fontSize: '14px',
@@ -1703,7 +1713,7 @@ export default function AddFood() {
                       fontWeight: '500',
                       color: '#3b82f6'
                     }}>
-                      {food.calories} cal
+                      {formatNumber(food.calories)} cal
                     </span>
                   </div>
                   <div style={{
@@ -1712,10 +1722,10 @@ export default function AddFood() {
                     fontSize: '12px',
                     color: '#6b7280'
                   }}>
-                    <span>P: {food.protein}g</span>
-                    <span>C: {food.carbs}g</span>
-                    <span>G: {food.fats}g</span>
-                    {food.fiber > 0 && <span>F: {food.fiber}g</span>}
+                    <span>P: {formatNumber(food.protein, 1)}g</span>
+                    <span>C: {formatNumber(food.carbs, 1)}g</span>
+                    <span>G: {formatNumber(food.fats, 1)}g</span>
+                    {food.fiber > 0 && <span>F: {formatNumber(food.fiber, 1)}g</span>}
                   </div>
                 </div>
               ))}
@@ -1823,7 +1833,7 @@ export default function AddFood() {
                     color: '#1f2937',
                     marginLeft: '8px'
                   }}>
-                    {calculateNutrition(selectedFood, quantity).calories}
+                    {formatNumber(calculateNutrition(selectedFood, quantity).calories)}
                   </span>
                 </div>
                 <div>
@@ -1834,7 +1844,7 @@ export default function AddFood() {
                     color: '#1f2937',
                     marginLeft: '8px'
                   }}>
-                    {calculateNutrition(selectedFood, quantity).protein}g
+                    {formatNumber(calculateNutrition(selectedFood, quantity).protein, 1)}g
                   </span>
                 </div>
                 <div>
@@ -1845,7 +1855,7 @@ export default function AddFood() {
                     color: '#1f2937',
                     marginLeft: '8px'
                   }}>
-                    {calculateNutrition(selectedFood, quantity).carbs}g
+                    {formatNumber(calculateNutrition(selectedFood, quantity).carbs, 1)}g
                   </span>
                 </div>
                 <div>
@@ -1856,7 +1866,7 @@ export default function AddFood() {
                     color: '#1f2937',
                     marginLeft: '8px'
                   }}>
-                    {calculateNutrition(selectedFood, quantity).fats}g
+                    {formatNumber(calculateNutrition(selectedFood, quantity).fats, 1)}g
                   </span>
                 </div>
                 {selectedFood.fiber > 0 && (
@@ -1868,7 +1878,7 @@ export default function AddFood() {
                       color: '#1f2937',
                       marginLeft: '8px'
                     }}>
-                      {calculateNutrition(selectedFood, quantity).fiber}g
+                      {formatNumber(calculateNutrition(selectedFood, quantity).fiber, 1)}g
                     </span>
                   </div>
                 )}
@@ -2003,7 +2013,7 @@ export default function AddFood() {
                         fontWeight: '500',
                         color: '#06b6d4'
                       }}>
-                        {liquid.calories} cal
+                        {formatNumber(liquid.calories)} cal
                       </span>
                       {liquid.hydrating && (
                         <span style={{
@@ -2024,9 +2034,9 @@ export default function AddFood() {
                     fontSize: '12px',
                     color: '#6b7280'
                   }}>
-                    <span>P: {liquid.protein}g</span>
-                    <span>C: {liquid.carbs}g</span>
-                    <span>G: {liquid.fats}g</span>
+                    <span>P: {formatNumber(liquid.protein, 1)}g</span>
+                    <span>C: {formatNumber(liquid.carbs, 1)}g</span>
+                    <span>G: {formatNumber(liquid.fats, 1)}g</span>
                   </div>
                 </div>
               ))}
@@ -2104,7 +2114,7 @@ export default function AddFood() {
                     color: '#1f2937',
                     marginLeft: '8px'
                   }}>
-                    {calculateLiquidNutrition(selectedLiquid, liquidQuantity).calories}
+                    {formatNumber(calculateLiquidNutrition(selectedLiquid, liquidQuantity).calories)}
                   </span>
                 </div>
                 <div>
@@ -2115,7 +2125,7 @@ export default function AddFood() {
                     color: '#1f2937',
                     marginLeft: '8px'
                   }}>
-                    {calculateLiquidNutrition(selectedLiquid, liquidQuantity).protein}g
+                    {formatNumber(calculateLiquidNutrition(selectedLiquid, liquidQuantity).protein, 1)}g
                   </span>
                 </div>
                 <div>
@@ -2126,7 +2136,7 @@ export default function AddFood() {
                     color: '#1f2937',
                     marginLeft: '8px'
                   }}>
-                    {calculateLiquidNutrition(selectedLiquid, liquidQuantity).carbs}g
+                    {formatNumber(calculateLiquidNutrition(selectedLiquid, liquidQuantity).carbs, 1)}g
                   </span>
                 </div>
                 <div>
@@ -2137,7 +2147,7 @@ export default function AddFood() {
                     color: '#1f2937',
                     marginLeft: '8px'
                   }}>
-                    {calculateLiquidNutrition(selectedLiquid, liquidQuantity).fats}g
+                    {formatNumber(calculateLiquidNutrition(selectedLiquid, liquidQuantity).fats, 1)}g
                   </span>
                 </div>
                 {selectedLiquid.hydrating && (

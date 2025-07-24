@@ -4,10 +4,36 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 
+interface Meal {
+  id: string;
+  name: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+  quantity: number;
+  mealType: string;
+  timestamp: string;
+}
+
+interface NutritionData {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+  targetCalories: number;
+  targetProtein: number;
+  targetCarbs: number;
+  targetFats: number;
+  meals: Meal[];
+}
+
+type MealType = 'desayuno' | 'almuerzo' | 'cena' | 'snack';
+
 export default function Home() {
   const [mounted, setMounted] = useState(false);
   const [currentDate, setCurrentDate] = useState('');
-  const [nutritionData, setNutritionData] = useState({
+  const [nutritionData, setNutritionData] = useState<NutritionData>({
     calories: 0,
     protein: 0,
     carbs: 0,
@@ -32,7 +58,7 @@ export default function Home() {
     setCurrentDate(formattedDate);
 
     // Load data for current day
-    const loadTodayData = () => {
+    const loadTodayData = (): void => {
       try {
         const todayKey = today.toISOString().split('T')[0];
         const savedData = localStorage.getItem(`nutrition_${todayKey}`);
@@ -55,7 +81,7 @@ export default function Home() {
     loadTodayData();
 
     // Listen for nutrition updates
-    const handleNutritionUpdate = () => {
+    const handleNutritionUpdate = (): void => {
       loadTodayData();
     };
 
@@ -95,62 +121,62 @@ export default function Home() {
     );
   }
 
-  const getPercentage = (current: number, target: number) => {
+  const getPercentage = (current: number, target: number): number => {
     return Math.min((current / target) * 100, 100);
   };
 
-  const getProgressColor = (percentage: number) => {
+  const getProgressColor = (percentage: number): string => {
     if (percentage >= 100) return '#10b981';
     if (percentage >= 75) return '#3b82f6';
     if (percentage >= 50) return '#f59e0b';
     return '#ef4444';
   };
 
-  const getMealTypeLabel = (mealType: string) => {
-    const labels = {
+  const getMealTypeLabel = (mealType: string): string => {
+    const labels: Record<MealType, string> = {
       'desayuno': 'Desayuno',
       'almuerzo': 'Almuerzo',
       'cena': 'Cena',
       'snack': 'Snack'
     };
-    return labels[mealType] || mealType;
+    return labels[mealType as MealType] || mealType;
   };
 
-  const getMealTypeIcon = (mealType: string) => {
-    const icons = {
+  const getMealTypeIcon = (mealType: string): string => {
+    const icons: Record<MealType, string> = {
       'desayuno': 'ri-sun-line',
       'almuerzo': 'ri-restaurant-line',
       'cena': 'ri-moon-line',
       'snack': 'ri-cake-line'
     };
-    return icons[mealType] || 'ri-restaurant-line';
+    return icons[mealType as MealType] || 'ri-restaurant-line';
   };
 
-  const getMealTypeColor = (mealType: string) => {
-    const colors = {
+  const getMealTypeColor = (mealType: string): string => {
+    const colors: Record<MealType, string> = {
       'desayuno': '#fbbf24',
       'almuerzo': '#10b981',
       'cena': '#6366f1',
       'snack': '#f59e0b'
     };
-    return colors[mealType] || '#6b7280';
+    return colors[mealType as MealType] || '#6b7280';
   };
 
-  const formatTime = (timestamp: string) => {
+  const formatTime = (timestamp: string): string => {
     return new Date(timestamp).toLocaleTimeString('es-ES', {
       hour: '2-digit',
       minute: '2-digit'
     });
   };
 
-  const groupMealsByType = (meals: any[]) => {
+  const groupMealsByType = (meals: Meal[]): Record<string, Meal[]> => {
     const grouped = meals.reduce((acc, meal) => {
       if (!acc[meal.mealType]) {
         acc[meal.mealType] = [];
       }
       acc[meal.mealType].push(meal);
       return acc;
-    }, {});
+    }, {} as Record<string, Meal[]>);
     return grouped;
   };
 
