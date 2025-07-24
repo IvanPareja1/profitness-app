@@ -183,22 +183,24 @@ export default function Login() {
       }}>
         {/* Logo y título */}
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <div style={{ marginBottom: '16px' }}>
+          <div style={{ marginBottom: '20px' }}>
             <Logo size="xl" />
           </div>
           <h1 style={{
-            fontSize: '28px',
+            fontSize: '32px',
             fontWeight: 'bold',
             color: '#1f2937',
             fontFamily: 'Pacifico, serif',
-            marginBottom: '8px'
+            marginBottom: '12px'
           }}>
             ProFitness
           </h1>
           <p style={{
             color: '#6b7280',
-            fontSize: '16px',
-            lineHeight: '1.5'
+            fontSize: '18px',
+            lineHeight: '1.6',
+            maxWidth: '280px',
+            margin: '0 auto'
           }}>
             Nutre tu progreso, domina tus resultados
           </p>
