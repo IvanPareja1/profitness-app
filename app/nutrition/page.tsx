@@ -4,10 +4,62 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 
+interface Meal {
+  id: string;
+  name: string;
+  mealType: string;
+  quantity: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+  fiber?: number;
+  timestamp: string;
+}
+
+interface NutritionData {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+  water: number;
+  fiber: number;
+  meals: Meal[];
+  targetCalories: number;
+  targetProtein: number;
+  targetCarbs: number;
+  targetFats: number;
+  targetWater: number;
+  targetFiber: number;
+}
+
+interface HydrationReminder {
+  enabled: boolean;
+  interval: number;
+  startTime: string;
+  endTime: string;
+}
+
+interface TempGoals {
+  targetCalories: number;
+  targetProtein: number;
+  targetCarbs: number;
+  targetFats: number;
+  targetWater: number;
+  targetFiber: number;
+}
+
+interface CustomNutritionEvent extends CustomEvent {
+  detail: {
+    date: string;
+    data: Partial<NutritionData>;
+  };
+}
+
 export default function Nutrition() {
   const [mounted, setMounted] = useState(false);
   const [selectedDate, setSelectedDate] = useState('');
-  const [nutritionData, setNutritionData] = useState({
+  const [nutritionData, setNutritionData] = useState<NutritionData>({
     calories: 0,
     protein: 0,
     carbs: 0,
@@ -24,7 +76,7 @@ export default function Nutrition() {
   });
   const [showGoalsModal, setShowGoalsModal] = useState(false);
   const [showHydrationModal, setShowHydrationModal] = useState(false);
-  const [tempGoals, setTempGoals] = useState({
+  const [tempGoals, setTempGoals] = useState<TempGoals>({
     targetCalories: 2000,
     targetProtein: 120,
     targetCarbs: 250,
@@ -32,9 +84,9 @@ export default function Nutrition() {
     targetWater: 2500,
     targetFiber: 25
   });
-  const [hydrationReminder, setHydrationReminder] = useState({
+  const [hydrationReminder, setHydrationReminder] = useState<HydrationReminder>({
     enabled: false,
-    interval: 60, // minutos
+    interval: 60,
     startTime: '08:00',
     endTime: '22:00'
   });
@@ -42,81 +94,106 @@ export default function Nutrition() {
   useEffect(() => {
     setMounted(true);
 
-    // Set today's date
     const today = new Date().toISOString().split('T')[0];
     setSelectedDate(today);
 
-    // Load profile goals
     const profileData = localStorage.getItem('userProfile');
     if (profileData) {
-      const profile = JSON.parse(profileData);
-      const updatedData = {
-        ...nutritionData,
-        targetCalories: profile.targetCalories || 2000,
-        targetProtein: profile.targetProtein || 120,
-        targetCarbs: profile.targetCarbs || 250,
-        targetFats: profile.targetFats || 67,
-        targetWater: profile.targetWater || 2500,
-        targetFiber: profile.targetFiber || 25
-      };
-      setNutritionData(updatedData);
-      setTempGoals(updatedData);
-    }
-
-    // Check for rest day adjustments
-    const restDaySettings = localStorage.getItem('restDaySettings');
-    if (restDaySettings) {
-      const restDay = JSON.parse(restDaySettings);
-      if (restDay.enabled && restDay.todayIsRestDay && restDay.autoAdjustMacros) {
-        // Show rest day indicator
-        const restDayIndicator = document.createElement('div');
-        restDayIndicator.innerHTML = `
-          <div style="position: fixed; top: 80px; left: 50%; transform: translateX(-50%); background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 500; z-index: 999;">
-            <i class="ri-pause-circle-fill" style="margin-right: 6px;"></i>
-            Día de descanso - Macros ajustados
-          </div>
-        `;
-        document.body.appendChild(restDayIndicator);
-        // Remove after 5 seconds
-        setTimeout(() => {
-          if (document.body.contains(restDayIndicator)) {
-            document.body.removeChild(restDayIndicator);
-          }
-        }, 5000);
+      try {
+        const profile = JSON.parse(profileData) as Partial<NutritionData>;
+        const updatedData: NutritionData = {
+          ...nutritionData,
+          targetCalories: profile.targetCalories || 2000,
+          targetProtein: profile.targetProtein || 120,
+          targetCarbs: profile.targetCarbs || 250,
+          targetFats: profile.targetFats || 67,
+          targetWater: profile.targetWater || 2500,
+          targetFiber: profile.targetFiber || 25
+        };
+        setNutritionData(updatedData);
+        setTempGoals({
+          targetCalories: updatedData.targetCalories,
+          targetProtein: updatedData.targetProtein,
+          targetCarbs: updatedData.targetCarbs,
+          targetFats: updatedData.targetFats,
+          targetWater: updatedData.targetWater,
+          targetFiber: updatedData.targetFiber
+        });
+      } catch (error) {
+        console.error('Error parsing profile data:', error);
       }
     }
 
-    // Load hydration reminder settings
-    const savedReminder = localStorage.getItem('hydrationReminder');
-    if (savedReminder) {
-      const reminder = JSON.parse(savedReminder);
-      setHydrationReminder(reminder);
+    const restDaySettings = localStorage.getItem('restDaySettings');
+    if (restDaySettings) {
+      try {
+        const restDay = JSON.parse(restDaySettings) as any;
+        if (restDay.enabled && restDay.todayIsRestDay && restDay.autoAdjustMacros) {
+          const restDayIndicator = document.createElement('div');
+          restDayIndicator.innerHTML = `
+            <div style="position: fixed; top: 80px; left: 50%; transform: translateX(-50%); background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 500; z-index: 999;">
+              <i class="ri-pause-circle-fill" style="margin-right: 6px;"></i>
+              Día de descanso - Macros ajustados
+            </div>
+          `;
+          document.body.appendChild(restDayIndicator);
+          setTimeout(() => {
+            if (document.body.contains(restDayIndicator)) {
+              document.body.removeChild(restDayIndicator);
+            }
+          }, 5000);
+        }
+      } catch (error) {
+        console.error('Error parsing rest day settings:', error);
+      }
     }
 
-    // Load data for today
+    const savedReminder = localStorage.getItem('hydrationReminder');
+    if (savedReminder) {
+      try {
+        const reminder = JSON.parse(savedReminder) as HydrationReminder;
+        setHydrationReminder(reminder);
+      } catch (error) {
+        console.error('Error parsing hydration reminder:', error);
+      }
+    }
+
     loadNutritionData(today);
 
-    // Listen for data updates
-    const handleNutritionUpdate = (event: CustomEvent) => {
-      if (event.detail.date === selectedDate) {
-        setNutritionData(prev => ({ ...prev, ...event.detail.data }));
+    const handleNutritionUpdate = (event: Event) => {
+      const customEvent = event as CustomNutritionEvent;
+      if (customEvent.detail.date === selectedDate) {
+        setNutritionData(prev => ({ ...prev, ...customEvent.detail.data }));
       }
     };
 
-    window.addEventListener('nutritionDataUpdated', handleNutritionUpdate as EventListener);
+    window.addEventListener('nutritionDataUpdated', handleNutritionUpdate);
 
     return () => {
-      window.removeEventListener('nutritionDataUpdated', handleNutritionUpdate as EventListener);
+      window.removeEventListener('nutritionDataUpdated', handleNutritionUpdate);
     };
   }, [selectedDate]);
 
   const loadNutritionData = (date: string) => {
     const savedData = localStorage.getItem(`nutrition_${date}`);
     if (savedData) {
-      const parsed = JSON.parse(savedData);
-      setNutritionData(prev => ({ ...prev, ...parsed }));
+      try {
+        const parsed = JSON.parse(savedData) as Partial<NutritionData>;
+        setNutritionData(prev => ({ ...prev, ...parsed }));
+      } catch (error) {
+        console.error('Error parsing nutrition data:', error);
+      }
     } else {
-      setNutritionData(prev => ({ ...prev, calories: 0, protein: 0, carbs: 0, fats: 0, water: 0, fiber: 0, meals: [] }));
+      setNutritionData(prev => ({
+        ...prev,
+        calories: 0,
+        protein: 0,
+        carbs: 0,
+        fats: 0,
+        water: 0,
+        fiber: 0,
+        meals: []
+      }));
     }
   };
 
@@ -126,18 +203,18 @@ export default function Nutrition() {
     loadNutritionData(newDate);
   };
 
-  const getPercentage = (current: number, target: number) => {
+  const getPercentage = (current: number, target: number): number => {
     return Math.min((current / target) * 100, 100);
   };
 
-  const getProgressColor = (percentage: number) => {
+  const getProgressColor = (percentage: number): string => {
     if (percentage >= 100) return '#10b981';
     if (percentage >= 75) return '#3b82f6';
     if (percentage >= 50) return '#f59e0b';
     return '#ef4444';
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string): string => {
     const date = new Date(dateString);
     return date.toLocaleDateString('es-ES', {
       weekday: 'long',
@@ -147,8 +224,8 @@ export default function Nutrition() {
     });
   };
 
-  const groupMealsByType = (meals: any[]) => {
-    const groups: { [key: string]: any[] } = {};
+  const groupMealsByType = (meals: Meal[]): { [key: string]: Meal[] } => {
+    const groups: { [key: string]: Meal[] } = {};
     meals.forEach(meal => {
       if (!groups[meal.mealType]) {
         groups[meal.mealType] = [];
@@ -163,7 +240,7 @@ export default function Nutrition() {
     const deletedMeal = nutritionData.meals.find(meal => meal.id === mealId);
 
     if (deletedMeal) {
-      const updatedData = {
+      const updatedData: NutritionData = {
         ...nutritionData,
         meals: updatedMeals,
         calories: nutritionData.calories - deletedMeal.calories,
@@ -175,7 +252,6 @@ export default function Nutrition() {
       setNutritionData(updatedData);
       localStorage.setItem(`nutrition_${selectedDate}`, JSON.stringify(updatedData));
 
-      // Dispatch update event
       window.dispatchEvent(new CustomEvent('nutritionDataUpdated', {
         detail: { date: selectedDate, data: updatedData }
       }));
@@ -184,7 +260,7 @@ export default function Nutrition() {
 
   const updateWaterIntake = (amount: number) => {
     const newWater = Math.max(0, nutritionData.water + amount);
-    const updatedData = {
+    const updatedData: NutritionData = {
       ...nutritionData,
       water: newWater
     };
@@ -199,7 +275,7 @@ export default function Nutrition() {
 
   const updateFiberIntake = (amount: number) => {
     const newFiber = Math.max(0, nutritionData.fiber + amount);
-    const updatedData = {
+    const updatedData: NutritionData = {
       ...nutritionData,
       fiber: newFiber
     };
@@ -213,7 +289,7 @@ export default function Nutrition() {
   };
 
   const handleSaveGoals = () => {
-    const updatedData = {
+    const updatedData: NutritionData = {
       ...nutritionData,
       targetCalories: tempGoals.targetCalories,
       targetProtein: tempGoals.targetProtein,
@@ -225,17 +301,20 @@ export default function Nutrition() {
 
     setNutritionData(updatedData);
 
-    // Update profile
     const profileData = localStorage.getItem('userProfile');
     if (profileData) {
-      const profile = JSON.parse(profileData);
-      profile.targetCalories = tempGoals.targetCalories;
-      profile.targetProtein = tempGoals.targetProtein;
-      profile.targetCarbs = tempGoals.targetCarbs;
-      profile.targetFats = tempGoals.targetFats;
-      profile.targetWater = tempGoals.targetWater;
-      profile.targetFiber = tempGoals.targetFiber;
-      localStorage.setItem('userProfile', JSON.stringify(profile));
+      try {
+        const profile = JSON.parse(profileData) as any;
+        profile.targetCalories = tempGoals.targetCalories;
+        profile.targetProtein = tempGoals.targetProtein;
+        profile.targetCarbs = tempGoals.targetCarbs;
+        profile.targetFats = tempGoals.targetFats;
+        profile.targetWater = tempGoals.targetWater;
+        profile.targetFiber = tempGoals.targetFiber;
+        localStorage.setItem('userProfile', JSON.stringify(profile));
+      } catch (error) {
+        console.error('Error updating profile:', error);
+      }
     }
 
     setShowGoalsModal(false);
@@ -245,7 +324,6 @@ export default function Nutrition() {
     localStorage.setItem('hydrationReminder', JSON.stringify(hydrationReminder));
 
     if (hydrationReminder.enabled) {
-      // Show simple success message instead of notification
       const successMessage = document.createElement('div');
       successMessage.innerHTML = `
         <div style="position: fixed; top: 80px; left: 50%; transform: translateX(-50%); background: #dcfce7; border: 1px solid #bbf7d0; color: #16a34a; padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 500; z-index: 999;">
@@ -262,6 +340,15 @@ export default function Nutrition() {
     }
 
     setShowHydrationModal(false);
+  };
+
+  const handleNumberInput = (
+    value: string,
+    setter: (goals: TempGoals) => void,
+    field: keyof TempGoals
+  ) => {
+    const numValue = parseInt(value) || 0;
+    setter({ ...tempGoals, [field]: numValue });
   };
 
   if (!mounted) {
@@ -300,7 +387,6 @@ export default function Nutrition() {
       paddingTop: '80px',
       paddingBottom: '100px'
     }}>
-      {/* Header */}
       <header style={{
         position: 'fixed',
         top: 0,
@@ -339,9 +425,7 @@ export default function Nutrition() {
         </div>
       </header>
 
-      {/* Main Content */}
       <main style={{ padding: '24px 16px' }}>
-        {/* Date Selector */}
         <div style={{
           background: 'white',
           borderRadius: '16px',
@@ -383,7 +467,6 @@ export default function Nutrition() {
           </p>
         </div>
 
-        {/* Nutrition Summary */}
         <div style={{
           background: 'white',
           borderRadius: '16px',
@@ -411,28 +494,32 @@ export default function Nutrition() {
               gap: '8px'
             }}>
               {(() => {
-                const restDaySettings = localStorage.getItem('restDaySettings');
-                if (restDaySettings) {
-                  const restDay = JSON.parse(restDaySettings);
-                  if (restDay.enabled && restDay.todayIsRestDay) {
-                    return (
-                      <div style={{
-                        background: '#fef2f2',
-                        border: '1px solid #fecaca',
-                        color: '#dc2626',
-                        padding: '4px 8px',
-                        borderRadius: '12px',
-                        fontSize: '11px',
-                        fontWeight: '500',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px'
-                      }}>
-                        <i className="ri-pause-circle-fill" style={{ fontSize: '12px' }}></i>
-                        Descanso
-                      </div>
-                    );
+                try {
+                  const restDaySettings = localStorage.getItem('restDaySettings');
+                  if (restDaySettings) {
+                    const restDay = JSON.parse(restDaySettings) as any;
+                    if (restDay.enabled && restDay.todayIsRestDay) {
+                      return (
+                        <div style={{
+                          background: '#fef2f2',
+                          border: '1px solid #fecaca',
+                          color: '#dc2626',
+                          padding: '4px 8px',
+                          borderRadius: '12px',
+                          fontSize: '11px',
+                          fontWeight: '500',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}>
+                          <i className="ri-pause-circle-fill" style={{ fontSize: '12px' }}></i>
+                          Descanso
+                        </div>
+                      );
+                    }
                   }
+                } catch (error) {
+                  console.error('Error checking rest day:', error);
                 }
                 return null;
               })()}
@@ -459,8 +546,9 @@ export default function Nutrition() {
             </div>
           </div>
 
-          {/* Calories */}
-          <div style={{ marginBottom: '24px' }}>
+          <div style={{
+            marginBottom: '24px'
+          }}>
             <div style={{
               display: 'flex',
               alignItems: 'center',
@@ -498,14 +586,12 @@ export default function Nutrition() {
             </div>
           </div>
 
-          {/* Macros */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(3, 1fr)',
             gap: '8px',
             marginBottom: '24px'
           }}>
-            {/* Proteínas */}
             <div style={{
               textAlign: 'center',
               padding: '12px 6px',
@@ -549,7 +635,6 @@ export default function Nutrition() {
               </p>
             </div>
 
-            {/* Carbohidratos */}
             <div style={{
               textAlign: 'center',
               padding: '12px 6px',
@@ -593,7 +678,6 @@ export default function Nutrition() {
               </p>
             </div>
 
-            {/* Grasas */}
             <div style={{
               textAlign: 'center',
               padding: '12px 6px',
@@ -638,13 +722,11 @@ export default function Nutrition() {
             </div>
           </div>
 
-          {/* Hydration & Fiber */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(2, 1fr)',
             gap: '10px'
           }}>
-            {/* Hidratación */}
             <div style={{
               background: '#f0f9ff',
               borderRadius: '12px',
@@ -763,7 +845,6 @@ export default function Nutrition() {
               </div>
             </div>
 
-            {/* Fibra */}
             <div style={{
               background: '#f0fdf4',
               borderRadius: '12px',
@@ -858,7 +939,6 @@ export default function Nutrition() {
           </div>
         </div>
 
-        {/* Meals Section */}
         <div style={{
           background: 'white',
           borderRadius: '16px',
@@ -1005,7 +1085,6 @@ export default function Nutrition() {
         </div>
       </main>
 
-      {/* Hydration Reminder Modal */}
       {showHydrationModal && (
         <div style={{
           position: 'fixed',
@@ -1282,7 +1361,6 @@ export default function Nutrition() {
         </div>
       )}
 
-      {/* Goals Modal */}
       {showGoalsModal && (
         <div style={{
           position: 'fixed',
@@ -1358,7 +1436,7 @@ export default function Nutrition() {
                 <input
                   type="number"
                   value={tempGoals.targetCalories}
-                  onChange={(e) => setTempGoals({ ...tempGoals, targetCalories: parseInt(e.target.value) })}
+                  onChange={(e) => handleNumberInput(e.target.value, setTempGoals, 'targetCalories')}
                   style={{
                     width: '100%',
                     padding: '12px 16px',
@@ -1382,7 +1460,7 @@ export default function Nutrition() {
                 <input
                   type="number"
                   value={tempGoals.targetProtein}
-                  onChange={(e) => setTempGoals({ ...tempGoals, targetProtein: parseInt(e.target.value) })}
+                  onChange={(e) => handleNumberInput(e.target.value, setTempGoals, 'targetProtein')}
                   style={{
                     width: '100%',
                     padding: '12px 16px',
@@ -1406,7 +1484,7 @@ export default function Nutrition() {
                 <input
                   type="number"
                   value={tempGoals.targetCarbs}
-                  onChange={(e) => setTempGoals({ ...tempGoals, targetCarbs: parseInt(e.target.value) })}
+                  onChange={(e) => handleNumberInput(e.target.value, setTempGoals, 'targetCarbs')}
                   style={{
                     width: '100%',
                     padding: '12px 16px',
@@ -1430,7 +1508,7 @@ export default function Nutrition() {
                 <input
                   type="number"
                   value={tempGoals.targetFats}
-                  onChange={(e) => setTempGoals({ ...tempGoals, targetFats: parseInt(e.target.value) })}
+                  onChange={(e) => handleNumberInput(e.target.value, setTempGoals, 'targetFats')}
                   style={{
                     width: '100%',
                     padding: '12px 16px',
@@ -1454,7 +1532,7 @@ export default function Nutrition() {
                 <input
                   type="number"
                   value={tempGoals.targetWater}
-                  onChange={(e) => setTempGoals({ ...tempGoals, targetWater: parseInt(e.target.value) })}
+                  onChange={(e) => handleNumberInput(e.target.value, setTempGoals, 'targetWater')}
                   style={{
                     width: '100%',
                     padding: '12px 16px',
@@ -1478,7 +1556,7 @@ export default function Nutrition() {
                 <input
                   type="number"
                   value={tempGoals.targetFiber}
-                  onChange={(e) => setTempGoals({ ...tempGoals, targetFiber: parseInt(e.target.value) })}
+                  onChange={(e) => handleNumberInput(e.target.value, setTempGoals, 'targetFiber')}
                   style={{
                     width: '100%',
                     padding: '12px 16px',
@@ -1534,7 +1612,6 @@ export default function Nutrition() {
         </div>
       )}
 
-      {/* Bottom Navigation */}
       <nav style={{
         position: 'fixed',
         bottom: 0,
