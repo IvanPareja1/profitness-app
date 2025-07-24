@@ -4,6 +4,7 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import BottomNavigation from '../../components/BottomNavigation';
 
 export default function Profile() {
   const [mounted, setMounted] = useState(false);
@@ -52,6 +53,114 @@ export default function Profile() {
     fatIncrease: 0.1 
   });
   const router = useRouter();
+
+  useEffect(() => {
+    setMounted(true);
+
+    try {
+      const userData = localStorage.getItem('userData');
+      if (userData) {
+        const userObj = JSON.parse(userData);
+        setUser(userObj);
+        
+        const profileData = localStorage.getItem('userProfile');
+        if (profileData) {
+          const parsed = JSON.parse(profileData);
+          
+          if (!parsed.name && userObj.name) {
+            parsed.name = userObj.name;
+          }
+          if (!parsed.email && userObj.email) {
+            parsed.email = userObj.email;
+          }
+          
+          if (!parsed.workActivity) {
+            parsed.workActivity = 'sedentary';
+          }
+          if (!parsed.syncEnabled) {
+            parsed.syncEnabled = false;
+          }
+          
+          setProfile(parsed);
+          
+          localStorage.setItem('userProfile', JSON.stringify(parsed));
+        } else {
+          const newProfile = {
+            ...profile,
+            name: userObj.name || '',
+            email: userObj.email || ''
+          };
+          setProfile(newProfile);
+          localStorage.setItem('userProfile', JSON.stringify(newProfile));
+        }
+      } else {
+        const defaultUser = {
+          name: 'Usuario',
+          email: 'email@example.com'
+        };
+        setUser(defaultUser);
+        localStorage.setItem('userData', JSON.stringify(defaultUser));
+      }
+    } catch (error) {
+      console.log('Error loading user data:', error);
+    }
+
+    try {
+      const savedHealthData = localStorage.getItem('healthData');
+      if (savedHealthData) {
+        setHealthData(JSON.parse(savedHealthData));
+      }
+    } catch (error) {
+      console.log('Error loading health data:', error);
+    }
+
+    try {
+      const savedRestDaySettings = localStorage.getItem('restDaySettings');
+      if (savedRestDaySettings) {
+        const settings = JSON.parse(savedRestDaySettings);
+        setRestDaySettings(settings);
+
+        const today = new Date().getDay();
+        const isRestDay = settings.enabled && settings.selectedDays.includes(today);
+        setRestDaySettings(prev => ({ ...prev, todayIsRestDay: isRestDay }));
+      }
+    } catch (error) {
+      console.log('Error loading rest day settings:', error);
+    }
+
+    const syncInterval = setInterval(() => {
+      const currentProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
+      if (currentProfile.syncEnabled) {
+        syncHealthData();
+      }
+    }, 30 * 60 * 1000); 
+    
+    
+    return () => clearInterval(syncInterval);
+  }, []);
+
+  const handleSaveProfile = () => {
+    try {
+      localStorage.setItem('userProfile', JSON.stringify(profile));
+      localStorage.setItem('appLanguage', profile.language);
+      
+      const updatedUser = {
+        ...user,
+        name: profile.name,
+        email: profile.email
+      };
+      
+      localStorage.setItem('userData', JSON.stringify(updatedUser));
+      setUser(updatedUser);
+      
+      setIsEditing(false);
+      
+      // Emit event to update navigation language
+      window.dispatchEvent(new CustomEvent('profileUpdated'));
+    } catch (error) {
+      console.log('Error saving profile:', error);
+    }
+  };
 
   const translations = {
     es: {
@@ -285,67 +394,6 @@ export default function Profile() {
     localStorage.removeItem('healthData');
   };
 
-  useEffect(() => {
-    setMounted(true);
-
-    try {
-      const userData = localStorage.getItem('userData');
-      if (userData) {
-        setUser(JSON.parse(userData));
-      }
-    } catch (error) {
-      console.log('Error loading user data:', error);
-    }
-
-    try {
-      const profileData = localStorage.getItem('userProfile');
-      if (profileData) {
-        const parsed = JSON.parse(profileData);
-        if (!parsed.workActivity) {
-          parsed.workActivity = 'sedentary';
-        }
-        if (!parsed.syncEnabled) {
-          parsed.syncEnabled = false;
-        }
-        setProfile(parsed);
-      }
-    } catch (error) {
-      console.log('Error loading profile data:', error);
-    }
-
-    try {
-      const savedHealthData = localStorage.getItem('healthData');
-      if (savedHealthData) {
-        setHealthData(JSON.parse(savedHealthData));
-      }
-    } catch (error) {
-      console.log('Error loading health data:', error);
-    }
-
-    try {
-      const savedRestDaySettings = localStorage.getItem('restDaySettings');
-      if (savedRestDaySettings) {
-        const settings = JSON.parse(savedRestDaySettings);
-        setRestDaySettings(settings);
-
-        const today = new Date().getDay();
-        const isRestDay = settings.enabled && settings.selectedDays.includes(today);
-        setRestDaySettings(prev => ({ ...prev, todayIsRestDay: isRestDay }));
-      }
-    } catch (error) {
-      console.log('Error loading rest day settings:', error);
-    }
-
-    const syncInterval = setInterval(() => {
-      const currentProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
-      if (currentProfile.syncEnabled) {
-        syncHealthData();
-      }
-    }, 30 * 60 * 1000); 
-
-    return () => clearInterval(syncInterval);
-  }, []);
-
   const calculateBMR = () => {
     if (!profile.weight || !profile.height || !profile.age) return 0;
 
@@ -427,25 +475,6 @@ export default function Profile() {
     const fats = Math.round(fatsCalories / 9);
 
     return { protein, carbs, fats };
-  };
-
-  const handleSaveProfile = () => {
-    try {
-      localStorage.setItem('userProfile', JSON.stringify(profile));
-      localStorage.setItem('appLanguage', profile.language);
-      setIsEditing(false);
-
-      const userData = localStorage.getItem('userData');
-      if (userData) {
-        const user = JSON.parse(userData);
-        user.name = profile.name;
-        user.email = profile.email;
-        localStorage.setItem('userData', JSON.stringify(user));
-        setUser(user);
-      }
-    } catch (error) {
-      console.log('Error saving profile:', error);
-    }
   };
 
   const handleSaveRestDaySettings = () => {
@@ -755,7 +784,7 @@ export default function Profile() {
                 fontWeight: '600',
                 fontSize: '24px'
               }}>
-                {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                {(user?.name || profile.name) ? (user?.name || profile.name).charAt(0).toUpperCase() : 'U'}
               </span>
             )}
           </div>
@@ -765,14 +794,14 @@ export default function Profile() {
             color: '#1f2937',
             margin: '0 0 8px 0'
           }}>
-            {user?.name || 'Usuario'}
+            {user?.name || profile.name || 'Usuario'}
           </h2>
           <p style={{
             fontSize: '16px',
             color: '#6b7280',
             margin: '0 0 16px 0'
           }}>
-            {user?.email || 'email@example.com'}
+            {user?.email || profile.email || 'email@example.com'}
           </p>
           <button
             onClick={() => setIsEditing(!isEditing)}
@@ -2500,129 +2529,7 @@ export default function Profile() {
         )}
       </main>
 
-      <nav style={{
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        background: 'white',
-        borderTop: '1px solid #e5e7eb',
-        padding: '8px 0'
-      }}>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(5, 1fr)',
-          maxWidth: '375px',
-          margin: '0 auto'
-        }}>
-          <Link href="/" style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            padding: '8px 4px',
-            textDecoration: 'none',
-            color: '#9ca3af'
-          }}>
-            <div style={{
-              width: '24px',
-              height: '24px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: '4px'
-            }}>
-              <i className="ri-home-line" style={{ fontSize: '18px' }}></i>
-            </div>
-            <span style={{ fontSize: '12px' }}>Home</span>
-          </Link>
-
-          <Link href="/nutrition" style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            padding: '8px 4px',
-            textDecoration: 'none',
-            color: '#9ca3af'
-          }}>
-            <div style={{
-              width: '24px',
-              height: '24px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: '4px'
-            }}>
-              <i className="ri-pie-chart-line" style={{ fontSize: '18px' }}></i>
-            </div>
-            <span style={{ fontSize: '12px' }}>Nutrition</span>
-          </Link>
-
-          <Link href="/add-food" style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            padding: '8px 4px',
-            textDecoration: 'none',
-            color: '#9ca3af'
-          }}>
-            <div style={{
-              width: '32px',
-              height: '32px',
-              background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: '4px'
-            }}>
-              <i className="ri-add-line" style={{ color: 'white', fontSize: '18px' }}></i>
-            </div>
-            <span style={{ fontSize: '12px' }}>Add</span>
-          </Link>
-
-          <Link href="/progress" style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            padding: '8px 4px',
-            textDecoration: 'none',
-            color: '#9ca3af'
-          }}>
-            <div style={{
-              width: '24px',
-              height: '24px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: '4px'
-            }}>
-              <i className="ri-line-chart-line" style={{ fontSize: '18px' }}></i>
-            </div>
-            <span style={{ fontSize: '12px' }}>Progress</span>
-          </Link>
-
-          <Link href="/profile" style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            padding: '8px 4px',
-            textDecoration: 'none',
-            color: '#3b82f6'
-          }}>
-            <div style={{
-              width: '24px',
-              height: '24px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: '4px'
-            }}>
-              <i className="ri-user-fill" style={{ fontSize: '18px' }}></i>
-            </div>
-            <span style={{ fontSize: '12px', fontWeight: '500' }}>Profile</span>
-          </Link>
-        </div>
-      </nav>
+      <BottomNavigation />
     </div>
   );
 }

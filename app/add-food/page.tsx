@@ -4,6 +4,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
+import BottomNavigation from '../../components/BottomNavigation';
 
 const popularFoods = [
   { name: 'Pechuga de pollo', calories: 165, protein: 31, carbs: 0, fats: 3.6, fiber: 0 },
@@ -2333,6 +2334,8 @@ export default function AddFood() {
           </div>
         </nav>
       </main>
+
+      <BottomNavigation />
     </div>
   );
 }

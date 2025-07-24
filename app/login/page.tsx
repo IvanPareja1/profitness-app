@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
+import Logo from '../../components/ui/Logo';
 
 declare global {
   interface Window {
@@ -42,8 +43,15 @@ export default function Login() {
 
   const initializeGoogleSignIn = () => {
     if (window.google) {
-      // IMPORTANTE: Reemplaza con tu Google Client ID real
-      const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID";
+      // IMPORTANTE: Reemplaza este valor con tu Google Client ID real de Google Cloud Console
+      const CLIENT_ID = "TU_GOOGLE_CLIENT_ID_AQUI.apps.googleusercontent.com";
+      
+      // Verifica que el Client ID esté configurado
+      if (CLIENT_ID === "TU_GOOGLE_CLIENT_ID_AQUI.apps.googleusercontent.com") {
+        console.error('⚠️  Necesitas configurar tu Google Client ID en el código');
+        setError('Configuración de Google pendiente. Contacta al administrador.');
+        return;
+      }
 
       window.google.accounts.id.initialize({
         client_id: CLIENT_ID,
@@ -175,17 +183,8 @@ export default function Login() {
       }}>
         {/* Logo y título */}
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <div style={{
-            width: '80px',
-            height: '80px',
-            background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
-            borderRadius: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto 16px'
-          }}>
-            <i className="ri-nutrition-line" style={{ color: 'white', fontSize: '36px' }}></i>
+          <div style={{ marginBottom: '16px' }}>
+            <Logo size="xl" />
           </div>
           <h1 style={{
             fontSize: '28px',

@@ -3,14 +3,42 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import BottomNavigation from '../../components/BottomNavigation';
+
+// Interfaces para TypeScript
+interface DataPoint {
+  date: string;
+  value: number;
+}
+
+interface ProgressData {
+  weight: DataPoint[];
+  calories: DataPoint[];
+  protein: DataPoint[];
+  carbs: DataPoint[];
+  fats: DataPoint[];
+}
+
+interface WeightData {
+  weight: number;
+  date: string;
+  timestamp: string;
+}
+
+interface SavedNutritionData {
+  calories?: number;
+  protein?: number;
+  carbs?: number;
+  fats?: number;
+}
 
 export default function Progress() {
-  const [mounted, setMounted] = useState(false);
-  const [selectedPeriod, setSelectedPeriod] = useState('7'); // 7 days
-  const [showWeightModal, setShowWeightModal] = useState(false);
-  const [newWeight, setNewWeight] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [progressData, setProgressData] = useState({
+  const [mounted, setMounted] = useState<boolean>(false);
+  const [selectedPeriod, setSelectedPeriod] = useState<string>('7');
+  const [showWeightModal, setShowWeightModal] = useState<boolean>(false);
+  const [newWeight, setNewWeight] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [progressData, setProgressData] = useState<ProgressData>({
     weight: [],
     calories: [],
     protein: [],
@@ -23,9 +51,9 @@ export default function Progress() {
     loadProgressData();
   }, [selectedPeriod]);
 
-  const loadProgressData = () => {
+  const loadProgressData = (): void => {
     const days = parseInt(selectedPeriod);
-    const data = {
+    const data: ProgressData = {
       weight: [],
       calories: [],
       protein: [],
@@ -40,15 +68,24 @@ export default function Progress() {
       const dateKey = date.toISOString().split('T')[0];
 
       // Try to get real data from localStorage
-      const savedData = localStorage.getItem(`nutrition_${dateKey}`);
-      if (savedData) {
-        const parsed = JSON.parse(savedData);
-        data.calories.push({ date: dateKey, value: parsed.calories || 0 });
-        data.protein.push({ date: dateKey, value: parsed.protein || 0 });
-        data.carbs.push({ date: dateKey, value: parsed.carbs || 0 });
-        data.fats.push({ date: dateKey, value: parsed.fats || 0 });
-      } else {
-        // Generate sample data if no real data
+      try {
+        const savedData = localStorage.getItem(`nutrition_${dateKey}`);
+        if (savedData) {
+          const parsed: SavedNutritionData = JSON.parse(savedData);
+          data.calories.push({ date: dateKey, value: parsed.calories || 0 });
+          data.protein.push({ date: dateKey, value: parsed.protein || 0 });
+          data.carbs.push({ date: dateKey, value: parsed.carbs || 0 });
+          data.fats.push({ date: dateKey, value: parsed.fats || 0 });
+        } else {
+          // Generate sample data if no real data
+          data.calories.push({ date: dateKey, value: Math.floor(Math.random() * 800) + 1200 });
+          data.protein.push({ date: dateKey, value: Math.floor(Math.random() * 60) + 80 });
+          data.carbs.push({ date: dateKey, value: Math.floor(Math.random() * 100) + 150 });
+          data.fats.push({ date: dateKey, value: Math.floor(Math.random() * 30) + 40 });
+        }
+      } catch (error) {
+        console.error('Error parsing nutrition data:', error);
+        // Generate sample data on error
         data.calories.push({ date: dateKey, value: Math.floor(Math.random() * 800) + 1200 });
         data.protein.push({ date: dateKey, value: Math.floor(Math.random() * 60) + 80 });
         data.carbs.push({ date: dateKey, value: Math.floor(Math.random() * 100) + 150 });
@@ -56,12 +93,17 @@ export default function Progress() {
       }
 
       // Get weight data from localStorage or use sample data
-      const savedWeight = localStorage.getItem(`weight_${dateKey}`);
-      if (savedWeight) {
-        const weightData = JSON.parse(savedWeight);
-        data.weight.push({ date: dateKey, value: weightData.weight });
-      } else {
-        // Generate sample weight data
+      try {
+        const savedWeight = localStorage.getItem(`weight_${dateKey}`);
+        if (savedWeight) {
+          const weightData: WeightData = JSON.parse(savedWeight);
+          data.weight.push({ date: dateKey, value: weightData.weight });
+        } else {
+          // Generate sample weight data
+          data.weight.push({ date: dateKey, value: 70 + Math.random() * 4 - 2 });
+        }
+      } catch (error) {
+        console.error('Error parsing weight data:', error);
         data.weight.push({ date: dateKey, value: 70 + Math.random() * 4 - 2 });
       }
     }
@@ -69,7 +111,7 @@ export default function Progress() {
     setProgressData(data);
   };
 
-  const handleAddWeight = async () => {
+  const handleAddWeight = async (): Promise<void> => {
     if (!newWeight || isSubmitting) return;
 
     setIsSubmitting(true);
@@ -86,7 +128,7 @@ export default function Progress() {
       const today = new Date().toISOString().split('T')[0];
 
       // Save weight data
-      const weightData = {
+      const weightData: WeightData = {
         weight: weight,
         date: today,
         timestamp: new Date().toISOString()
@@ -114,17 +156,21 @@ export default function Progress() {
     }
   };
 
-  const getTodayWeight = () => {
+  const getTodayWeight = (): number | null => {
     const today = new Date().toISOString().split('T')[0];
-    const savedWeight = localStorage.getItem(`weight_${today}`);
-    if (savedWeight) {
-      const weightData = JSON.parse(savedWeight);
-      return weightData.weight;
+    try {
+      const savedWeight = localStorage.getItem(`weight_${today}`);
+      if (savedWeight) {
+        const weightData: WeightData = JSON.parse(savedWeight);
+        return weightData.weight;
+      }
+    } catch (error) {
+      console.error('Error getting today weight:', error);
     }
     return null;
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string): string => {
     const date = new Date(dateString);
     return date.toLocaleDateString('es-ES', { 
       month: 'short', 
@@ -132,23 +178,23 @@ export default function Progress() {
     });
   };
 
-  const getAverage = (data: any[]) => {
+  const getAverage = (data: DataPoint[]): number => {
     if (data.length === 0) return 0;
     const sum = data.reduce((acc, item) => acc + item.value, 0);
     return Math.round(sum / data.length);
   };
 
-  const getMaxValue = (data: any[]) => {
+  const getMaxValue = (data: DataPoint[]): number => {
     if (data.length === 0) return 0;
     return Math.max(...data.map(item => item.value));
   };
 
-  const getMinValue = (data: any[]) => {
+  const getMinValue = (data: DataPoint[]): number => {
     if (data.length === 0) return 0;
     return Math.min(...data.map(item => item.value));
   };
 
-  const createImprovedChart = (data: any[], color: string, max?: number, unit?: string) => {
+  const createImprovedChart = (data: DataPoint[], color: string, max?: number, unit?: string): JSX.Element | null => {
     if (data.length === 0) return null;
     
     const maxValue = max || getMaxValue(data);
@@ -156,7 +202,7 @@ export default function Progress() {
     const range = maxValue - minValue;
     
     // Create scale marks
-    const scaleMarks = [];
+    const scaleMarks: number[] = [];
     const numMarks = 4;
     for (let i = 0; i <= numMarks; i++) {
       const value = minValue + (range * i / numMarks);
@@ -203,7 +249,7 @@ export default function Progress() {
                 key={index}
                 style={{
                   flex: 1,
-                  height: ` ${((item.value - minValue) / range) * 80 + 10}%`,
+                  height: `${((item.value - minValue) / range) * 80 + 10}%`,
                   backgroundColor: color,
                   borderRadius: '2px',
                   minHeight: '4px',
@@ -500,7 +546,7 @@ export default function Progress() {
             display: 'flex',
             gap: '8px'
           }}>
-            {[ 
+            {[
               { value: '7', label: '7 días' },
               { value: '14', label: '14 días' },
               { value: '30', label: '30 días' }
@@ -608,7 +654,7 @@ export default function Progress() {
           boxShadow: '0 4px 6px rgba(0,0,0,0.07)',
           marginBottom: '24px'
         }}>
-          <div style={{
+          <div style={{ 
             display: 'flex',
             alignItems: 'center',
             gap: '12px',
@@ -882,130 +928,7 @@ export default function Progress() {
         </div>
       </main>
 
-      {/* Bottom Navigation */}
-      <nav style={{
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        background: 'white',
-        borderTop: '1px solid #e5e7eb',
-        padding: '8px 0'
-      }}>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(5, 1fr)',
-          maxWidth: '375px',
-          margin: '0 auto'
-        }}>
-          <Link href="/" style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            padding: '8px 4px',
-            textDecoration: 'none',
-            color: '#9ca3af'
-          }}>
-            <div style={{
-              width: '24px',
-              height: '24px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: '4px'
-            }}>
-              <i className="ri-home-line" style={{ fontSize: '18px' }}></i>
-            </div>
-            <span style={{ fontSize: '12px' }}>Inicio</span>
-          </Link>
-
-          <Link href="/nutrition" style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            padding: '8px 4px',
-            textDecoration: 'none',
-            color: '#9ca3af'
-          }}>
-            <div style={{
-              width: '24px',
-              height: '24px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: '4px'
-            }}>
-              <i className="ri-pie-chart-line" style={{ fontSize: '18px' }}></i>
-            </div>
-            <span style={{ fontSize: '12px' }}>Nutrición</span>
-          </Link>
-
-          <Link href="/add-food" style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            padding: '8px 4px',
-            textDecoration: 'none',
-            color: '#9ca3af'
-          }}>
-            <div style={{
-              width: '32px',
-              height: '32px',
-              background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: '4px'
-            }}>
-              <i className="ri-add-line" style={{ color: 'white', fontSize: '18px' }}></i>
-            </div>
-            <span style={{ fontSize: '12px' }}>Agregar</span>
-          </Link>
-
-          <Link href="/progress" style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            padding: '8px 4px',
-            textDecoration: 'none',
-            color: '#3b82f6'
-          }}>
-            <div style={{
-              width: '24px',
-              height: '24px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: '4px'
-            }}>
-              <i className="ri-line-chart-fill" style={{ fontSize: '18px' }}></i>
-            </div>
-            <span style={{ fontSize: '12px', fontWeight: '500' }}>Progreso</span>
-          </Link>
-
-          <Link href="/profile" style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            padding: '8px 4px',
-            textDecoration: 'none',
-            color: '#9ca3af'
-          }}>
-            <div style={{
-              width: '24px',
-              height: '24px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: '4px'
-            }}>
-              <i className="ri-user-line" style={{ fontSize: '18px' }}></i>
-            </div>
-            <span style={{ fontSize: '12px' }}>Perfil</span>
-          </Link>
-        </div>
-      </nav>
+      <BottomNavigation />
     </div>
   );
 }

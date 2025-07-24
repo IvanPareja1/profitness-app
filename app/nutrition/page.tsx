@@ -3,6 +3,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import BottomNavigation from '../../components/BottomNavigation';
 
 interface Meal {
   id: string;
@@ -172,14 +173,29 @@ export default function Nutrition() {
     return () => {
       window.removeEventListener('nutritionDataUpdated', handleNutritionUpdate);
     };
-  }, [selectedDate]);
+  }, []);
+
+  useEffect(() => {
+    if (selectedDate && mounted) {
+      loadNutritionData(selectedDate);
+    }
+  }, [selectedDate, mounted]);
 
   const loadNutritionData = (date: string) => {
     const savedData = localStorage.getItem(`nutrition_${date}`);
     if (savedData) {
       try {
         const parsed = JSON.parse(savedData) as Partial<NutritionData>;
-        setNutritionData(prev => ({ ...prev, ...parsed }));
+        setNutritionData(prev => ({
+          ...prev,
+          ...parsed,
+          targetCalories: prev.targetCalories,
+          targetProtein: prev.targetProtein,
+          targetCarbs: prev.targetCarbs,
+          targetFats: prev.targetFats,
+          targetWater: prev.targetWater,
+          targetFiber: prev.targetFiber
+        }));
       } catch (error) {
         console.error('Error parsing nutrition data:', error);
       }
@@ -200,7 +216,6 @@ export default function Nutrition() {
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newDate = e.target.value;
     setSelectedDate(newDate);
-    loadNutritionData(newDate);
   };
 
   const getPercentage = (current: number, target: number): number => {
@@ -215,7 +230,9 @@ export default function Nutrition() {
   };
 
   const formatDate = (dateString: string): string => {
-    const date = new Date(dateString);
+    const [year, month, day] = dateString.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+
     return date.toLocaleDateString('es-ES', {
       weekday: 'long',
       year: 'numeric',
@@ -998,90 +1015,90 @@ export default function Nutrition() {
               </p>
             </div>
           ) : (
-            <div>
-              {Object.entries(mealGroups).map(([mealType, meals]) => (
-                <div key={mealType} style={{ marginBottom: '24px' }}>
-                  <h3 style={{
-                    fontSize: '16px',
-                    fontWeight: '600',
-                    color: '#1f2937',
-                    marginBottom: '12px',
-                    textTransform: 'capitalize',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px'
-                  }}>
-                    {mealType === 'desayuno' && <i className="ri-sun-line" style={{ color: '#f59e0b' }}></i>}
-                    {mealType === 'almuerzo' && <i className="ri-sun-fill" style={{ color: '#f97316' }}></i>}
-                    {mealType === 'cena' && <i className="ri-moon-line" style={{ color: '#6366f1' }}></i>}
-                    {mealType === 'snack' && <i className="ri-apple-line" style={{ color: '#10b981' }}></i>}
-                    {mealType === 'liquid' && <i className="ri-drop-line" style={{ color: '#06b6d4' }}></i>}
-                    {mealType === 'liquid' ? 'Líquidos' : mealType}
-                  </h3>
-                  {meals.map((meal) => (
-                    <div key={meal.id} style={{
-                      background: '#f8fafc',
-                      borderRadius: '12px',
-                      padding: '16px',
+              <div>
+                {Object.entries(mealGroups).map(([mealType, meals]) => (
+                  <div key={mealType} style={{ marginBottom: '24px' }}>
+                    <h3 style={{
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      color: '#1f2937',
                       marginBottom: '12px',
-                      border: '1px solid #e2e8f0'
+                      textTransform: 'capitalize',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
                     }}>
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        marginBottom: '8px'
+                      {mealType === 'desayuno' && <i className="ri-sun-line" style={{ color: '#f59e0b' }}></i>}
+                      {mealType === 'almuerzo' && <i className="ri-sun-fill" style={{ color: '#f97316' }}></i>}
+                      {mealType === 'cena' && <i className="ri-moon-line" style={{ color: '#6366f1' }}></i>}
+                      {mealType === 'snack' && <i className="ri-apple-line" style={{ color: '#10b981' }}></i>}
+                      {mealType === 'liquid' && <i className="ri-drop-line" style={{ color: '#06b6d4' }}></i>}
+                      {mealType === 'liquid' ? 'Líquidos' : mealType}
+                    </h3>
+                    {meals.map((meal) => (
+                      <div key={meal.id} style={{
+                        background: '#f8fafc',
+                        borderRadius: '12px',
+                        padding: '16px',
+                        marginBottom: '12px',
+                        border: '1px solid #e2e8f0'
                       }}>
-                        <h4 style={{
-                          fontSize: '16px',
-                          fontWeight: '600',
-                          color: '#1f2937',
-                          margin: 0
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          marginBottom: '8px'
                         }}>
-                          {meal.name}
-                        </h4>
-                        <button
-                          onClick={() => deleteMeal(meal.id)}
-                          className="!rounded-button"
-                          style={{
-                            width: '32px',
-                            height: '32px',
-                            background: '#fef2f2',
-                            border: '1px solid #fecaca',
-                            borderRadius: '50%',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          <i className="ri-delete-bin-line" style={{ color: '#dc2626', fontSize: '16px' }}></i>
-                        </button>
+                          <h4 style={{
+                            fontSize: '16px',
+                            fontWeight: '600',
+                            color: '#1f2937',
+                            margin: 0
+                          }}>
+                            {meal.name}
+                          </h4>
+                          <button
+                            onClick={() => deleteMeal(meal.id)}
+                            className="!rounded-button"
+                            style={{
+                              width: '32px',
+                              height: '32px',
+                              background: '#fef2f2',
+                              border: '1px solid #fecaca',
+                              borderRadius: '50%',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <i className="ri-delete-bin-line" style={{ color: '#dc2626', fontSize: '16px' }}></i>
+                          </button>
+                        </div>
+                        <p style={{
+                          fontSize: '14px',
+                          color: '#6b7280',
+                          marginBottom: '8px'
+                        }}>
+                          {meal.quantity}{mealType === 'liquid' ? 'ml' : 'g'}
+                        </p>
+                        <div style={{
+                          display: 'flex',
+                          gap: '16px',
+                          fontSize: '14px',
+                          color: '#374151'
+                        }}>
+                          <span><strong>{meal.calories}</strong> cal</span>
+                          <span>P: <strong>{Math.round(meal.protein * 10) / 10}</strong>g</span>
+                          <span>C: <strong>{Math.round(meal.carbs * 10) / 10}</strong>g</span>
+                          <span>G: <strong>{Math.round(meal.fats * 10) / 10}</strong>g</span>
+                        </div>
                       </div>
-                      <p style={{
-                        fontSize: '14px',
-                        color: '#6b7280',
-                        marginBottom: '8px'
-                      }}>
-                        {meal.quantity}{mealType === 'liquid' ? 'ml' : 'g'}
-                      </p>
-                      <div style={{
-                        display: 'flex',
-                        gap: '16px',
-                        fontSize: '14px',
-                        color: '#374151'
-                      }}>
-                        <span><strong>{meal.calories}</strong> cal</span>
-                        <span>P: <strong>{Math.round(meal.protein * 10) / 10}</strong>g</span>
-                        <span>C: <strong>{Math.round(meal.carbs * 10) / 10}</strong>g</span>
-                        <span>G: <strong>{Math.round(meal.fats * 10) / 10}</strong>g</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
-          )}
+                    ))}
+                  </div>
+                ))}
+              </div>
+            )}
         </div>
       </main>
 
@@ -1735,6 +1752,8 @@ export default function Nutrition() {
           </Link>
         </div>
       </nav>
+
+      <BottomNavigation />
     </div>
   );
 }

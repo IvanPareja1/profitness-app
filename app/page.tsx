@@ -3,6 +3,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import BottomNavigation from '../components/BottomNavigation';
 
 interface Meal {
   id: string;
@@ -33,6 +34,8 @@ type MealType = 'desayuno' | 'almuerzo' | 'cena' | 'snack';
 export default function Home() {
   const [mounted, setMounted] = useState(false);
   const [currentDate, setCurrentDate] = useState('');
+  const [language, setLanguage] = useState('es');
+  const [userData, setUserData] = useState<any>(null);
   const [nutritionData, setNutritionData] = useState<NutritionData>({
     calories: 0,
     protein: 0,
@@ -47,6 +50,23 @@ export default function Home() {
 
   useEffect(() => {
     setMounted(true);
+
+    // Load user data and language
+    try {
+      const userDataStored = localStorage.getItem('userData');
+      if (userDataStored) {
+        const user = JSON.parse(userDataStored);
+        setUserData(user);
+      }
+
+      const userProfile = localStorage.getItem('userProfile');
+      if (userProfile) {
+        const profile = JSON.parse(userProfile);
+        setLanguage(profile.language || 'es');
+      }
+    } catch (error) {
+      console.log('Error loading user data:', error);
+    }
 
     const today = new Date();
     const formattedDate = today.toLocaleDateString('es-ES', {
@@ -85,12 +105,79 @@ export default function Home() {
       loadTodayData();
     };
 
+    // Listen for language changes
+    const handleLanguageChange = () => {
+      try {
+        const userProfile = localStorage.getItem('userProfile');
+        if (userProfile) {
+          const profile = JSON.parse(userProfile);
+          setLanguage(profile.language || 'es');
+        }
+      } catch (error) {
+        console.log('Error updating language:', error);
+      }
+    };
+
     window.addEventListener('nutritionDataUpdated', handleNutritionUpdate);
+    window.addEventListener('profileUpdated', handleLanguageChange);
 
     return () => {
       window.removeEventListener('nutritionDataUpdated', handleNutritionUpdate);
+      window.removeEventListener('profileUpdated', handleLanguageChange);
     };
   }, []);
+
+  // Translations
+  const translations = {
+    es: {
+      dailyProgress: 'Progreso del Día',
+      add: 'Agregar',
+      calories: 'Calorías',
+      protein: 'Proteínas',
+      carbs: 'Carbohidratos',
+      fats: 'Grasas',
+      of: 'de',
+      quickActions: 'Acciones Rápidas',
+      addFood: 'Agregar Comida',
+      registerFood: 'Registrar alimento',
+      viewNutrition: 'Ver Nutrición',
+      dailyDetails: 'Detalles diarios',
+      todayMeals: 'Comidas de Hoy',
+      noMealsRegistered: 'No hay comidas registradas',
+      startAdding: 'Comienza agregando tu primera comida del día',
+      addFirstMeal: 'Agregar Primera Comida',
+      addMoreFood: 'Agregar Más Comida',
+      breakfast: 'Desayuno',
+      lunch: 'Almuerzo',
+      dinner: 'Cena',
+      snack: 'Snack'
+    },
+    en: {
+      dailyProgress: 'Daily Progress',
+      add: 'Add',
+      calories: 'Calories',
+      protein: 'Protein',
+      carbs: 'Carbs',
+      fats: 'Fats',
+      of: 'of',
+      quickActions: 'Quick Actions',
+      addFood: 'Add Food',
+      registerFood: 'Register food',
+      viewNutrition: 'View Nutrition',
+      dailyDetails: 'Daily details',
+      todayMeals: 'Today\'s Meals',
+      noMealsRegistered: 'No meals registered',
+      startAdding: 'Start by adding your first meal of the day',
+      addFirstMeal: 'Add First Meal',
+      addMoreFood: 'Add More Food',
+      breakfast: 'Breakfast',
+      lunch: 'Lunch',
+      dinner: 'Dinner',
+      snack: 'Snack'
+    }
+  };
+
+  const t = translations[language as keyof typeof translations] || translations.es;
 
   // Prevent hydration mismatch
   if (!mounted) {
@@ -134,10 +221,10 @@ export default function Home() {
 
   const getMealTypeLabel = (mealType: string): string => {
     const labels: Record<MealType, string> = {
-      'desayuno': 'Desayuno',
-      'almuerzo': 'Almuerzo',
-      'cena': 'Cena',
-      'snack': 'Snack'
+      'desayuno': t.breakfast,
+      'almuerzo': t.lunch,
+      'cena': t.dinner,
+      'snack': t.snack
     };
     return labels[mealType as MealType] || mealType;
   };
@@ -219,17 +306,23 @@ export default function Home() {
           <div style={{
             width: '48px',
             height: '48px',
-            background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+            background: userData?.picture ? `url(${userData.picture})` : 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
             borderRadius: '50%',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
           }}>
-            <span style={{
-              color: 'white',
-              fontWeight: '600',
-              fontSize: '16px'
-            }}>MG</span>
+            {!userData?.picture && (
+              <span style={{
+                color: 'white',
+                fontWeight: '600',
+                fontSize: '16px'
+              }}>
+                {userData?.name ? userData.name.charAt(0).toUpperCase() : 'U'}
+              </span>
+            )}
           </div>
         </div>
       </header>
@@ -258,14 +351,14 @@ export default function Home() {
               color: '#1f2937',
               margin: 0
             }}>
-              Progreso del Día
+              {t.dailyProgress}
             </h2>
             <Link href="/add-food" className="!rounded-button" style={{
+              textDecoration: 'none',
+              padding: '8px 16px',
               background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
               color: 'white',
-              padding: '8px 16px',
               borderRadius: '20px',
-              textDecoration: 'none',
               fontSize: '14px',
               fontWeight: '500',
               display: 'flex',
@@ -273,7 +366,7 @@ export default function Home() {
               gap: '6px'
             }}>
               <i className="ri-add-line" style={{ fontSize: '16px' }}></i>
-              Agregar
+              {t.add}
             </Link>
           </div>
 
@@ -291,7 +384,7 @@ export default function Home() {
                 fontSize: '16px',
                 fontWeight: '600',
                 color: '#1f2937'
-              }}>Calorías</span>
+              }}>{t.calories}</span>
               <span style={{
                 fontSize: '16px',
                 fontWeight: '600',
@@ -346,7 +439,7 @@ export default function Home() {
                 fontSize: '12px',
                 color: '#6b7280',
                 margin: '0 0 4px 0'
-              }}>Proteínas</p>
+              }}>{t.protein}</p>
               <p style={{
                 fontSize: '14px',
                 fontWeight: '600',
@@ -360,7 +453,7 @@ export default function Home() {
                 color: '#9ca3af',
                 margin: 0
               }}>
-                de {nutritionData.targetProtein}g
+                {t.of} {nutritionData.targetProtein}g
               </p>
             </div>
 
@@ -388,7 +481,7 @@ export default function Home() {
                 fontSize: '12px',
                 color: '#6b7280',
                 margin: '0 0 4px 0'
-              }}>Carbohidratos</p>
+              }}>{t.carbs}</p>
               <p style={{
                 fontSize: '14px',
                 fontWeight: '600',
@@ -402,7 +495,7 @@ export default function Home() {
                 color: '#9ca3af',
                 margin: 0
               }}>
-                de {nutritionData.targetCarbs}g
+                {t.of} {nutritionData.targetCarbs}g
               </p>
             </div>
 
@@ -430,7 +523,7 @@ export default function Home() {
                 fontSize: '12px',
                 color: '#6b7280',
                 margin: '0 0 4px 0'
-              }}>Grasas</p>
+              }}>{t.fats}</p>
               <p style={{
                 fontSize: '14px',
                 fontWeight: '600',
@@ -444,7 +537,7 @@ export default function Home() {
                 color: '#9ca3af',
                 margin: 0
               }}>
-                de {nutritionData.targetFats}g
+                {t.of} {nutritionData.targetFats}g
               </p>
             </div>
           </div>
@@ -464,7 +557,7 @@ export default function Home() {
             color: '#1f2937',
             margin: '0 0 16px 0'
           }}>
-            Acciones Rápidas
+            {t.quickActions}
           </h3>
           <div style={{
             display: 'grid',
@@ -500,14 +593,14 @@ export default function Home() {
                   color: '#1f2937',
                   margin: '0 0 2px 0'
                 }}>
-                  Agregar Comida
+                  {t.addFood}
                 </p>
                 <p style={{
                   fontSize: '12px',
                   color: '#6b7280',
                   margin: 0
                 }}>
-                  Registrar alimento
+                  {t.registerFood}
                 </p>
               </div>
             </Link>
@@ -541,14 +634,14 @@ export default function Home() {
                   color: '#1f2937',
                   margin: '0 0 2px 0'
                 }}>
-                  Ver Nutrición
+                  {t.viewNutrition}
                 </p>
                 <p style={{
                   fontSize: '12px',
                   color: '#6b7280',
                   margin: 0
                 }}>
-                  Detalles diarios
+                  {t.dailyDetails}
                 </p>
               </div>
             </Link>
@@ -568,7 +661,7 @@ export default function Home() {
             color: '#1f2937',
             margin: '0 0 16px 0'
           }}>
-            Comidas de Hoy
+            {t.todayMeals}
           </h3>
           {nutritionData.meals.length === 0 ? (
             <div style={{
@@ -582,13 +675,13 @@ export default function Home() {
                 fontWeight: '500',
                 margin: '0 0 8px 0'
               }}>
-                No hay comidas registradas
+                {t.noMealsRegistered}
               </p>
               <p style={{
                 fontSize: '14px',
                 margin: '0 0 16px 0'
               }}>
-                Comienza agregando tu primera comida del día
+                {t.startAdding}
               </p>
               <Link href="/add-food" className="!rounded-button" style={{
                 background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
@@ -603,7 +696,7 @@ export default function Home() {
                 gap: '8px'
               }}>
                 <i className="ri-add-line"></i>
-                Agregar Primera Comida
+                {t.addFirstMeal}
               </Link>
             </div>
           ) : (
@@ -719,137 +812,14 @@ export default function Home() {
                 textDecoration: 'none'
               }}>
                 <i className="ri-add-line"></i>
-                Agregar Más Comida
+                {t.addMoreFood}
               </Link>
             </div>
           )}
         </div>
       </main>
 
-      {/* Bottom Navigation */}
-      <nav style={{
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        background: 'white',
-        borderTop: '1px solid #e5e7eb',
-        padding: '8px 0'
-      }}>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(5, 1fr)',
-          maxWidth: '375px',
-          margin: '0 auto'
-        }}>
-          <Link href="/" style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            padding: '8px 4px',
-            textDecoration: 'none',
-            color: '#3b82f6'
-          }}>
-            <div style={{
-              width: '24px',
-              height: '24px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: '4px'
-            }}>
-              <i className="ri-home-fill" style={{ fontSize: '18px' }}></i>
-            </div>
-            <span style={{ fontSize: '12px', fontWeight: '500' }}>Inicio</span>
-          </Link>
-
-          <Link href="/nutrition" style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            padding: '8px 4px',
-            textDecoration: 'none',
-            color: '#9ca3af'
-          }}>
-            <div style={{
-              width: '24px',
-              height: '24px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: '4px'
-            }}>
-              <i className="ri-pie-chart-line" style={{ fontSize: '18px' }}></i>
-            </div>
-            <span style={{ fontSize: '12px' }}>Nutrición</span>
-          </Link>
-
-          <Link href="/add-food" style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            padding: '8px 4px',
-            textDecoration: 'none',
-            color: '#9ca3af'
-          }}>
-            <div style={{
-              width: '32px',
-              height: '32px',
-              background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: '4px'
-            }}>
-              <i className="ri-add-line" style={{ color: 'white', fontSize: '18px' }}></i>
-            </div>
-            <span style={{ fontSize: '12px' }}>Agregar</span>
-          </Link>
-
-          <Link href="/progress" style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            padding: '8px 4px',
-            textDecoration: 'none',
-            color: '#9ca3af'
-          }}>
-            <div style={{
-              width: '24px',
-              height: '24px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: '4px'
-            }}>
-              <i className="ri-line-chart-line" style={{ fontSize: '18px' }}></i>
-            </div>
-            <span style={{ fontSize: '12px' }}>Progreso</span>
-          </Link>
-
-          <Link href="/profile" style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            padding: '8px 4px',
-            textDecoration: 'none',
-            color: '#9ca3af'
-          }}>
-            <div style={{
-              width: '24px',
-              height: '24px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: '4px'
-            }}>
-              <i className="ri-user-line" style={{ fontSize: '18px' }}></i>
-            </div>
-            <span style={{ fontSize: '12px' }}>Perfil</span>
-          </Link>
-        </div>
-      </nav>
+      <BottomNavigation />
     </div>
   );
 }
