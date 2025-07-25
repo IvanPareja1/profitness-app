@@ -1,7 +1,6 @@
 
 // Modified code
 'use client';
-
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
@@ -472,189 +471,69 @@ export default function AddFood() {
     setDetectedFoods([]);
   };
 
-  const searchOpenFoodFacts = async (barcode: string) => {
+  const startCameraDetection = async () => {
     try {
-      setIsLoadingProduct(true);
-      setProductNotFound(false);
+      setShowCameraDetection(true);
+      setIsAnalyzing(false);
+      setDetectedFoods([]);
 
-      const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
-      const data = await response.json();
-
-      if (data.status === 1 && data.product) {
-        const product = data.product;
-
-        // Extract nutritional information
-        const nutriments = product.nutriments || {};
-        const serving100g = product.serving_size ? parseFloat(product.serving_size) : 100;
-
-        const productData = {
-          name: product.product_name || 'Producto sin nombre',
-          brand: product.brands || 'Marca no especificada',
-          barcode: barcode,
-          calories: nutriments.energy_100g ? Math.round(nutriments.energy_100g * 0.239) : nutriments['energy-kcal_100g'] || 0,
-          protein: nutriments.proteins_100g || 0,
-          carbs: nutriments.carbohydrates_100g || 0,
-          fats: nutriments.fat_100g || 0,
-          fiber: nutriments.fiber_100g || 0,
-          sugar: nutriments.sugars_100g || 0,
-          sodium: nutriments.sodium_100g || 0,
-          servingSize: serving100g,
-          category: product.categories || 'Sin categoría',
-          imageUrl: product.image_url,
-          ingredients: product.ingredients_text || 'No disponible',
-          countries: product.countries || 'Mundial',
-          stores: product.stores || 'Diversos',
-          quantity: product.quantity || 'No especificado'
-        };
-
-        setRealBarcodeData(productData);
-
-        // Fill custom form with real data
-        setCustomFood({
-          name: productData.name,
-          calories: productData.calories.toString(),
-          protein: productData.protein.toString(),
-          carbs: productData.carbs.toString(),
-          fats: productData.fats.toString(),
-          fiber: productData.fiber.toString()
-        });
-
-        setIsLoadingProduct(false);
-        setIsScanning(false);
-        setShowBarcodeScanner(false);
-        setShowCustomFood(true);
-        stopCamera();
-
-        // Show product information
-        showProductInfo(productData);
-
-      } else {
-        // Product not found, use simulated data
-        setProductNotFound(true);
-        setIsLoadingProduct(false);
-        simulateBarcodeDetection();
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Tu dispositivo no soporta acceso a la cámara');
       }
 
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: 'environment',
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      });
+
+      setCameraStream(stream);
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+      }
+
+      const infoMessage = document.createElement('div');
+      infoMessage.style.cssText = `
+        position: fixed;
+        top: 100px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0,0,0,0.8);
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        z-index: 2002;
+        font-size: 14px;
+        text-align: center;
+        max-width: 300px;
+      `;
+      infoMessage.innerHTML = 'Apunta la cámara hacia la comida para detectar automáticamente.';
+      document.body.appendChild(infoMessage);
+
+      setTimeout(() => {
+        if (document.body.contains(infoMessage)) {
+          document.body.removeChild(infoMessage);
+        }
+      }, 4000);
+
+      // Simulate food detection after 3 seconds
+      setTimeout(() => {
+        simulateFoodDetection();
+      }, 3000);
+
     } catch (error) {
-      console.error('Error searching on OpenFoodFacts:', error);
-      setIsLoadingProduct(false);
-      setProductNotFound(true);
-      // Fallback to simulated data
-      simulateBarcodeDetection();
+      console.log('Error accessing camera:', error);
     }
   };
 
-  const showProductInfo = (productData: any) => {
-    const productInfo = document.createElement('div');
-    productInfo.style.cssText = `
-      position: fixed;
-      top: 80px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: white;
-      border: 1px solid #e5e7eb;
-      border-radius: 16px;
-      padding: 20px;
-      z-index: 3000;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-      max-width: 340px;
-      width: 90%;
-      max-height: 500px;
-      overflow-y: auto;
-    `;
+  const simulateFoodDetection = () => {
+    if (isAnalyzing) return;
 
-    productInfo.innerHTML = `
-      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-        <div style="width: 40px; height: 40px; background: #10b981; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-          <i class="ri-check-line" style="color: white; font-size: 20px;"></i>
-        </div>
-        <div>
-          <h3 style="font-size: 16px; font-weight: 600; color: #1f2937; margin: 0;">¡Producto encontrado!</h3>
-          <p style="font-size: 12px; color: #6b7280; margin: 0;">OpenFoodFacts • ${productData.barcode}</p>
-        </div>
-      </div>
-
-      ${productData.imageUrl ? `
-        <div style="margin-bottom: 16px;">
-          <img src="${productData.imageUrl}" alt="${productData.name}" style="width: 100%; height: 120px; object-fit: cover; border-radius: 8px;" />
-        </div>
-      ` : ``}
-
-      <div style="margin-bottom: 16px;">
-        <h4 style="font-size: 14px; font-weight: 600; color: #1f2937; margin: 0 0 4px 0;">${productData.name}</h4>
-        <p style="font-size: 12px; color: #6b7280; margin: 0 0 8px 0;">${productData.brand}</p>
-        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-          <span style="font-size: 10px; background: #f3f4f6; color: #6b7280; padding: 2px 6px; border-radius: 4px;">${productData.category}</span>
-          <span style="font-size: 10px; background: #e0f2fe; color: #0891b2; padding: 2px 6px; border-radius: 4px;">Por 100g</span>
-        </div>
-      </div>
-
-      <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 16px;">
-        <div style="text-align: center; padding: 8px; background: #f0f9ff; border-radius: 8px;">
-          <p style="font-size: 14px; font-weight: 700; color: #3b82f6; margin: 0;">${productData.calories}</p>
-          <p style="font-size: 10px; color: #6b7280; margin: 0;">Calorías</p>
-        </div>
-        <div style="text-align: center; padding: 8px; background: #f0fdf4; border-radius: 8px;">
-          <p style="font-size: 14px; font-weight: 700; color: #16a34a; margin: 0;">${productData.protein.toFixed(1)}g</p>
-          <p style="font-size: 10px; color: #6b7280; margin: 0;">Proteína</p>
-        </div>
-        <div style="text-align: center; padding: 8px; background: #fefce8; border-radius: 8px;">
-          <p style="font-size: 14px; font-weight: 700; color: #f59e0b; margin: 0;">${productData.carbs.toFixed(1)}g</p>
-          <p style="font-size: 10px; color: #6b7280; margin: 0;">Carbohidratos</p>
-        </div>
-        <div style="text-align: center; padding: 8px; background: #faf5ff; border-radius: 8px;">
-          <p style="font-size: 14px; font-weight: 700; color: #8b5cf6; margin: 0;">${productData.fats.toFixed(1)}g</p>
-          <p style="font-size: 10px; color: #6b7280; margin: 0;">Grasas</p>
-        </div>
-      </div>
-
-      ${productData.fiber > 0 ? `
-        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 16px;">
-          <div style="text-align: center; padding: 8px; background: #f0fdf4; border-radius: 8px;">
-            <p style="font-size: 14px; font-weight: 700; color: #059669; margin: 0;">${productData.fiber.toFixed(1)}g</p>
-            <p style="font-size: 10px; color: #6b7280; margin: 0;">Fibra</p>
-          </div>
-          ${productData.sugar > 0 ? `
-            <div style="text-align: center; padding: 8px; background: #fff7ed; border-radius: 8px;">
-              <p style="font-size: 14px; font-weight: 700; color: #ea580c; margin: 0;">${productData.sugar.toFixed(1)}g</p>
-              <p style="font-size: 10px; color: #6b7280; margin: 0;">Azúcar</p>
-            </div>
-          ` : ``}
-        </div>
-      ` : ``}
-
-      <div style="margin-bottom: 16px;">
-        <h5 style="font-size: 12px; font-weight: 600; color: #1f2937; margin: 0 0 8px 0;">Información adicional:</h5>
-        <div style="font-size: 11px; color: #6b7280; line-height: 1.4;">
-          <p style="margin: 0 0 4px 0;"><strong>Cantidad:</strong> ${productData.quantity}</p>
-          <p style="margin: 0 0 4px 0;"><strong>Países:</strong> ${productData.countries}</p>
-          ${productData.stores !== 'Diversos' ? `<p style="margin: 0;"><strong>Tiendas:</strong> ${productData.stores}</p>` : ``}
-        </div>
-      </div>
-
-      <div style="display: flex; gap: 8px;">
-        <button onclick="this.parentElement.parentElement.remove()" style="flex: 1; padding: 10px; background: #f3f4f6; color: #6b7280; border: none; border-radius: 8px; font-size: 12px; font-weight: 500; cursor: pointer;">
-          Cerrar
-        </button>
-        <button onclick="this.parentElement.parentElement.remove()" style="flex: 2; padding: 10px; background: #10b981; color: white; border: none; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer;">
-          Continuar
-        </button>
-      </div>
-    `;
-
-    document.body.appendChild(productInfo);
-
-    setTimeout(() => {
-      if (document.body.contains(productInfo)) {
-        document.body.removeChild(productInfo);
-      }
-    }, 15000);
-  };
-
-  const simulateBarcodeDetection = () => {
-    if (isScanning) return;
-
-    setIsScanning(true);
+    setIsAnalyzing(true);
 
     const analysisMessage = document.createElement('div');
     analysisMessage.style.cssText = `
@@ -662,7 +541,7 @@ export default function AddFood() {
       top: 120px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(16, 185, 129, 0.9);
+      background: rgba(139, 92, 246, 0.9);
       color: white;
       padding: 10px 16px;
       border-radius: 8px;
@@ -674,7 +553,7 @@ export default function AddFood() {
     `;
     analysisMessage.innerHTML = `
       <div style="width: 16px; height: 16px; border: 2px solid white; border-top: 2px solid transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-      Buscando en OpenFoodFacts...
+      Analizando imagen con IA...
     `;
     document.body.appendChild(analysisMessage);
 
@@ -683,32 +562,119 @@ export default function AddFood() {
         document.body.removeChild(analysisMessage);
       }
 
-      // Simulate different real barcodes
-      const realBarcodes = [
-        '7501000673209', // Avena Quaker
-        '7501055363032', // Leche Lala
-        '7501030400016', // Pan Bimbo
-        '7501000118243', // Yogur Danone
-        '7501055317028', // Pollo Pilgrim's
-        '8901030895920', // Coca Cola
-        '7622210992741', // Oreo
-        '7501000100071', // Nestlé
-        '7501000149489', // Kellogg's
-        '7501000192205'  // Sabritas
+      // Simulate detected foods
+      const detectedFoodOptions = [
+        { name: 'Pechuga de pollo', calories: 165, protein: 31, carbs: 0, fats: 3.6, fiber: 0, confidence: 0.89 },
+        { name: 'Arroz blanco', calories: 130, protein: 2.7, carbs: 28, fats: 0.3, fiber: 0.4, confidence: 0.92 },
+        { name: 'Brócoli', calories: 34, protein: 2.8, carbs: 7, fats: 0.4, fiber: 2.6, confidence: 0.85 },
+        { name: 'Banana', calories: 89, protein: 1.1, carbs: 23, fats: 0.3, fiber: 2.6, confidence: 0.91 },
+        { name: 'Salmón', calories: 208, protein: 25, carbs: 0, fats: 12, fiber: 0, confidence: 0.87 }
       ];
 
-      const randomBarcode = realBarcodes[Math.floor(Math.random() * realBarcodes.length)];
+      const randomFoods = detectedFoodOptions
+        .sort(() => Math.random() - 0.5)
+        .slice(0, Math.floor(Math.random() * 3) + 1);
 
-      // Try to search for real product
-      searchOpenFoodFacts(randomBarcode);
+      setDetectedFoods(randomFoods);
+      setIsAnalyzing(false);
 
-    }, 2000);
+      // Show detection results
+      showDetectionResults(randomFoods);
+
+    }, 2500);
   };
 
-  const handleRealBarcodeScan = (barcode: string) => {
-    if (barcode && barcode.length >= 8) {
-      searchOpenFoodFacts(barcode);
-    }
+  const showDetectionResults = (foods: any[]) => {
+    const resultsModal = document.createElement('div');
+    resultsModal.style.cssText = `
+      position: fixed;
+      top: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      z-index: 3000;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+      max-width: 340px;
+      width: 90%;
+      max-height: 500px;
+      overflow-y: auto;
+    `;
+
+    resultsModal.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+        <div style="width: 40px; height: 40px; background: #8b5cf6; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+          <i class="ri-eye-line" style="color: white; font-size: 20px;"></i>
+        </div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 600; color: #1f2937; margin: 0;">Alimentos Detectados</h3>
+          <p style="font-size: 12px; color: #6b7280; margin: 0;">IA Visual • ${foods.length} elemento${foods.length > 1 ? 's' : ''}</p>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        ${foods.map(food => `
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 8px; cursor: pointer;" onclick="selectDetectedFood('${food.name}')">
+            <div style="flex: 1;">
+              <h4 style="font-size: 14px; font-weight: 600; color: #1f2937; margin: 0 0 4px 0;">${food.name}</h4>
+              <div style="display: flex; gap: 12px; font-size: 11px; color: #6b7280;">
+                <span>${food.calories} cal</span>
+                <span>${food.protein}g prot</span>
+                <span>${food.carbs}g carb</span>
+                <span>${food.fats}g gras</span>
+              </div>
+            </div>
+            <div style="text-align: right;">
+              <div style="background: #10b981; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 500;">
+                ${Math.round(food.confidence * 100)}%
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+
+      <div style="display: flex; gap: 8px;">
+        <button onclick="this.parentElement.parentElement.remove(); stopCamera();" style="flex: 1; padding: 10px; background: #f3f4f6; color: #6b7280; border: none; border-radius: 8px; font-size: 12px; font-weight: 500; cursor: pointer;">
+          Cancelar
+        </button>
+        <button onclick="this.parentElement.parentElement.remove(); stopCamera();" style="flex: 1; padding: 10px; background: #8b5cf6; color: white; border: none; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer;">
+          Continuar
+        </button>
+      </div>
+    `;
+
+    document.body.appendChild(resultsModal);
+
+    // Add global function to select detected food
+    (window as any).selectDetectedFood = (foodName: string) => {
+      const selectedFood = foods.find(f => f.name === foodName);
+      if (selectedFood) {
+        setCustomFood({
+          name: selectedFood.name,
+          calories: selectedFood.calories.toString(),
+          protein: selectedFood.protein.toString(),
+          carbs: selectedFood.carbs.toString(),
+          fats: selectedFood.fats.toString(),
+          fiber: selectedFood.fiber.toString()
+        });
+
+        setShowCustomFood(true);
+        setCurrentTab('food');
+
+        // Remove modal and stop camera
+        if (document.body.contains(resultsModal)) {
+          document.body.removeChild(resultsModal);
+        }
+        stopCamera();
+      }
+    };
+
+    setTimeout(() => {
+      if (document.body.contains(resultsModal)) {
+        document.body.removeChild(resultsModal);
+      }
+    }, 15000);
   };
 
   return (
@@ -1032,6 +998,179 @@ export default function AddFood() {
             `}</style>
           </div>
         )}
+
+        {/* Camera detection modal */}
+        {showCameraDetection && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'black',
+            zIndex: 2000,
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
+            <div style={{
+              position: 'absolute',
+              top: '20px',
+              left: '20px',
+              right: '20px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              zIndex: 2001
+            }}>
+              <div>
+                <h3 style={{
+                  color: 'white',
+                  fontSize: '18px',
+                  fontWeight: '600',
+                  margin: 0
+                }}>
+                  Detectar Comida
+                </h3>
+                <p style={{
+                  color: '#a3a3a3',
+                  fontSize: '12px',
+                  margin: '2px 0 0 0'
+                }}>
+                  Apunta hacia la comida
+                </p>
+              </div>
+              <button
+                onClick={stopCamera}
+                className="!rounded-button"
+                style={{
+                  width: '40px',
+                  height: '40px',
+                  background: 'rgba(255,255,255,0.2)',
+                  border: 'none',
+                  borderRadius: '50%',
+                  color: 'white',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <i className="ri-close-line" style={{ fontSize: '20px' }}></i>
+              </button>
+            </div>
+
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover'
+              }}
+            />
+
+            <div style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: '200px',
+              height: '200px',
+              border: '2px solid #8b5cf6',
+              borderRadius: '50%',
+              background: 'rgba(139, 92, 246, 0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 2001
+            }}>
+              {isAnalyzing && (
+                <div style={{
+                  width: '180px',
+                  height: '180px',
+                  border: '2px solid #8b5cf6',
+                  borderRadius: '50%',
+                  animation: 'pulse 2s ease-in-out infinite'
+                }}></div>
+              )}
+              <div style={{ textAlign: 'center', position: 'absolute' }}>
+                <i className="ri-camera-line" style={{
+                  color: 'white',
+                  fontSize: '32px',
+                  marginBottom: '8px'
+                }}></i>
+                <p style={{
+                  color: 'white',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  margin: 0
+                }}>
+                  {isAnalyzing ? 'Analizando...' : 'Coloca la comida aquí'}
+                </p>
+              </div>
+            </div>
+
+            <div style={{
+              position: 'absolute',
+              bottom: '40px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              zIndex: 2001
+            }}>
+              <button
+                onClick={simulateFoodDetection}
+                disabled={isAnalyzing}
+                className="!rounded-button"
+                style={{
+                  padding: '16px 24px',
+                  background: isAnalyzing ? 'rgba(255,255,255,0.3)' : '#8b5cf6',
+                  border: 'none',
+                  borderRadius: '12px',
+                  color: 'white',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  cursor: isAnalyzing ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                {isAnalyzing ? (
+                  <>
+                    <div style={{
+                      width: '16px',
+                      height: '16px',
+                      border: '2px solid #ffffff40',
+                      borderTop: '2px solid #ffffff',
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite'
+                    }}></div>
+                    Analizando...
+                  </>
+                ) : (
+                  <>
+                    <i className="ri-eye-line"></i>
+                    Detectar Comida
+                  </>
+                )}
+              </button>
+            </div>
+
+            <style jsx>{`
+              @keyframes pulse {
+                0% { transform: scale(1); opacity: 1; }
+                50% { transform: scale(1.05); opacity: 0.7; }
+                100% { transform: scale(1); opacity: 1; }
+              }
+              @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+              }
+            `}</style>
+          </div>
+        )}
+
       </main>
 
       <BottomNavigation />
