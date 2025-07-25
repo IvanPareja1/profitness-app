@@ -936,7 +936,7 @@ export default function AddFood() {
               zIndex: 2001
             }}>
               <button
-                onClick={simulateBarcodeDetection}
+                onClick={simulateFoodDetection}
                 disabled={isScanning || isLoadingProduct}
                 className="!rounded-button"
                 style={{
