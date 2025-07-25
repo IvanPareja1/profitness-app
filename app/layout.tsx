@@ -41,12 +41,13 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: 'https://static.readdy.ai/image/5f858daf8e885166d7b6b0d007fda7b6/b919b60500cd326adbc377e080df2286.png', sizes: '32x32', type: 'image/png' },
-      { url: 'https://static.readdy.ai/image/5f858daf8e885166d7b6b0d007fda7b6/e9614fd88948e5f050315d0d06f626d9.png', sizes: '192x192', type: 'image/png' },
-      { url: 'https://static.readdy.ai/image/5f858daf8e885166d7b6b0d007fda7b6/44cb678ba841e2a3e91ec8fab16b8a98.png', sizes: '512x512', type: 'image/png' },
+      { url: 'https://static.readdy.ai/image/5f858daf8e885166d7b6b0d007fda7b6/3996af3f516097f6140fa851c5b0df5f.png', sizes: '32x32', type: 'image/png' },
+      { url: 'https://static.readdy.ai/image/5f858daf8e885166d7b6b0d007fda7b6/7625649a127219bd3a34457055bff123.png', sizes: '152x152', type: 'image/png' },
+      { url: 'https://static.readdy.ai/image/5f858daf8e885166d7b6b0d007fda7b6/e0de0a483af0a27a07c5f5d0c4bdfb20.png', sizes: '192x192', type: 'image/png' },
+      { url: 'https://static.readdy.ai/image/5f858daf8e885166d7b6b0d007fda7b6/a9bb3a212a263e3f4d517d4f87414af6.png', sizes: '512x512', type: 'image/png' },
     ],
     apple: [
-      { url: 'https://static.readdy.ai/image/5f858daf8e885166d7b6b0d007fda7b6/77bd3515efa7348a1751277596a4d025.png', sizes: '180x180', type: 'image/png' },
+      { url: 'https://static.readdy.ai/image/5f858daf8e885166d7b6b0d007fda7b6/2834b0a0b957a555e9a866f31c9e4d63.png', sizes: '180x180', type: 'image/png' },
     ],
   },
   other: {

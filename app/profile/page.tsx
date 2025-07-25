@@ -16,7 +16,7 @@ export default function Profile() {
     weight: '',
     height: '',
     activityLevel: 'moderate',
-    workActivity: 'sedentary', 
+    workActivity: 'sedentary',
     goal: 'maintain',
     language: 'es',
     targetCalories: 2000,
@@ -33,7 +33,7 @@ export default function Profile() {
   const [showGoalsModal, setShowGoalsModal] = useState(false);
   const [showRestDayModal, setShowRestDayModal] = useState(false);
   const [showSyncModal, setShowSyncModal] = useState(false);
-  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error>('idle');
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
   const [healthData, setHealthData] = useState({
     steps: 0,
     activeMinutes: 0,
@@ -44,13 +44,13 @@ export default function Profile() {
   });
   const [restDaySettings, setRestDaySettings] = useState({
     enabled: false,
-    selectedDays: [] as number[], 
+    selectedDays: [] as number[],
     todayIsRestDay: false,
     autoAdjustMacros: true,
     calorieReduction: 300,
     proteinMaintain: true,
-    carbReduction: 0.4, 
-    fatIncrease: 0.1 
+    carbReduction: 0.4,
+    fatIncrease: 0.1
   });
   const router = useRouter();
 
@@ -62,27 +62,27 @@ export default function Profile() {
       if (userData) {
         const userObj = JSON.parse(userData);
         setUser(userObj);
-        
+
         const profileData = localStorage.getItem('userProfile');
         if (profileData) {
           const parsed = JSON.parse(profileData);
-          
+
           if (!parsed.name && userObj.name) {
             parsed.name = userObj.name;
           }
           if (!parsed.email && userObj.email) {
             parsed.email = userObj.email;
           }
-          
+
           if (!parsed.workActivity) {
             parsed.workActivity = 'sedentary';
           }
           if (!parsed.syncEnabled) {
             parsed.syncEnabled = false;
           }
-          
+
           setProfile(parsed);
-          
+
           localStorage.setItem('userProfile', JSON.stringify(parsed));
         } else {
           const newProfile = {
@@ -131,10 +131,10 @@ export default function Profile() {
     const syncInterval = setInterval(() => {
       const currentProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
       if (currentProfile.syncEnabled) {
-        syncHealthData(); 
+        syncHealthData();
       }
-    }, 30 * 60 * 1000); 
-    
+    }, 30 * 60 * 1000);
+
     return () => clearInterval(syncInterval);
   }, []);
 
@@ -142,18 +142,18 @@ export default function Profile() {
     try {
       localStorage.setItem('userProfile', JSON.stringify(profile));
       localStorage.setItem('appLanguage', profile.language);
-      
+
       const updatedUser = {
         ...user,
         name: profile.name,
         email: profile.email
       };
-      
+
       localStorage.setItem('userData', JSON.stringify(updatedUser));
       setUser(updatedUser);
-      
+
       setIsEditing(false);
-      
+
       // Emit event to update navigation language
       window.dispatchEvent(new CustomEvent('profileUpdated'));
     } catch (error) {
@@ -271,10 +271,10 @@ export default function Profile() {
 
   const connectToHealthApp = async (provider: string) => {
     setSyncStatus('syncing');
-    
+
     try {
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
+
       const mockHealthData = {
         steps: Math.floor(Math.random() * 8000) + 4000,
         activeMinutes: Math.floor(Math.random() * 60) + 30,
@@ -285,10 +285,10 @@ export default function Profile() {
       };
 
       setHealthData(mockHealthData);
-      
+
       const avgSteps = Math.floor(Math.random() * 3000) + mockHealthData.steps;
       const detectedActivity = detectWorkActivity(avgSteps);
-      
+
       const updatedProfile = {
         ...profile,
         syncEnabled: true,
@@ -302,13 +302,13 @@ export default function Profile() {
       setProfile(updatedProfile);
       localStorage.setItem('userProfile', JSON.stringify(updatedProfile));
       localStorage.setItem('healthData', JSON.stringify(mockHealthData));
-      
+
       setSyncStatus('success');
-      
+
       setTimeout(() => {
         setSyncStatus('idle');
       }, 3000);
-      
+
     } catch (error) {
       console.log('Error connecting to health app:', error);
       setSyncStatus('error');
@@ -320,12 +320,12 @@ export default function Profile() {
 
   const syncHealthData = async () => {
     if (!profile.syncEnabled) return;
-    
+
     setSyncStatus('syncing');
-    
+
     try {
       await new Promise(resolve => setTimeout(resolve, 1500));
-      
+
       const today = new Date();
       const mockHealthData = {
         steps: Math.floor(Math.random() * 8000) + 4000,
@@ -337,10 +337,10 @@ export default function Profile() {
       };
 
       setHealthData(mockHealthData);
-      
+
       const avgSteps = Math.floor(Math.random() * 3000) + mockHealthData.steps;
       const detectedActivity = detectWorkActivity(avgSteps);
-      
+
       const updatedProfile = {
         ...profile,
         lastSyncTime: today.toISOString(),
@@ -353,13 +353,13 @@ export default function Profile() {
       setProfile(updatedProfile);
       localStorage.setItem('userProfile', JSON.stringify(updatedProfile));
       localStorage.setItem('healthData', JSON.stringify(mockHealthData));
-      
+
       setSyncStatus('success');
-      
+
       setTimeout(() => {
         setSyncStatus('idle');
       }, 3000);
-      
+
     } catch (error) {
       console.log('Error syncing health data:', error);
       setSyncStatus('error');
@@ -378,7 +378,7 @@ export default function Profile() {
       isConnected: false,
       lastUpdate: null
     });
-    
+
     const updatedProfile = {
       ...profile,
       syncEnabled: false,
@@ -387,7 +387,7 @@ export default function Profile() {
       avgActiveMinutes: 0,
       avgCaloriesBurned: 0
     };
-    
+
     setProfile(updatedProfile);
     localStorage.setItem('userProfile', JSON.stringify(updatedProfile));
     localStorage.removeItem('healthData');
@@ -403,19 +403,19 @@ export default function Profile() {
     const bmr = 88.362 + (13.397 * weight) + (4.799 * height) - (5.677 * age);
 
     const workMultipliers: { [key: string]: number } = {
-      sedentary: 1.2,       
-      lightWork: 1.35,       
-      moderateWork: 1.5,     
-      activeWork: 1.65,      
-      veryActiveWork: 1.8    
+      sedentary: 1.2,
+      lightWork: 1.35,
+      moderateWork: 1.5,
+      activeWork: 1.65,
+      veryActiveWork: 1.8
     };
 
     const exerciseMultipliers: { [key: string]: number } = {
-      none: 0,           
-      light: 0.1,        
-      moderate: 0.2,     
-      active: 0.3,       
-      veryActive: 0.4    
+      none: 0,
+      light: 0.1,
+      moderate: 0.2,
+      active: 0.3,
+      veryActive: 0.4
     };
 
     const workTDEE = bmr * workMultipliers[profile.workActivity];
@@ -423,7 +423,7 @@ export default function Profile() {
     let totalTDEE = workTDEE + exerciseBonus;
 
     if (profile.syncEnabled && profile.avgCaloriesBurned > 0) {
-      const healthBonus = profile.avgCaloriesBurned * 0.1; 
+      const healthBonus = profile.avgCaloriesBurned * 0.1;
       totalTDEE += healthBonus;
     }
 
@@ -526,9 +526,9 @@ export default function Profile() {
         localStorage.setItem(`nutrition_${today}`, JSON.stringify(nutrition));
       }
 
-      window.dispatchEvent(new CustomEvent('nutritionDataUpdated', { 
-        detail: { 
-          date: today, 
+      window.dispatchEvent(new CustomEvent('nutritionDataUpdated', {
+        detail: {
+          date: today,
           data: {
             targetCalories: adjustedCalories,
             targetProtein: adjustedProtein,
@@ -557,7 +557,7 @@ export default function Profile() {
       if (userData) {
         const user = JSON.parse(userData);
         const userEmail = user.email;
-        
+
         // Crear backup completo antes de cerrar sesión
         const backupData = {
           userData: JSON.parse(localStorage.getItem('userData') || '{}'),
@@ -841,7 +841,7 @@ export default function Profile() {
           <div style={{
             width: '80px',
             height: '80px',
-            background: user?.picture ? `url(${user.picture})` : 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+            background: user?.picture ? `url(${user.picture})` : `linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             borderRadius: '50%',
