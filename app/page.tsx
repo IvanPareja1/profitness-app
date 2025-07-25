@@ -3,6 +3,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import BottomNavigation from '../components/BottomNavigation';
 import InstallPrompt from '../components/InstallPrompt';
 
@@ -48,9 +49,17 @@ export default function Home() {
     targetFats: 67,
     meals: []
   });
+  const router = useRouter();
 
   useEffect(() => {
     setMounted(true);
+
+    // Verificar autenticación antes de cargar datos
+    const isAuthenticated = localStorage.getItem('isAuthenticated');
+    if (!isAuthenticated || isAuthenticated !== 'true') {
+      router.push('/login');
+      return;
+    }
 
     try {
       const userDataStored = localStorage.getItem('userData');
@@ -63,6 +72,15 @@ export default function Home() {
       if (userProfile) {
         const profile = JSON.parse(userProfile);
         setLanguage(profile.language || 'es');
+
+        // Actualizar targets desde el perfil
+        setNutritionData(prev => ({
+          ...prev,
+          targetCalories: profile.targetCalories || 2000,
+          targetProtein: profile.targetProtein || 120,
+          targetCarbs: profile.targetCarbs || 250,
+          targetFats: profile.targetFats || 67
+        }));
       }
     } catch (error) {
       console.log('Error loading user data:', error);
@@ -89,7 +107,22 @@ export default function Home() {
             protein: parsed.protein || 0,
             carbs: parsed.carbs || 0,
             fats: parsed.fats || 0,
-            meals: parsed.meals || []
+            meals: parsed.meals || [],
+            // Mantener los targets del perfil, pero permitir override si existen en los datos del día
+            targetCalories: parsed.targetCalories || prev.targetCalories,
+            targetProtein: parsed.targetProtein || prev.targetProtein,
+            targetCarbs: parsed.targetCarbs || prev.targetCarbs,
+            targetFats: parsed.targetFats || prev.targetFats
+          }));
+        } else {
+          // Si no hay datos del día, inicializar con valores vacíos pero mantener targets del perfil
+          setNutritionData(prev => ({
+            ...prev,
+            calories: 0,
+            protein: 0,
+            carbs: 0,
+            fats: 0,
+            meals: []
           }));
         }
       } catch (error) {
@@ -122,7 +155,7 @@ export default function Home() {
       window.removeEventListener('nutritionDataUpdated', handleNutritionUpdate);
       window.removeEventListener('profileUpdated', handleLanguageChange);
     };
-  }, []);
+  }, [router]);
 
   const translations = {
     es: {

@@ -45,7 +45,7 @@ export default function Login() {
     if (window.google) {
       // Tu Google Client ID real configurado
       const CLIENT_ID = "234981966694-v0qeb0nj89mrscnn5nef6o0eddj2fi15.apps.googleusercontent.com";
-      
+
       window.google.accounts.id.initialize({
         client_id: CLIENT_ID,
         callback: handleGoogleSignIn,
@@ -82,6 +82,13 @@ export default function Login() {
         throw new Error('Token inválido recibido de Google');
       }
 
+      // Limpiar todos los datos existentes antes de crear el nuevo usuario
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('nutrition_') || key === 'userProfile' || key === 'userData' || key === 'userProfilePhoto') {
+          localStorage.removeItem(key);
+        }
+      });
+
       // Guardar datos del usuario
       const userData = {
         name: payload.name,
@@ -94,39 +101,30 @@ export default function Login() {
       localStorage.setItem('userData', JSON.stringify(userData));
       localStorage.setItem('isAuthenticated', 'true');
 
-      // Actualizar el perfil con los datos de Google
-      const existingProfile = localStorage.getItem('userProfile');
-      if (existingProfile) {
-        const profile = JSON.parse(existingProfile);
-        profile.name = userData.name;
-        profile.email = userData.email;
-        localStorage.setItem('userProfile', JSON.stringify(profile));
-      } else {
-        // Crear perfil inicial si no existe
-        const newProfile = {
-          name: userData.name,
-          email: userData.email,
-          age: '',
-          weight: '',
-          height: '',
-          activityLevel: 'moderate',
-          workActivity: 'sedentary',
-          goal: 'maintain',
-          language: 'es',
-          targetCalories: 2000,
-          targetProtein: 120,
-          targetCarbs: 250,
-          targetFats: 67,
-          targetWater: 2500,
-          targetFiber: 25,
-          syncEnabled: false,
-          lastSyncTime: null,
-          avgDailySteps: 0,
-          avgActiveMinutes: 0,
-          avgCaloriesBurned: 0
-        };
-        localStorage.setItem('userProfile', JSON.stringify(newProfile));
-      }
+      // Crear perfil inicial limpio
+      const newProfile = {
+        name: userData.name,
+        email: userData.email,
+        age: '',
+        weight: '',
+        height: '',
+        activityLevel: 'moderate',
+        workActivity: 'sedentary',
+        goal: 'maintain',
+        language: 'es',
+        targetCalories: 2000,
+        targetProtein: 120,
+        targetCarbs: 250,
+        targetFats: 67,
+        targetWater: 2500,
+        targetFiber: 25,
+        syncEnabled: false,
+        lastSyncTime: null,
+        avgDailySteps: 0,
+        avgActiveMinutes: 0,
+        avgCaloriesBurned: 0
+      };
+      localStorage.setItem('userProfile', JSON.stringify(newProfile));
 
       // Guardar foto de perfil
       if (userData.picture) {
@@ -218,6 +216,13 @@ export default function Login() {
 
     localStorage.setItem('userProfile', JSON.stringify(demoProfile));
 
+    // Limpiar datos nutricionales existentes antes de crear datos de demo
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('nutrition_')) {
+        localStorage.removeItem(key);
+      }
+    });
+
     // Crear datos de demostración para nutrición
     const today = new Date().toISOString().split('T')[0];
     const demoNutritionData = {
@@ -299,8 +304,8 @@ export default function Login() {
           maxWidth: '320px'
         }}>
           <LoadingSpinner />
-          <p style={{ 
-            marginTop: '16px', 
+          <p style={{
+            marginTop: '16px',
             color: '#6b7280',
             fontSize: '16px',
             fontWeight: '500'
@@ -331,11 +336,16 @@ export default function Login() {
       }}>
         {/* Logo y título */}
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <div style={{ marginBottom: '20px' }}>
-            <Logo size="xl" />
+          <div style={{
+            marginBottom: '20px',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center'
+          }}>
+            <Logo size="lg" />
           </div>
           <h1 style={{
-            fontSize: '32px',
+            fontSize: '28px',
             fontWeight: 'bold',
             color: '#1f2937',
             fontFamily: 'Pacifico, serif',
@@ -345,7 +355,7 @@ export default function Login() {
           </h1>
           <p style={{
             color: '#6b7280',
-            fontSize: '18px',
+            fontSize: '16px',
             lineHeight: '1.6',
             maxWidth: '280px',
             margin: '0 auto'
@@ -425,31 +435,34 @@ export default function Login() {
           }}></div>
         </div>
 
-        {/* Botón de demostración */}
-        <button
-          onClick={handleDemoLogin}
-          disabled={isLoading}
-          style={{
-            width: '100%',
-            background: isLoading ? '#e5e7eb' : 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
-            color: 'white',
-            padding: '16px',
-            borderRadius: '12px',
-            border: 'none',
-            fontSize: '16px',
-            fontWeight: 'bold',
-            cursor: isLoading ? 'not-allowed' : 'pointer',
-            transition: 'all 0.2s ease',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px'
-          }}
-          className="!rounded-button"
-        >
-          <i className="ri-play-circle-line" style={{ fontSize: '20px' }}></i>
-          Continuar con Demo
-        </button>
+        {/* Botón de demostración - Solo mostrar si DEMO_MODE está activado */}
+        {process.env.NODE_ENV === 'development' && (
+          <button
+            onClick={handleDemoLogin}
+            disabled={isLoading}
+            style={{
+              width: '100%',
+              background: isLoading ? '#e5e7eb' : 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+              color: 'white',
+              padding: '16px',
+              borderRadius: '12px',
+              border: 'none',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              cursor: isLoading ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s ease',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              marginBottom: '16px'
+            }}
+            className="!rounded-button"
+          >
+            <i className="ri-play-circle-line" style={{ fontSize: '20px' }}></i>
+            Continuar con Demo
+          </button>
+        )}
 
         {/* Mensaje de error */}
         {error && (
