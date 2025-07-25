@@ -563,7 +563,7 @@ export default function Profile() {
           userData: JSON.parse(localStorage.getItem('userData') || '{}'),
           userProfile: JSON.parse(localStorage.getItem('userProfile') || '{}'),
           userProfilePhoto: localStorage.getItem('userProfilePhoto'),
-          nutritionData: {},
+          nutritionData: {} as { [key: string]: string | null },
           restDaySettings: localStorage.getItem('restDaySettings'),
           hydrationReminder: localStorage.getItem('hydrationReminder'),
           healthData: localStorage.getItem('healthData'),
