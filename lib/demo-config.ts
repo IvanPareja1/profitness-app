@@ -1,3 +1,4 @@
+
 // Configuración del modo demo
 export const DEMO_CONFIG = {
   // Cambiar a false para deshabilitar el modo demo en producción
@@ -77,5 +78,13 @@ export const DEMO_CONFIG = {
         fiber: 2
       }
     ]
+  },
+  
+  // Configuración de funciones simuladas
+  FEATURES: {
+    BARCODE_SCANNER: true,
+    CAMERA_DETECTION: true,
+    OPENAI_INTEGRATION: true,
+    GOOGLE_HEALTH_SYNC: true
   }
 };

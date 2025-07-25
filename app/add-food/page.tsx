@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import BottomNavigation from '../../components/BottomNavigation';
+import { DEMO_CONFIG } from '../../lib/demo-config';
 
 const popularFoods = [
   { name: 'Pechuga de pollo', calories: 165, protein: 31, carbs: 0, fats: 3.6, fiber: 0 },
@@ -237,7 +238,7 @@ export default function AddFood() {
 
     const nutrition = selectedFood
       ? calculateNutrition(foodToAdd, quantity)
-      : foodToAdd;
+      : foodToEnd;
 
     const today = new Date().toISOString().split('T')[0];
 
@@ -298,7 +299,7 @@ export default function AddFood() {
 
     const nutrition = selectedLiquid
       ? calculateLiquidNutrition(liquidToAdd, liquidQuantity)
-      : liquidToAdd;
+      : liquidToEnd;
 
     const today = new Date().toISOString().split('T')[0];
 
@@ -531,6 +532,9 @@ export default function AddFood() {
   };
 
   const simulateFoodDetection = () => {
+    // Solo funciona en modo demo
+    if (!DEMO_CONFIG.ENABLED) return;
+
     if (isAnalyzing) return;
 
     setIsAnalyzing(true);
@@ -584,6 +588,162 @@ export default function AddFood() {
     }, 2500);
   };
 
+  const simulateBarcodeDetection = async () => {
+    // Solo funciona en modo demo
+    if (!DEMO_CONFIG.ENABLED) return;
+
+    if (isScanning || isLoadingProduct) return;
+
+    setIsScanning(true);
+    setIsLoadingProduct(true);
+    setProductNotFound(false);
+
+    // Simulate barcode scanning process
+    const scanningMessage = document.createElement('div');
+    scanningMessage.style.cssText = `
+      position: fixed;
+      top: 120px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(16, 185, 129, 0.9);
+      color: white;
+      padding: 10px 16px;
+      border-radius: 8px;
+      z-index: 2002;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    `;
+    scanningMessage.innerHTML = `
+      <div style="width: 16px; height: 16px; border: 2px solid white; border-top: 2px solid transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+      Consultando OpenFoodFacts...
+    `;
+    document.body.appendChild(scanningMessage);
+
+    setTimeout(() => {
+      if (document.body.contains(scanningMessage)) {
+        document.body.removeChild(scanningMessage);
+      }
+
+      // Simulate product data from OpenFoodFacts
+      const productData = {
+        product_name: 'Galletas Oreo Original',
+        nutriments: {
+          'energy-kcal_100g': 480,
+          'proteins_100g': 6.9,
+          'carbohydrates_100g': 71,
+          'fat_100g': 18,
+          'fiber_100g': 3.5
+        },
+        brands: 'Oreo',
+        quantity: '154g',
+        image_url: 'https://readdy.ai/api/search-image?query=Oreo%20cookies%20package%20realistic%20product%20photography%20white%20background&width=200&height=200&seq=oreo-product&orientation=squarish'
+      };
+
+      setRealBarcodeData(productData);
+      setIsScanning(false);
+      setIsLoadingProduct(false);
+
+      // Show product information modal
+      showProductModal(productData);
+
+    }, 3000);
+  };
+
+  const showProductModal = (product: any) => {
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.8);
+      z-index: 3000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    `;
+
+    modal.innerHTML = `
+      <div style="background: white; border-radius: 16px; padding: 24px; max-width: 340px; width: 100%; max-height: 90vh; overflow-y: auto;">
+        <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 20px;">
+          <div style="width: 60px; height: 60px; background: #f3f4f6; border-radius: 12px; overflow: hidden;">
+            <img src="${product.image_url}" style="width: 100%; height: 100%; object-fit: cover;" />
+          </div>
+          <div>
+            <h3 style="font-size: 16px; font-weight: 600; color: #1f2937; margin: 0;">${product.product_name}</h3>
+            <p style="font-size: 12px; color: #6b7280; margin: 0;">${product.brands} • ${product.quantity}</p>
+            <div style="display: flex; align-items: center; gap: 6px; margin-top: 4px;">
+              <i class="ri-shield-check-line" style="color: #10b981; font-size: 14px;"></i>
+              <span style="font-size: 11px; color: #10b981; font-weight: 500;">Verificado por OpenFoodFacts</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="background: #f9fafb; border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+          <h4 style="font-size: 14px; font-weight: 600; color: #1f2937; margin: 0 0 12px 0;">Información Nutricional (100g)</h4>
+          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+            <div style="text-align: center;">
+              <div style="font-size: 18px; font-weight: 700; color: #dc2626;">${product.nutriments['energy-kcal_100g']}</div>
+              <div style="font-size: 11px; color: #6b7280;">Calorías</div>
+            </div>
+            <div style="text-align: center;">
+              <div style="font-size: 18px; font-weight: 700; color: #059669;">${product.nutriments['proteins_100g']}g</div>
+              <div style="font-size: 11px; color: #6b7280;">Proteínas</div>
+            </div>
+            <div style="text-align: center;">
+              <div style="font-size: 18px; font-weight: 700; color: #d97706;">${product.nutriments['carbohydrates_100g']}g</div>
+              <div style="font-size: 11px; color: #6b7280;">Carbohidratos</div>
+            </div>
+            <div style="text-align: center;">
+              <div style="font-size: 18px; font-weight: 700; color: #7c3aed;">${product.nutriments['fat_100g']}g</div>
+              <div style="font-size: 11px; color: #6b7280;">Grasas</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 12px;">
+          <button onclick="this.parentElement.parentElement.parentElement.remove(); stopCamera();" style="flex: 1; padding: 12px; background: #f3f4f6; color: #6b7280; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer;">Cancelar</button>
+          <button onclick="addScannedProduct(); this.parentElement.parentElement.parentElement.remove(); stopCamera();" style="flex: 1; padding: 12px; background: #10b981; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;">Agregar Producto</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Add global function to add scanned product
+    (window as any).addScannedProduct = () => {
+      setCustomFood({
+        name: product.product_name,
+        calories: product.nutriments['energy-kcal_100g'].toString(),
+        protein: product.nutriments['proteins_100g'].toString(),
+        carbs: product.nutriments['carbohydrates_100g'].toString(),
+        fats: product.nutriments['fat_100g'].toString(),
+        fiber: product.nutriments['fiber_100g'].toString()
+      });
+
+      setShowCustomFood(true);
+      setCurrentTab('food');
+    };
+
+    // Close modal when clicking outside
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        document.body.removeChild(modal);
+        stopCamera();
+      }
+    });
+
+    setTimeout(() => {
+      if (document.body.contains(modal)) {
+        document.body.removeChild(modal);
+      }
+    }, 30000);
+  };
+
   const showDetectionResults = (foods: any[]) => {
     const resultsModal = document.createElement('div');
     resultsModal.style.cssText = `
@@ -631,16 +791,13 @@ export default function AddFood() {
               </div>
             </div>
           </div>
-        `).join('')}
+        `).join('')
+        }
       </div>
 
       <div style="display: flex; gap: 8px;">
-        <button onclick="this.parentElement.parentElement.remove(); stopCamera();" style="flex: 1; padding: 10px; background: #f3f4f6; color: #6b7280; border: none; border-radius: 8px; font-size: 12px; font-weight: 500; cursor: pointer;">
-          Cancelar
-        </button>
-        <button onclick="this.parentElement.parentElement.remove(); stopCamera();" style="flex: 1; padding: 10px; background: #8b5cf6; color: white; border: none; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer;">
-          Continuar
-        </button>
+        <button onclick="this.parentElement.parentElement.remove(); stopCamera();" style="flex: 1; padding: 10px; background: #f3f4f6; color: #6b7280; border: none; border-radius: 8px; font-size: 12px; font-weight: 500; cursor: pointer;">Cancelar</button>
+        <button onclick="this.parentElement.parentElement.remove(); stopCamera();" style="flex: 1; padding: 10px; background: #8b5cf6; color: white; border: none; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer;">Continuar</button>
       </div>
     `;
 
@@ -766,8 +923,10 @@ export default function AddFood() {
               }}
             >
               <i className="ri-qr-scan-line" style={{ fontSize: '24px' }}></i>
-              Escanear Código Real
-              <span style={{ fontSize: '10px', opacity: '0.8' }}>OpenFoodFacts</span>
+              Escanear Código
+              <span style={{ fontSize: '10px', opacity: '0.8' }}>
+                {DEMO_CONFIG.ENABLED ? 'Demo' : 'OpenFoodFacts'}
+              </span>
             </button>
 
             <button
@@ -790,21 +949,26 @@ export default function AddFood() {
             >
               <i className="ri-camera-line" style={{ fontSize: '24px' }}></i>
               Detectar con Cámara
-              <span style={{ fontSize: '10px', opacity: '0.8' }}>IA Visual</span>
+              <span style={{ fontSize: '10px', opacity: '0.8' }}>
+                {DEMO_CONFIG.ENABLED ? 'Demo IA' : 'IA Visual'}
+              </span>
             </button>
           </div>
 
           <div style={{
-            background: '#f0f9ff',
+            background: DEMO_CONFIG.ENABLED ? '#fef3c7' : '#f0f9ff',
             borderRadius: '8px',
             padding: '12px',
             display: 'flex',
             alignItems: 'center',
             gap: '8px'
           }}>
-            <i className="ri-information-line" style={{ color: '#3b82f6', fontSize: '16px' }}></i>
-            <span style={{ fontSize: '12px', color: '#3b82f6' }}>
-              Ahora puedes escanear productos reales de supermercados con información nutricional auténtica.
+            <i className={`ri-${DEMO_CONFIG.ENABLED ? 'flask' : 'information'}-line`} style={{ color: DEMO_CONFIG.ENABLED ? '#d97706' : '#3b82f6', fontSize: '16px' }}></i>
+            <span style={{ fontSize: '12px', color: DEMO_CONFIG.ENABLED ? '#d97706' : '#3b82f6' }}>
+              {DEMO_CONFIG.ENABLED
+                ? 'Modo demostración activado. Las funciones de escaneo son simuladas.'
+                : 'Funciones de escaneo conectadas a servicios reales de OpenFoodFacts.'
+              }
             </span>
           </div>
         </div>
@@ -937,23 +1101,28 @@ export default function AddFood() {
             }}>
               <button
                 onClick={simulateBarcodeDetection}
-                disabled={isScanning || isLoadingProduct}
+                disabled={isScanning || isLoadingProduct || !DEMO_CONFIG.ENABLED}
                 className="!rounded-button"
                 style={{
                   padding: '16px 24px',
-                  background: (isScanning || isLoadingProduct) ? 'rgba(255,255,255,0.3)' : '#10b981',
+                  background: (!DEMO_CONFIG.ENABLED || isScanning || isLoadingProduct) ? 'rgba(255,255,255,0.3)' : '#10b981',
                   border: 'none',
                   borderRadius: '12px',
                   color: 'white',
                   fontSize: '16px',
                   fontWeight: '600',
-                  cursor: (isScanning || isLoadingProduct) ? 'not-allowed' : 'pointer',
+                  cursor: (!DEMO_CONFIG.ENABLED || isScanning || isLoadingProduct) ? 'not-allowed' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px'
                 }}
               >
-                {isLoadingProduct ? (
+                {!DEMO_CONFIG.ENABLED ? (
+                  <>
+                    <i className="ri-lock-line"></i>
+                    Función no disponible
+                  </>
+                ) : isLoadingProduct ? (
                   <>
                     <div style={{
                       width: '16px',
@@ -980,7 +1149,7 @@ export default function AddFood() {
                 ) : (
                   <>
                     <i className="ri-qr-scan-line"></i>
-                    Escanear Producto Real
+                    Simular Escaneo
                   </>
                 )}
               </button>
@@ -1120,23 +1289,28 @@ export default function AddFood() {
             }}>
               <button
                 onClick={simulateFoodDetection}
-                disabled={isAnalyzing}
+                disabled={isAnalyzing || !DEMO_CONFIG.ENABLED}
                 className="!rounded-button"
                 style={{
                   padding: '16px 24px',
-                  background: isAnalyzing ? 'rgba(255,255,255,0.3)' : '#8b5cf6',
+                  background: (!DEMO_CONFIG.ENABLED || isAnalyzing) ? 'rgba(255,255,255,0.3)' : '#8b5cf6',
                   border: 'none',
                   borderRadius: '12px',
                   color: 'white',
                   fontSize: '16px',
                   fontWeight: '600',
-                  cursor: isAnalyzing ? 'not-allowed' : 'pointer',
+                  cursor: (!DEMO_CONFIG.ENABLED || isAnalyzing) ? 'not-allowed' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px'
                 }}
               >
-                {isAnalyzing ? (
+                {!DEMO_CONFIG.ENABLED ? (
+                  <>
+                    <i className="ri-lock-line"></i>
+                    Función no disponible
+                  </>
+                ) : isAnalyzing ? (
                   <>
                     <div style={{
                       width: '16px',
@@ -1151,7 +1325,7 @@ export default function AddFood() {
                 ) : (
                   <>
                     <i className="ri-eye-line"></i>
-                    Detectar Comida
+                    Simular Detección
                   </>
                 )}
               </button>
