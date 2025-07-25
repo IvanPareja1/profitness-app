@@ -4,6 +4,7 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import BottomNavigation from '../components/BottomNavigation';
+import InstallPrompt from '../components/InstallPrompt';
 
 interface Meal {
   id: string;
@@ -51,7 +52,6 @@ export default function Home() {
   useEffect(() => {
     setMounted(true);
 
-    // Load user data and language
     try {
       const userDataStored = localStorage.getItem('userData');
       if (userDataStored) {
@@ -77,7 +77,6 @@ export default function Home() {
     });
     setCurrentDate(formattedDate);
 
-    // Load data for current day
     const loadTodayData = (): void => {
       try {
         const todayKey = today.toISOString().split('T')[0];
@@ -100,12 +99,10 @@ export default function Home() {
 
     loadTodayData();
 
-    // Listen for nutrition updates
     const handleNutritionUpdate = (): void => {
       loadTodayData();
     };
 
-    // Listen for language changes
     const handleLanguageChange = () => {
       try {
         const userProfile = localStorage.getItem('userProfile');
@@ -127,7 +124,6 @@ export default function Home() {
     };
   }, []);
 
-  // Translations
   const translations = {
     es: {
       dailyProgress: 'Progreso del Día',
@@ -179,7 +175,6 @@ export default function Home() {
 
   const t = translations[language as keyof typeof translations] || translations.es;
 
-  // Prevent hydration mismatch
   if (!mounted) {
     return (
       <div style={{
@@ -819,6 +814,7 @@ export default function Home() {
         </div>
       </main>
 
+      <InstallPrompt />
       <BottomNavigation />
     </div>
   );
