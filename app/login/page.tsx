@@ -82,88 +82,115 @@ export default function Login() {
         throw new Error('Token inválido recibido de Google');
       }
 
-      // Limpiar todos los datos existentes antes de crear el nuevo usuario
-      Object.keys(localStorage).forEach(key => {
-        if (key.startsWith('nutrition_') || key === 'userProfile' || key === 'userData' || key === 'userProfilePhoto') {
-          localStorage.removeItem(key);
+      const userEmail = payload.email;
+      
+      // Verificar si el usuario ya existe
+      const existingUserKey = `user_${userEmail}`;
+      const existingUser = localStorage.getItem(existingUserKey);
+
+      if (existingUser) {
+        // Usuario existente - restaurar todos sus datos
+        const userData = JSON.parse(existingUser);
+        
+        // Restaurar datos del usuario
+        localStorage.setItem('userData', JSON.stringify(userData.userData));
+        localStorage.setItem('userProfile', JSON.stringify(userData.userProfile));
+        localStorage.setItem('isAuthenticated', 'true');
+        
+        // Restaurar foto de perfil si existe
+        if (userData.userProfilePhoto) {
+          localStorage.setItem('userProfilePhoto', userData.userProfilePhoto);
         }
-      });
 
-      // Guardar datos del usuario
-      const userData = {
-        name: payload.name,
-        email: payload.email,
-        picture: payload.picture || '',
-        sub: payload.sub,
-        email_verified: payload.email_verified || false
-      };
+        // Restaurar todos los datos nutricionales
+        if (userData.nutritionData) {
+          Object.keys(userData.nutritionData).forEach(key => {
+            localStorage.setItem(key, userData.nutritionData[key]);
+          });
+        }
 
-      localStorage.setItem('userData', JSON.stringify(userData));
-      localStorage.setItem('isAuthenticated', 'true');
+        // Restaurar configuraciones adicionales
+        if (userData.restDaySettings) {
+          localStorage.setItem('restDaySettings', userData.restDaySettings);
+        }
+        if (userData.hydrationReminder) {
+          localStorage.setItem('hydrationReminder', userData.hydrationReminder);
+        }
+        if (userData.healthData) {
+          localStorage.setItem('healthData', userData.healthData);
+        }
 
-      // Crear perfil inicial limpio
-      const newProfile = {
-        name: userData.name,
-        email: userData.email,
-        age: '',
-        weight: '',
-        height: '',
-        activityLevel: 'moderate',
-        workActivity: 'sedentary',
-        goal: 'maintain',
-        language: 'es',
-        targetCalories: 2000,
-        targetProtein: 120,
-        targetCarbs: 250,
-        targetFats: 67,
-        targetWater: 2500,
-        targetFiber: 25,
-        syncEnabled: false,
-        lastSyncTime: null,
-        avgDailySteps: 0,
-        avgActiveMinutes: 0,
-        avgCaloriesBurned: 0
-      };
-      localStorage.setItem('userProfile', JSON.stringify(newProfile));
+        // Mostrar mensaje de bienvenida de regreso
+        showWelcomeMessage(`¡Bienvenido de vuelta, ${userData.userData.name}!`, 'Datos restaurados correctamente');
+        
+      } else {
+        // Usuario nuevo - crear datos limpios
+        const userData = {
+          name: payload.name,
+          email: payload.email,
+          picture: payload.picture || '',
+          sub: payload.sub,
+          email_verified: payload.email_verified || false
+        };
 
-      // Guardar foto de perfil
-      if (userData.picture) {
-        localStorage.setItem('userProfilePhoto', userData.picture);
+        localStorage.setItem('userData', JSON.stringify(userData));
+        localStorage.setItem('isAuthenticated', 'true');
+
+        // Crear perfil inicial limpio
+        const newProfile = {
+          name: userData.name,
+          email: userData.email,
+          age: '',
+          weight: '',
+          height: '',
+          activityLevel: 'moderate',
+          workActivity: 'sedentary',
+          goal: 'maintain',
+          language: 'es',
+          targetCalories: 2000,
+          targetProtein: 120,
+          targetCarbs: 250,
+          targetFats: 67,
+          targetWater: 2500,
+          targetFiber: 25,
+          syncEnabled: false,
+          lastSyncTime: null,
+          avgDailySteps: 0,
+          avgActiveMinutes: 0,
+          avgCaloriesBurned: 0
+        };
+        localStorage.setItem('userProfile', JSON.stringify(newProfile));
+
+        // Guardar foto de perfil
+        if (userData.picture) {
+          localStorage.setItem('userProfilePhoto', userData.picture);
+        }
+
+        // Guardar usuario nuevo en el almacenamiento persistente
+        const newUserData = {
+          userData: userData,
+          userProfile: newProfile,
+          userProfilePhoto: userData.picture || null,
+          nutritionData: {},
+          restDaySettings: null,
+          hydrationReminder: null,
+          healthData: null,
+          createdAt: new Date().toISOString(),
+          lastLogin: new Date().toISOString()
+        };
+        localStorage.setItem(existingUserKey, JSON.stringify(newUserData));
+
+        showWelcomeMessage(`¡Bienvenido, ${userData.name}!`, 'Tu cuenta ha sido creada exitosamente');
       }
 
-      // Mostrar mensaje de éxito
-      const successMessage = document.createElement('div');
-      successMessage.style.cssText = `
-        position: fixed;
-        top: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-        border: 1px solid #bbf7d0;
-        border-radius: 12px;
-        padding: 16px 24px;
-        z-index: 3000;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        display: flex;
-        align-items: center;
-        gap: 12px;
-      `;
-
-      successMessage.innerHTML = `
-        <div style="width: 24px; height: 24px; background: #16a34a; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-          <i class="ri-check-line" style="color: white; font-size: 14px;"></i>
-        </div>
-        <div>
-          <p style="font-size: 14px; font-weight: 600; color: #16a34a; margin: 0;">¡Bienvenido, ${userData.name}!</p>
-          <p style="font-size: 12px; color: #15803d; margin: 0;">Iniciando sesión...</p>
-        </div>
-      `;
-
-      document.body.appendChild(successMessage);
+      // Actualizar última conexión
+      const userKey = `user_${userEmail}`;
+      const userBackup = JSON.parse(localStorage.getItem(userKey) || '{}');
+      userBackup.lastLogin = new Date().toISOString();
+      localStorage.setItem(userKey, JSON.stringify(userBackup));
 
       // Redirigir después de mostrar el mensaje
       setTimeout(() => {
-        document.body.removeChild(successMessage);
         router.push('/');
       }, 2000);
 
@@ -172,6 +199,45 @@ export default function Login() {
       setError('Error al iniciar sesión con Google. Por favor, intenta de nuevo.');
       setIsLoading(false);
     }
+  };
+
+  const showWelcomeMessage = (title: string, subtitle: string) => {
+    const successMessage = document.createElement('div');
+    successMessage.style.cssText = `
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+      border: 1px solid #bbf7d0;
+      border-radius: 12px;
+      padding: 16px 24px;
+      z-index: 3000;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      max-width: 320px;
+      width: 90%;
+    `;
+
+    successMessage.innerHTML = `
+      <div style="width: 24px; height: 24px; background: #16a34a; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+        <i class="ri-check-line" style="color: white; font-size: 14px;"></i>
+      </div>
+      <div>
+        <p style="font-size: 14px; font-weight: 600; color: #16a34a; margin: 0;">${title}</p>
+        <p style="font-size: 12px; color: #15803d; margin: 0;">${subtitle}</p>
+      </div>
+    `;
+
+    document.body.appendChild(successMessage);
+
+    setTimeout(() => {
+      if (document.body.contains(successMessage)) {
+        document.body.removeChild(successMessage);
+      }
+    }, 3000);
   };
 
   const handleDemoLogin = () => {
@@ -215,13 +281,6 @@ export default function Login() {
     };
 
     localStorage.setItem('userProfile', JSON.stringify(demoProfile));
-
-    // Limpiar datos nutricionales existentes antes de crear datos de demo
-    Object.keys(localStorage).forEach(key => {
-      if (key.startsWith('nutrition_')) {
-        localStorage.removeItem(key);
-      }
-    });
 
     // Crear datos de demostración para nutrición
     const today = new Date().toISOString().split('T')[0];

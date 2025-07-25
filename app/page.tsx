@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import BottomNavigation from '../components/BottomNavigation';
 import InstallPrompt from '../components/InstallPrompt';
+import UpdateNotification from '../components/UpdateNotification';
 
 interface Meal {
   id: string;
@@ -847,6 +848,7 @@ export default function Home() {
         </div>
       </main>
 
+      <UpdateNotification />
       <InstallPrompt />
       <BottomNavigation />
     </div>

@@ -33,7 +33,7 @@ export default function Profile() {
   const [showGoalsModal, setShowGoalsModal] = useState(false);
   const [showRestDayModal, setShowRestDayModal] = useState(false);
   const [showSyncModal, setShowSyncModal] = useState(false);
-  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error>('idle');
   const [healthData, setHealthData] = useState({
     steps: 0,
     activeMinutes: 0,
@@ -131,10 +131,9 @@ export default function Profile() {
     const syncInterval = setInterval(() => {
       const currentProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
       if (currentProfile.syncEnabled) {
-        syncHealthData();
+        syncHealthData(); 
       }
     }, 30 * 60 * 1000); 
-    
     
     return () => clearInterval(syncInterval);
   }, []);
@@ -553,18 +552,93 @@ export default function Profile() {
 
   const handleLogout = () => {
     try {
+      // Obtener el email del usuario actual
+      const userData = localStorage.getItem('userData');
+      if (userData) {
+        const user = JSON.parse(userData);
+        const userEmail = user.email;
+        
+        // Crear backup completo antes de cerrar sesión
+        const backupData = {
+          userData: JSON.parse(localStorage.getItem('userData') || '{}'),
+          userProfile: JSON.parse(localStorage.getItem('userProfile') || '{}'),
+          userProfilePhoto: localStorage.getItem('userProfilePhoto'),
+          nutritionData: {},
+          restDaySettings: localStorage.getItem('restDaySettings'),
+          hydrationReminder: localStorage.getItem('hydrationReminder'),
+          healthData: localStorage.getItem('healthData'),
+          lastLogin: new Date().toISOString()
+        };
+
+        // Recopilar todos los datos nutricionales
+        Object.keys(localStorage).forEach(key => {
+          if (key.startsWith('nutrition_')) {
+            backupData.nutritionData[key] = localStorage.getItem(key);
+          }
+        });
+
+        // Guardar backup del usuario
+        const userKey = `user_${userEmail}`;
+        localStorage.setItem(userKey, JSON.stringify(backupData));
+
+        // Mostrar mensaje de confirmación
+        const logoutMessage = document.createElement('div');
+        logoutMessage.style.cssText = `
+          position: fixed;
+          top: 20px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+          border: 1px solid #bbf7d0;
+          border-radius: 12px;
+          padding: 16px 24px;
+          z-index: 3000;
+          box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        `;
+
+        logoutMessage.innerHTML = `
+          <div style="width: 24px; height: 24px; background: #16a34a; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+            <i class="ri-check-line" style="color: white; font-size: 14px;"></i>
+          </div>
+          <div>
+            <p style="font-size: 14px; font-weight: 600; color: #16a34a; margin: 0;">Datos guardados correctamente</p>
+            <p style="font-size: 12px; color: #15803d; margin: 0;">Tu progreso está seguro</p>
+          </div>
+        `;
+
+        document.body.appendChild(logoutMessage);
+
+        setTimeout(() => {
+          if (document.body.contains(logoutMessage)) {
+            document.body.removeChild(logoutMessage);
+          }
+        }, 2000);
+      }
+
+      // Limpiar datos de sesión actual (pero no el backup)
       localStorage.removeItem('userData');
       localStorage.removeItem('userProfile');
       localStorage.removeItem('userProfilePhoto');
       localStorage.removeItem('isAuthenticated');
 
+      // Limpiar datos nutricionales de la sesión actual
       Object.keys(localStorage).forEach(key => {
         if (key.startsWith('nutrition_')) {
           localStorage.removeItem(key);
         }
       });
 
-      router.push('/login');
+      // Limpiar configuraciones de la sesión actual
+      localStorage.removeItem('restDaySettings');
+      localStorage.removeItem('hydrationReminder');
+      localStorage.removeItem('healthData');
+
+      setTimeout(() => {
+        router.push('/login');
+      }, 1000);
     } catch (error) {
       console.log('Error during logout:', error);
       router.push('/login');

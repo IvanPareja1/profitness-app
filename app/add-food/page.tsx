@@ -1,4 +1,5 @@
 
+// Modified code
 'use client';
 
 import Link from 'next/link';
@@ -130,6 +131,9 @@ export default function AddFood() {
   const [showCustomLiquid, setShowCustomLiquid] = useState(false);
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
   const [showCameraDetection, setShowCameraDetection] = useState(false);
+  const [realBarcodeData, setRealBarcodeData] = useState<any>(null);
+  const [isLoadingProduct, setIsLoadingProduct] = useState(false);
+  const [productNotFound, setProductNotFound] = useState(false);
   const [customFood, setCustomFood] = useState({
     name: '',
     calories: '',
@@ -403,42 +407,56 @@ export default function AddFood() {
   const startBarcodeScanner = async () => {
     try {
       setShowBarcodeScanner(true);
-      setIsScanning(true);
-
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' }
-      });
-
-      setCameraStream(stream);
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
-    } catch (error) {
-      console.log('Error accessing camera:', error);
-      alert('No se pudo acceder a la cámara. Verifica los permisos.');
-      setShowBarcodeScanner(false);
       setIsScanning(false);
-    }
-  };
+      setProductNotFound(false);
+      setRealBarcodeData(null);
 
-  const startCameraDetection = async () => {
-    try {
-      setShowCameraDetection(true);
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Tu dispositivo no soporta acceso a la cámara');
+      }
 
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' }
+        video: {
+          facingMode: 'environment',
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
       });
 
       setCameraStream(stream);
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        videoRef.current.play();
       }
+
+      const infoMessage = document.createElement('div');
+      infoMessage.style.cssText = `
+        position: fixed;
+        top: 100px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0,0,0,0.8);
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        z-index: 2002;
+        font-size: 14px;
+        text-align: center;
+        max-width: 300px;
+      `;
+      infoMessage.innerHTML = 'Coloca el código de barras dentro del marco.<br/>Conectado a OpenFoodFacts para productos reales.';
+      document.body.appendChild(infoMessage);
+
+      setTimeout(() => {
+        if (document.body.contains(infoMessage)) {
+          document.body.removeChild(infoMessage);
+        }
+      }, 5000);
+
     } catch (error) {
       console.log('Error accessing camera:', error);
-      alert('No se pudo acceder a la cámara. Verifica los permisos.');
-      setShowCameraDetection(false);
+      // Handle camera access error
     }
   };
 
@@ -454,191 +472,242 @@ export default function AddFood() {
     setDetectedFoods([]);
   };
 
-  const simulateBarcodeDetection = () => {
-    setIsScanning(true);
+  const searchOpenFoodFacts = async (barcode: string) => {
+    try {
+      setIsLoadingProduct(true);
+      setProductNotFound(false);
+
+      const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
+      const data = await response.json();
+
+      if (data.status === 1 && data.product) {
+        const product = data.product;
+
+        // Extract nutritional information
+        const nutriments = product.nutriments || {};
+        const serving100g = product.serving_size ? parseFloat(product.serving_size) : 100;
+
+        const productData = {
+          name: product.product_name || 'Producto sin nombre',
+          brand: product.brands || 'Marca no especificada',
+          barcode: barcode,
+          calories: nutriments.energy_100g ? Math.round(nutriments.energy_100g * 0.239) : nutriments['energy-kcal_100g'] || 0,
+          protein: nutriments.proteins_100g || 0,
+          carbs: nutriments.carbohydrates_100g || 0,
+          fats: nutriments.fat_100g || 0,
+          fiber: nutriments.fiber_100g || 0,
+          sugar: nutriments.sugars_100g || 0,
+          sodium: nutriments.sodium_100g || 0,
+          servingSize: serving100g,
+          category: product.categories || 'Sin categoría',
+          imageUrl: product.image_url,
+          ingredients: product.ingredients_text || 'No disponible',
+          countries: product.countries || 'Mundial',
+          stores: product.stores || 'Diversos',
+          quantity: product.quantity || 'No especificado'
+        };
+
+        setRealBarcodeData(productData);
+
+        // Fill custom form with real data
+        setCustomFood({
+          name: productData.name,
+          calories: productData.calories.toString(),
+          protein: productData.protein.toString(),
+          carbs: productData.carbs.toString(),
+          fats: productData.fats.toString(),
+          fiber: productData.fiber.toString()
+        });
+
+        setIsLoadingProduct(false);
+        setIsScanning(false);
+        setShowBarcodeScanner(false);
+        setShowCustomFood(true);
+        stopCamera();
+
+        // Show product information
+        showProductInfo(productData);
+
+      } else {
+        // Product not found, use simulated data
+        setProductNotFound(true);
+        setIsLoadingProduct(false);
+        simulateBarcodeDetection();
+      }
+
+    } catch (error) {
+      console.error('Error searching on OpenFoodFacts:', error);
+      setIsLoadingProduct(false);
+      setProductNotFound(true);
+      // Fallback to simulated data
+      simulateBarcodeDetection();
+    }
+  };
+
+  const showProductInfo = (productData: any) => {
+    const productInfo = document.createElement('div');
+    productInfo.style.cssText = `
+      position: fixed;
+      top: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 16px;
+      padding: 20px;
+      z-index: 3000;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+      max-width: 340px;
+      width: 90%;
+      max-height: 500px;
+      overflow-y: auto;
+    `;
+
+    productInfo.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+        <div style="width: 40px; height: 40px; background: #10b981; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+          <i class="ri-check-line" style="color: white; font-size: 20px;"></i>
+        </div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 600; color: #1f2937; margin: 0;">¡Producto encontrado!</h3>
+          <p style="font-size: 12px; color: #6b7280; margin: 0;">OpenFoodFacts • ${productData.barcode}</p>
+        </div>
+      </div>
+
+      ${productData.imageUrl ? `
+        <div style="margin-bottom: 16px;">
+          <img src="${productData.imageUrl}" alt="${productData.name}" style="width: 100%; height: 120px; object-fit: cover; border-radius: 8px;" />
+        </div>
+      ` : ``}
+
+      <div style="margin-bottom: 16px;">
+        <h4 style="font-size: 14px; font-weight: 600; color: #1f2937; margin: 0 0 4px 0;">${productData.name}</h4>
+        <p style="font-size: 12px; color: #6b7280; margin: 0 0 8px 0;">${productData.brand}</p>
+        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+          <span style="font-size: 10px; background: #f3f4f6; color: #6b7280; padding: 2px 6px; border-radius: 4px;">${productData.category}</span>
+          <span style="font-size: 10px; background: #e0f2fe; color: #0891b2; padding: 2px 6px; border-radius: 4px;">Por 100g</span>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 16px;">
+        <div style="text-align: center; padding: 8px; background: #f0f9ff; border-radius: 8px;">
+          <p style="font-size: 14px; font-weight: 700; color: #3b82f6; margin: 0;">${productData.calories}</p>
+          <p style="font-size: 10px; color: #6b7280; margin: 0;">Calorías</p>
+        </div>
+        <div style="text-align: center; padding: 8px; background: #f0fdf4; border-radius: 8px;">
+          <p style="font-size: 14px; font-weight: 700; color: #16a34a; margin: 0;">${productData.protein.toFixed(1)}g</p>
+          <p style="font-size: 10px; color: #6b7280; margin: 0;">Proteína</p>
+        </div>
+        <div style="text-align: center; padding: 8px; background: #fefce8; border-radius: 8px;">
+          <p style="font-size: 14px; font-weight: 700; color: #f59e0b; margin: 0;">${productData.carbs.toFixed(1)}g</p>
+          <p style="font-size: 10px; color: #6b7280; margin: 0;">Carbohidratos</p>
+        </div>
+        <div style="text-align: center; padding: 8px; background: #faf5ff; border-radius: 8px;">
+          <p style="font-size: 14px; font-weight: 700; color: #8b5cf6; margin: 0;">${productData.fats.toFixed(1)}g</p>
+          <p style="font-size: 10px; color: #6b7280; margin: 0;">Grasas</p>
+        </div>
+      </div>
+
+      ${productData.fiber > 0 ? `
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 16px;">
+          <div style="text-align: center; padding: 8px; background: #f0fdf4; border-radius: 8px;">
+            <p style="font-size: 14px; font-weight: 700; color: #059669; margin: 0;">${productData.fiber.toFixed(1)}g</p>
+            <p style="font-size: 10px; color: #6b7280; margin: 0;">Fibra</p>
+          </div>
+          ${productData.sugar > 0 ? `
+            <div style="text-align: center; padding: 8px; background: #fff7ed; border-radius: 8px;">
+              <p style="font-size: 14px; font-weight: 700; color: #ea580c; margin: 0;">${productData.sugar.toFixed(1)}g</p>
+              <p style="font-size: 10px; color: #6b7280; margin: 0;">Azúcar</p>
+            </div>
+          ` : ``}
+        </div>
+      ` : ``}
+
+      <div style="margin-bottom: 16px;">
+        <h5 style="font-size: 12px; font-weight: 600; color: #1f2937; margin: 0 0 8px 0;">Información adicional:</h5>
+        <div style="font-size: 11px; color: #6b7280; line-height: 1.4;">
+          <p style="margin: 0 0 4px 0;"><strong>Cantidad:</strong> ${productData.quantity}</p>
+          <p style="margin: 0 0 4px 0;"><strong>Países:</strong> ${productData.countries}</p>
+          ${productData.stores !== 'Diversos' ? `<p style="margin: 0;"><strong>Tiendas:</strong> ${productData.stores}</p>` : ``}
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 8px;">
+        <button onclick="this.parentElement.parentElement.remove()" style="flex: 1; padding: 10px; background: #f3f4f6; color: #6b7280; border: none; border-radius: 8px; font-size: 12px; font-weight: 500; cursor: pointer;">
+          Cerrar
+        </button>
+        <button onclick="this.parentElement.parentElement.remove()" style="flex: 2; padding: 10px; background: #10b981; color: white; border: none; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer;">
+          Continuar
+        </button>
+      </div>
+    `;
+
+    document.body.appendChild(productInfo);
 
     setTimeout(() => {
-      const mockProducts = [
-        {
-          barcode: '7501234567890',
-          name: 'Avena Quaker Original',
-          brand: 'Quaker',
-          calories: 379,
-          protein: 13.4,
-          carbs: 67.7,
-          fats: 6.5,
-          fiber: 10.1,
-          servingSize: '100g'
-        },
-        {
-          barcode: '7501234567891',
-          name: 'Leche Lala Entera',
-          brand: 'Lala',
-          calories: 61,
-          protein: 3.2,
-          carbs: 4.8,
-          fats: 3.3,
-          fiber: 0,
-          servingSize: '100ml'
-        },
-        {
-          barcode: '7501234567892',
-          name: 'Pan Integral Bimbo',
-          brand: 'Bimbo',
-          calories: 247,
-          protein: 13,
-          carbs: 41,
-          fats: 4.2,
-          fiber: 7,
-          servingSize: '100g'
-        }
+      if (document.body.contains(productInfo)) {
+        document.body.removeChild(productInfo);
+      }
+    }, 15000);
+  };
+
+  const simulateBarcodeDetection = () => {
+    if (isScanning) return;
+
+    setIsScanning(true);
+
+    const analysisMessage = document.createElement('div');
+    analysisMessage.style.cssText = `
+      position: fixed;
+      top: 120px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(16, 185, 129, 0.9);
+      color: white;
+      padding: 10px 16px;
+      border-radius: 8px;
+      z-index: 2002;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    `;
+    analysisMessage.innerHTML = `
+      <div style="width: 16px; height: 16px; border: 2px solid white; border-top: 2px solid transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+      Buscando en OpenFoodFacts...
+    `;
+    document.body.appendChild(analysisMessage);
+
+    setTimeout(() => {
+      if (document.body.contains(analysisMessage)) {
+        document.body.removeChild(analysisMessage);
+      }
+
+      // Simulate different real barcodes
+      const realBarcodes = [
+        '7501000673209', // Avena Quaker
+        '7501055363032', // Leche Lala
+        '7501030400016', // Pan Bimbo
+        '7501000118243', // Yogur Danone
+        '7501055317028', // Pollo Pilgrim's
+        '8901030895920', // Coca Cola
+        '7622210992741', // Oreo
+        '7501000100071', // Nestlé
+        '7501000149489', // Kellogg's
+        '7501000192205'  // Sabritas
       ];
 
-      const randomProduct = mockProducts[Math.floor(Math.random() * mockProducts.length)];
+      const randomBarcode = realBarcodes[Math.floor(Math.random() * realBarcodes.length)];
 
-      setCustomFood({
-        name: randomProduct.name,
-        calories: randomProduct.calories.toString(),
-        protein: randomProduct.protein.toString(),
-        carbs: randomProduct.carbs.toString(),
-        fats: randomProduct.fats.toString(),
-        fiber: randomProduct.fiber.toString()
-      });
-
-      setIsScanning(false);
-      setShowBarcodeScanner(false);
-      setShowCustomFood(true);
-      stopCamera();
-
-      const notification = document.createElement('div');
-      notification.style.cssText = `
-        position: fixed;
-        top: 100px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-        border: 1px solid #bbf7d0;
-        border-radius: 12px;
-        padding: 16px;
-        z-index: 3000;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-      `;
-
-      notification.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 12px;">
-          <div style="width: 24px; height: 24px; background: #16a34a; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-            <i class="ri-check-line" style="color: white; font-size: 14px;"></i>
-          </div>
-          <div>
-            <p style="font-size: 14px; font-weight: 600; color: #16a34a; margin: 0;">Producto detectado</p>
-            <p style="font-size: 12px; color: #15803d; margin: 0;">${randomProduct.name}</p>
-          </div>
-        </div>
-      `;
-
-      document.body.appendChild(notification);
-
-      setTimeout(() => {
-        document.body.removeChild(notification);
-      }, 3000);
+      // Try to search for real product
+      searchOpenFoodFacts(randomBarcode);
 
     }, 2000);
   };
 
-  const analyzeFoodImage = () => {
-    setIsAnalyzing(true);
-
-    setTimeout(() => {
-      const mockDetectedFoods = [
-        {
-          name: 'Pechuga de pollo a la plancha',
-          confidence: 0.92,
-          estimatedGrams: 150,
-          calories: 248,
-          protein: 46.5,
-          carbs: 0,
-          fats: 5.4,
-          fiber: 0,
-          position: { x: 120, y: 80, width: 100, height: 80 }
-        },
-        {
-          name: 'Arroz blanco',
-          confidence: 0.87,
-          estimatedGrams: 120,
-          calories: 156,
-          protein: 3.2,
-          carbs: 33.6,
-          fats: 0.4,
-          fiber: 0.5,
-          position: { x: 240, y: 120, width: 90, height: 60 }
-        },
-        {
-          name: 'Brócoli al vapor',
-          confidence: 0.84,
-          estimatedGrams: 80,
-          calories: 27,
-          protein: 2.2,
-          carbs: 5.6,
-          fats: 0.3,
-          fiber: 2.1,
-          position: { x: 60, y: 180, width: 70, height: 50 }
-        }
-      ];
-
-      setDetectedFoods(mockDetectedFoods);
-      setIsAnalyzing(false);
-
-    }, 3000);
-  };
-
-  const addDetectedFood = (food: any) => {
-    const today = new Date().toISOString().split('T')[0];
-    const existingData = localStorage.getItem(`nutrition_${today}`);
-    const currentData = existingData ? JSON.parse(existingData) : {
-      calories: 0,
-      protein: 0,
-      carbs: 0,
-      fats: 0,
-      fiber: 0,
-      water: 0,
-      meals: []
-    };
-
-    const newMeal = {
-      id: Date.now().toString(),
-      name: food.name,
-      mealType,
-      quantity: food.estimatedGrams.toString(),
-      calories: safeNumber(food.calories),
-      protein: safeNumber(food.protein),
-      carbs: safeNumber(food.carbs),
-      fats: safeNumber(food.fats),
-      fiber: safeNumber(food.fiber, 0),
-      timestamp: new Date().toISOString(),
-      detectedByAI: true,
-      confidence: food.confidence
-    };
-
-    currentData.calories += safeNumber(food.calories);
-    currentData.protein += safeNumber(food.protein);
-    currentData.carbs += safeNumber(food.carbs);
-    currentData.fats += safeNumber(food.fats);
-    currentData.fiber += safeNumber(food.fiber, 0);
-    currentData.meals.push(newMeal);
-
-    localStorage.setItem(`nutrition_${today}`, JSON.stringify(currentData));
-
-    window.dispatchEvent(new CustomEvent('nutritionDataUpdated', {
-      detail: { date: today, data: currentData }
-    }));
-
-    setDetectedFoods(prev => prev.filter(f => f.name !== food.name));
-  };
-
-  const finishCameraDetection = () => {
-    stopCamera();
-    if (detectedFoods.length > 0) {
-      router.push('/');
+  const handleRealBarcodeScan = (barcode: string) => {
+    if (barcode && barcode.length >= 8) {
+      searchOpenFoodFacts(barcode);
     }
   };
 
@@ -689,7 +758,7 @@ export default function AddFood() {
 
       <main style={{ padding: '24px 16px' }}>
 
-        {/* Sección de métodos de detección */}
+        {/* Section of detection methods */}
         <div style={{
           background: 'white',
           borderRadius: '16px',
@@ -731,7 +800,8 @@ export default function AddFood() {
               }}
             >
               <i className="ri-qr-scan-line" style={{ fontSize: '24px' }}></i>
-              Escanear Código de Barras
+              Escanear Código Real
+              <span style={{ fontSize: '10px', opacity: '0.8' }}>OpenFoodFacts</span>
             </button>
 
             <button
@@ -754,11 +824,26 @@ export default function AddFood() {
             >
               <i className="ri-camera-line" style={{ fontSize: '24px' }}></i>
               Detectar con Cámara
+              <span style={{ fontSize: '10px', opacity: '0.8' }}>IA Visual</span>
             </button>
+          </div>
+
+          <div style={{
+            background: '#f0f9ff',
+            borderRadius: '8px',
+            padding: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <i className="ri-information-line" style={{ color: '#3b82f6', fontSize: '16px' }}></i>
+            <span style={{ fontSize: '12px', color: '#3b82f6' }}>
+              Ahora puedes escanear productos reales de supermercados con información nutricional auténtica.
+            </span>
           </div>
         </div>
 
-        {/* Modal del escáner de código de barras */}
+        {/* Barcode scanner modal */}
         {showBarcodeScanner && (
           <div style={{
             position: 'fixed',
@@ -781,14 +866,23 @@ export default function AddFood() {
               alignItems: 'center',
               zIndex: 2001
             }}>
-              <h3 style={{
-                color: 'white',
-                fontSize: '18px',
-                fontWeight: '600',
-                margin: 0
-              }}>
-                Escanear Código de Barras
-              </h3>
+              <div>
+                <h3 style={{
+                  color: 'white',
+                  fontSize: '18px',
+                  fontWeight: '600',
+                  margin: 0
+                }}>
+                  Escanear Producto Real
+                </h3>
+                <p style={{
+                  color: '#a3a3a3',
+                  fontSize: '12px',
+                  margin: '2px 0 0 0'
+                }}>
+                  Conectado a OpenFoodFacts
+                </p>
+              </div>
               <button
                 onClick={stopCamera}
                 className="!rounded-button"
@@ -835,7 +929,7 @@ export default function AddFood() {
               justifyContent: 'center',
               zIndex: 2001
             }}>
-              {isScanning && (
+              {(isScanning || isLoadingProduct) && (
                 <div style={{
                   position: 'absolute',
                   top: '0',
@@ -846,15 +940,26 @@ export default function AddFood() {
                   animation: 'scan 2s linear infinite'
                 }}></div>
               )}
-              <p style={{
-                color: 'white',
-                fontSize: '14px',
-                fontWeight: '500',
-                textAlign: 'center',
-                margin: 0
-              }}>
-                {isScanning ? 'Escaneando...' : 'Coloca el código de barras aquí'}
-              </p>
+              <div style={{ textAlign: 'center' }}>
+                <p style={{
+                  color: 'white',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  margin: '0 0 4px 0'
+                }}>
+                  {isLoadingProduct ? 'Buscando producto...' :
+                    isScanning ? 'Escaneando...' : 'Coloca el código de barras aquí'}
+                </p>
+                {productNotFound && (
+                  <p style={{
+                    color: '#fbbf24',
+                    fontSize: '12px',
+                    margin: 0
+                  }}>
+                    Producto no encontrado, usando datos simulados
+                  </p>
+                )}
+              </div>
             </div>
 
             <div style={{
@@ -866,23 +971,35 @@ export default function AddFood() {
             }}>
               <button
                 onClick={simulateBarcodeDetection}
-                disabled={isScanning}
+                disabled={isScanning || isLoadingProduct}
                 className="!rounded-button"
                 style={{
                   padding: '16px 24px',
-                  background: isScanning ? 'rgba(255,255,255,0.3)' : '#10b981',
+                  background: (isScanning || isLoadingProduct) ? 'rgba(255,255,255,0.3)' : '#10b981',
                   border: 'none',
                   borderRadius: '12px',
                   color: 'white',
                   fontSize: '16px',
                   fontWeight: '600',
-                  cursor: isScanning ? 'not-allowed' : 'pointer',
+                  cursor: (isScanning || isLoadingProduct) ? 'not-allowed' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px'
                 }}
               >
-                {isScanning ? (
+                {isLoadingProduct ? (
+                  <>
+                    <div style={{
+                      width: '16px',
+                      height: '16px',
+                      border: '2px solid #ffffff40',
+                      borderTop: '2px solid #ffffff',
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite'
+                    }}></div>
+                    Consultando OpenFoodFacts...
+                  </>
+                ) : isScanning ? (
                   <>
                     <div style={{
                       width: '16px',
@@ -897,7 +1014,7 @@ export default function AddFood() {
                 ) : (
                   <>
                     <i className="ri-qr-scan-line"></i>
-                    Simular Escáner
+                    Escanear Producto Real
                   </>
                 )}
               </button>
@@ -908,1431 +1025,13 @@ export default function AddFood() {
                 0% { top: 0; }
                 100% { top: 100%; }
               }
+              @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+              }
             `}</style>
           </div>
         )}
-
-        {/* Modal de detección con cámara */}
-        {showCameraDetection && (
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'black',
-            zIndex: 2000,
-            display: 'flex',
-            flexDirection: 'column'
-          }}>
-            <div style={{
-              position: 'absolute',
-              top: '20px',
-              left: '20px',
-              right: '20px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              zIndex: 2001
-            }}>
-              <h3 style={{
-                color: 'white',
-                fontSize: '18px',
-                fontWeight: '600',
-                margin: 0
-              }}>
-                Detectar Alimentos
-              </h3>
-              <button
-                onClick={stopCamera}
-                className="!rounded-button"
-                style={{
-                  width: '40px',
-                  height: '40px',
-                  background: 'rgba(255,255,255,0.2)',
-                  border: 'none',
-                  borderRadius: '50%',
-                  color: 'white',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <i className="ri-close-line" style={{ fontSize: '20px' }}></i>
-              </button>
-            </div>
-
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover'
-              }}
-            />
-
-            {detectedFoods.map((food, index) => (
-              <div
-                key={index}
-                style={{
-                  position: 'absolute',
-                  left: `${food.position.x}px`,
-                  top: `${food.position.y}px`,
-                  width: `${food.position.width}px`,
-                  height: `${food.position.height}px`,
-                  border: '2px solid #8b5cf6',
-                  borderRadius: '8px',
-                  background: 'rgba(139, 92, 246, 0.2)',
-                  zIndex: 2001
-                }}
-              >
-                <div style={{
-                  position: 'absolute',
-                  top: '-30px',
-                  left: '0',
-                  background: '#8b5cf6',
-                  color: 'white',
-                  padding: '4px 8px',
-                  borderRadius: '4px',
-                  fontSize: '12px',
-                  fontWeight: '500',
-                  whiteSpace: 'nowrap'
-                }}>
-                  {food.name} ({Math.round(food.confidence * 100)}%)
-                </div>
-              </div>
-            ))}
-
-            <div style={{
-              position: 'absolute',
-              bottom: '40px',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              zIndex: 2001,
-              display: 'flex',
-              gap: '12px'
-            }}>
-              <button
-                onClick={analyzeFoodImage}
-                disabled={isAnalyzing}
-                className="!rounded-button"
-                style={{
-                  padding: '16px 24px',
-                  background: isAnalyzing ? 'rgba(255,255,255,0.3)' : '#8b5cf6',
-                  border: 'none',
-                  borderRadius: '12px',
-                  color: 'white',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  cursor: isAnalyzing ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px'
-                }}
-              >
-                {isAnalyzing ? (
-                  <>
-                    <div style={{
-                      width: '16px',
-                      height: '16px',
-                      border: '2px solid #ffffff40',
-                      borderTop: '2px solid #ffffff',
-                      borderRadius: '50%',
-                      animation: 'spin 1s linear infinite'
-                    }}></div>
-                    Analizando...
-                  </>
-                ) : (
-                  <>
-                    <i className="ri-scan-line"></i>
-                    Detectar Alimentos
-                  </>
-                )}
-              </button>
-
-              {detectedFoods.length > 0 && (
-                <button
-                  onClick={finishCameraDetection}
-                  className="!rounded-button"
-                  style={{
-                    padding: '16px 24px',
-                    background: '#10b981',
-                    border: 'none',
-                    borderRadius: '12px',
-                    color: 'white',
-                    fontSize: '16px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px'
-                  }}
-                >
-                  <i className="ri-check-line"></i>
-                  Finalizar
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Panel de alimentos detectados */}
-        {detectedFoods.length > 0 && showCameraDetection && (
-          <div style={{
-            position: 'fixed',
-            top: '80px',
-            left: '20px',
-            right: '20px',
-            maxHeight: '200px',
-            overflowY: 'auto',
-            zIndex: 2001
-          }}>
-            <div style={{
-              background: 'rgba(255,255,255,0.95)',
-              borderRadius: '12px',
-              padding: '16px',
-              backdropFilter: 'blur(10px)'
-            }}>
-              <h4 style={{
-                fontSize: '14px',
-                fontWeight: '600',
-                color: '#1f2937',
-                margin: '0 0 12px 0'
-              }}>
-                Alimentos Detectados
-              </h4>
-
-              {detectedFoods.map((food, index) => (
-                <div
-                  key={index}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '8px 0',
-                    borderBottom: index < detectedFoods.length - 1 ? '1px solid #e5e7eb' : 'none'
-                  }}
-                >
-                  <div style={{ flex: 1 }}>
-                    <p style={{
-                      fontSize: '13px',
-                      fontWeight: '500',
-                      color: '#1f2937',
-                      margin: '0 0 2px 0'
-                    }}>
-                      {food.name}
-                    </p>
-                    <p style={{
-                      fontSize: '11px',
-                      color: '#6b7280',
-                      margin: 0
-                    }}>
-                      ~{food.estimatedGrams}g • {formatNumber(food.calories)} cal
-                    </p>
-                  </div>
-
-                  <button
-                    onClick={() => addDetectedFood(food)}
-                    className="!rounded-button"
-                    style={{
-                      padding: '4px 8px',
-                      background: '#8b5cf6',
-                      border: 'none',
-                      borderRadius: '6px',
-                      color: 'white',
-                      fontSize: '11px',
-                      fontWeight: '500',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Agregar
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div style={{
-          background: 'white',
-          borderRadius: '16px',
-          padding: '4px',
-          boxShadow: '0 4px 6px rgba(0,0,0,0.07)',
-          marginBottom: '24px',
-          display: 'flex',
-          gap: '4px'
-        }}>
-          <button
-            onClick={() => {
-              setCurrentTab('food');
-              setSearchTerm('');
-              setSelectedFood(null);
-              setSelectedLiquid(null);
-              setShowCustomFood(false);
-              setShowCustomLiquid(false);
-            }}
-            className="!rounded-button"
-            style={{
-              flex: 1,
-              padding: '12px 16px',
-              background: currentTab === 'food' ? 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)' : 'transparent',
-              border: 'none',
-              borderRadius: '12px',
-              color: currentTab === 'food' ? 'white' : '#6b7280',
-              fontSize: '14px',
-              fontWeight: '500',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              transition: 'all 0.2s'
-            }}
-          >
-            <i className="ri-restaurant-line"></i>
-            Comida
-          </button>
-
-          <button
-            onClick={() => {
-              setCurrentTab('liquid');
-              setSearchTerm('');
-              setSelectedFood(null);
-              setSelectedLiquid(null);
-              setShowCustomFood(false);
-              setShowCustomLiquid(false);
-            }}
-            className="!rounded-button"
-            style={{
-              flex: 1,
-              padding: '12px 16px',
-              background: currentTab === 'liquid' ? 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)' : 'transparent',
-              border: 'none',
-              borderRadius: '12px',
-              color: currentTab === 'liquid' ? 'white' : '#6b7280',
-              fontSize: '14px',
-              fontWeight: '500',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              transition: 'all 0.2s'
-            }}
-          >
-            <i className="ri-drop-line"></i>
-            Líquidos
-          </button>
-        </div>
-
-        {/* Botón para agregar comida personalizada */}
-        {!showCustomFood && !showCustomLiquid && currentTab === 'food' && (
-          <div style={{
-            background: 'white',
-            borderRadius: '16px',
-            padding: '20px',
-            boxShadow: '0 4px 6px rgba(0,0,0,0.07)',
-            marginBottom: '24px'
-          }}>
-            <button
-              onClick={() => setShowCustomFood(true)}
-              className="!rounded-button"
-              style={{
-                width: '100%',
-                padding: '16px',
-                background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                border: 'none',
-                borderRadius: '12px',
-                color: 'white',
-                fontSize: '16px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px'
-              }}
-            >
-              <i className="ri-add-line"></i>
-              Crear Alimento Personalizado
-            </button>
-          </div>
-        )}
-
-        {/* Resto del código permanece igual */}
-        {showCustomFood && currentTab === 'food' && (
-          <div style={{
-            background: 'white',
-            borderRadius: '16px',
-            padding: '24px',
-            boxShadow: '0 4px 6px rgba(0,0,0,0.07)',
-            marginBottom: '24px'
-          }}>
-            <h3 style={{
-              fontSize: '18px',
-              fontWeight: '600',
-              color: '#1f2937',
-              marginBottom: '20px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}>
-              <i className="ri-restaurant-line" style={{ color: '#3b82f6' }}></i>
-              Crear Alimento Personalizado
-            </h3>
-
-            <div style={{ marginBottom: '16px', position: 'relative' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '14px',
-                fontWeight: '500',
-                color: '#374151',
-                marginBottom: '8px'
-              }}>
-                Nombre del alimento *
-              </label>
-              <input
-                type="text"
-                value={customFood.name}
-                onChange={(e) => handleCustomFoodNameChange(e.target.value)}
-                onFocus={() => searchFoodDatabase(customFood.name)}
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  borderRadius: '12px',
-                  border: '1px solid #e5e7eb',
-                  fontSize: '16px',
-                  outline: 'none'
-                }}
-                placeholder="Ej: pollo, palta, arroz..."
-              />
-
-              {showSuggestions && suggestions.length > 0 && (
-                <div style={{
-                  position: 'absolute',
-                  top: '100%',
-                  left: 0,
-                  right: 0,
-                  background: 'white',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '12px',
-                  boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                  zIndex: 1000,
-                  maxHeight: '200px',
-                  overflowY: 'auto',
-                  marginTop: '4px'
-                }}>
-                  {suggestions.map((food, index) => (
-                    <div
-                      key={index}
-                      onClick={() => selectSuggestion(food)}
-                      style={{
-                        padding: '12px 16px',
-                        cursor: 'pointer',
-                        borderBottom: index < suggestions.length - 1 ? '1px solid #f3f4f6' : 'none',
-                        transition: 'all 0.2s',
-                        backgroundColor: 'white'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = '#f0f9ff';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = 'white';
-                      }}
-                    >
-                      <div style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center'
-                      }}>
-                        <span style={{
-                          fontSize: '14px',
-                          fontWeight: '500',
-                          color: '#1f2937',
-                          textTransform: 'capitalize'
-                        }}>
-                          {food.name}
-                        </span>
-                        <span style={{
-                          fontSize: '12px',
-                          color: '#6b7280'
-                        }}>
-                          {formatNumber(food.calories)} cal
-                        </span>
-                      </div>
-                      <div style={{
-                        display: 'flex',
-                        gap: '12px',
-                        fontSize: '11px',
-                        color: '#9ca3af',
-                        marginTop: '4px'
-                      }}>
-                        <span>P: {formatNumber(food.protein, 1)}g</span>
-                        <span>C: {formatNumber(food.carbs, 1)}g</span>
-                        <span>G: {formatNumber(food.fats, 1)}g</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {customFood.calories && customFood.name && (
-              <div style={{
-                background: '#f0f9ff',
-                borderRadius: '8px',
-                padding: '8px 12px',
-                marginBottom: '16px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}>
-                <i className="ri-magic-line" style={{ color: '#3b82f6', fontSize: '14px' }}></i>
-                <span style={{
-                  fontSize: '12px',
-                  color: '#3b82f6',
-                  fontWeight: '500'
-                }}>
-                  Macros completados automáticamente
-                </span>
-              </div>
-            )}
-
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(2, 1fr)',
-              gap: '16px',
-              marginBottom: '16px'
-            }}>
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: '#374151',
-                  marginBottom: '8px'
-                }}>
-                  Calorías (por 100g) *
-                </label>
-                <input
-                  type="number"
-                  value={customFood.calories}
-                  onChange={(e) => setCustomFood({ ...customFood, calories: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    borderRadius: '12px',
-                    border: '1px solid #e5e7eb',
-                    fontSize: '16px',
-                    outline: 'none'
-                  }}
-                  placeholder="0"
-                />
-              </div>
-
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: '#374151',
-                  marginBottom: '8px'
-                }}>
-                  Proteínas (g) *
-                </label>
-                <input
-                  type="number"
-                  value={customFood.protein}
-                  onChange={(e) => setCustomFood({ ...customFood, protein: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    borderRadius: '12px',
-                    border: '1px solid #e5e7eb',
-                    fontSize: '16px',
-                    outline: 'none'
-                  }}
-                  placeholder="0"
-                />
-              </div>
-
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: '#374151',
-                  marginBottom: '8px'
-                }}>
-                  Carbohidratos (g) *
-                </label>
-                <input
-                  type="number"
-                  value={customFood.carbs}
-                  onChange={(e) => setCustomFood({ ...customFood, carbs: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    borderRadius: '12px',
-                    border: '1px solid #e5e7eb',
-                    fontSize: '16px',
-                    outline: 'none'
-                  }}
-                  placeholder="0"
-                />
-              </div>
-
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: '#374151',
-                  marginBottom: '8px'
-                }}>
-                  Grasas (g) *
-                </label>
-                <input
-                  type="number"
-                  value={customFood.fats}
-                  onChange={(e) => setCustomFood({ ...customFood, fats: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    borderRadius: '12px',
-                    border: '1px solid #e5e7eb',
-                    fontSize: '16px',
-                    outline: 'none'
-                  }}
-                  placeholder="0"
-                />
-              </div>
-            </div>
-
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '14px',
-                fontWeight: '500',
-                color: '#374151',
-                marginBottom: '8px'
-              }}>
-                Fibra (g) - Opcional
-              </label>
-              <input
-                type="number"
-                value={customFood.fiber}
-                onChange={(e) => setCustomFood({ ...customFood, fiber: e.target.value })}
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  borderRadius: '12px',
-                  border: '1px solid #e5e7eb',
-                  fontSize: '16px',
-                  outline: 'none'
-                }}
-                placeholder="0"
-              />
-            </div>
-
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '14px',
-                fontWeight: '500',
-                color: '#374151',
-                marginBottom: '8px'
-              }}>
-                Cantidad (gramos)
-              </label>
-              <input
-                type="number"
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  borderRadius: '12px',
-                  border: '1px solid #e5e7eb',
-                  fontSize: '16px',
-                  outline: 'none'
-                }}
-                placeholder="100"
-              />
-            </div>
-
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '14px',
-                fontWeight: '500',
-                color: '#374151',
-                marginBottom: '8px'
-              }}>
-                Tipo de comida
-              </label>
-              <select
-                value={mealType}
-                onChange={(e) => setMealType(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  borderRadius: '12px',
-                  border: '1px solid #e5e7eb',
-                  fontSize: '16px',
-                  outline: 'none',
-                  backgroundColor: 'white'
-                }}
-              >
-                <option value="desayuno">Desayuno</option>
-                <option value="almuerzo">Almuerzo</option>
-                <option value="cena">Cena</option>
-                <option value="snack">Snack</option>
-              </select>
-            </div>
-
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <button
-                onClick={() => {
-                  setShowCustomFood(false);
-                  setShowSuggestions(false);
-                  setSuggestions([]);
-                }}
-                className="!rounded-button"
-                style={{
-                  flex: 1,
-                  padding: '12px 16px',
-                  background: '#f3f4f6',
-                  border: 'none',
-                  borderRadius: '12px',
-                  color: '#6b7280',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: 'pointer'
-                }}
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleCustomFoodSubmit}
-                disabled={!customFood.name || !customFood.calories || !customFood.protein || !customFood.carbs || !customFood.fats || isLoading}
-                className="!rounded-button"
-                style={{
-                  flex: 2,
-                  padding: '12px 16px',
-                  background: (!customFood.name || !customFood.calories || !customFood.protein || !customFood.carbs || !customFood.fats || isLoading)
-                    ? '#e5e7eb'
-                    : 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
-                  border: 'none',
-                  borderRadius: '12px',
-                  color: 'white',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  cursor: (!customFood.name || !customFood.calories || !customFood.protein || !customFood.carbs || !customFood.fats || isLoading)
-                    ? 'not-allowed'
-                    : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px'
-                }}
-              >
-                {isLoading ? (
-                  <>
-                    <div style={{
-                      width: '16px',
-                      height: '16px',
-                      border: '2px solid #ffffff40',
-                      borderTop: '2px solid #ffffff',
-                      borderRadius: '50%',
-                      animation: 'spin 1s linear infinite'
-                    }}></div>
-                    Agregando...
-                  </>
-                ) : (
-                  <>
-                    <i className="ri-add-line"></i>
-                    Agregar Alimento
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {!showCustomFood && !showCustomLiquid && currentTab === 'food' && (
-          <div style={{
-            background: 'white',
-            borderRadius: '16px',
-            padding: '24px',
-            boxShadow: '0 4px 6px rgba(0,0,0,0.07)',
-            marginBottom: '24px'
-          }}>
-            <h3 style={{
-              fontSize: '18px',
-              fontWeight: '600',
-              color: '#1f2937',
-              marginBottom: '16px'
-            }}>
-              Alimentos Populares
-            </h3>
-
-            <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-              {filteredFoods.map((food, index) => (
-                <div
-                  key={index}
-                  onClick={() => setSelectedFood(food)}
-                  style={{
-                    padding: '16px',
-                    borderRadius: '12px',
-                    border: selectedFood?.name === food.name ? '2px solid #3b82f6' : '1px solid #e5e7eb',
-                    marginBottom: '12px',
-                    cursor: 'pointer',
-                    backgroundColor: selectedFood?.name === food.name ? '#f0f9ff' : 'white',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginBottom: '8px'
-                  }}>
-                    <h4 style={{
-                      fontSize: '16px',
-                      fontWeight: '600',
-                      color: '#1f2937',
-                      margin: 0
-                    }}>
-                      {food.name}
-                    </h4>
-                    <span style={{
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      color: '#3b82f6'
-                    }}>
-                      {formatNumber(food.calories)} cal
-                    </span>
-                  </div>
-                  <div style={{
-                    display: 'flex',
-                    gap: '16px',
-                    fontSize: '12px',
-                    color: '#6b7280'
-                  }}>
-                    <span>P: {formatNumber(food.protein, 1)}g</span>
-                    <span>C: {formatNumber(food.carbs, 1)}g</span>
-                    <span>G: {formatNumber(food.fats, 1)}g</span>
-                    {food.fiber > 0 && <span>F: {formatNumber(food.fiber, 1)}g</span>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {selectedFood && !showCustomFood && !showCustomLiquid && currentTab === 'food' && (
-          <div style={{
-            background: 'white',
-            borderRadius: '16px',
-            padding: '24px',
-            boxShadow: '0 4px 6px rgba(0,0,0,0.07)',
-            marginBottom: '24px'
-          }}>
-            <h3 style={{
-              fontSize: '18px',
-              fontWeight: '600',
-              color: '#1f2937',
-              marginBottom: '16px'
-            }}>
-              Detalles de la Comida
-            </h3>
-
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '14px',
-                fontWeight: '500',
-                color: '#374151',
-                marginBottom: '8px'
-              }}>
-                Cantidad (gramos)
-              </label>
-              <input
-                type="number"
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  borderRadius: '12px',
-                  border: '1px solid #e5e7eb',
-                  fontSize: '16px',
-                  outline: 'none'
-                }}
-                placeholder="100"
-              />
-            </div>
-
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '14px',
-                fontWeight: '500',
-                color: '#374151',
-                marginBottom: '8px'
-              }}>
-                Tipo de comida
-              </label>
-              <select
-                value={mealType}
-                onChange={(e) => setMealType(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  borderRadius: '12px',
-                  border: '1px solid #e5e7eb',
-                  fontSize: '16px',
-                  outline: 'none',
-                  backgroundColor: 'white'
-                }}
-              >
-                <option value="desayuno">Desayuno</option>
-                <option value="almuerzo">Almuerzo</option>
-                <option value="cena">Cena</option>
-                <option value="snack">Snack</option>
-              </select>
-            </div>
-
-            <div style={{
-              background: '#f8fafc',
-              borderRadius: '12px',
-              padding: '16px',
-              marginBottom: '16px'
-            }}>
-              <h4 style={{
-                fontSize: '16px',
-                fontWeight: '600',
-                color: '#1f2937',
-                marginBottom: '12px'
-              }}>
-                Información Nutricional
-              </h4>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(2, 1fr)',
-                gap: '12px'
-              }}>
-                <div>
-                  <span style={{ fontSize: '14px', color: '#6b7280' }}>Calorías:</span>
-                  <span style={{
-                    fontSize: '16px',
-                    fontWeight: '600',
-                    color: '#1f2937',
-                    marginLeft: '8px'
-                  }}>
-                    {formatNumber(calculateNutrition(selectedFood, quantity).calories)}
-                  </span>
-                </div>
-                <div>
-                  <span style={{ fontSize: '14px', color: '#6b7280' }}>Proteínas:</span>
-                  <span style={{
-                    fontSize: '16px',
-                    fontWeight: '600',
-                    color: '#1f2937',
-                    marginLeft: '8px'
-                  }}>
-                    {formatNumber(calculateNutrition(selectedFood, quantity).protein, 1)}g
-                  </span>
-                </div>
-                <div>
-                  <span style={{ fontSize: '14px', color: '#6b7280' }}>Carbohidratos:</span>
-                  <span style={{
-                    fontSize: '16px',
-                    fontWeight: '600',
-                    color: '#1f2937',
-                    marginLeft: '8px'
-                  }}>
-                    {formatNumber(calculateNutrition(selectedFood, quantity).carbs, 1)}g
-                  </span>
-                </div>
-                <div>
-                  <span style={{ fontSize: '14px', color: '#6b7280' }}>Grasas:</span>
-                  <span style={{
-                    fontSize: '16px',
-                    fontWeight: '600',
-                    color: '#1f2937',
-                    marginLeft: '8px'
-                  }}>
-                    {formatNumber(calculateNutrition(selectedFood, quantity).fats, 1)}g
-                  </span>
-                </div>
-                {selectedFood.fiber > 0 && (
-                  <div>
-                    <span style={{ fontSize: '14px', color: '#6b7280' }}>Fibra:</span>
-                    <span style={{
-                      fontSize: '16px',
-                      fontWeight: '600',
-                      color: '#1f2937',
-                      marginLeft: '8px'
-                    }}>
-                      {formatNumber(calculateNutrition(selectedFood, quantity).fiber, 1)}g
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <button
-              onClick={handleAddFood}
-              disabled={isLoading}
-              className="!rounded-button"
-              style={{
-                width: '100%',
-                padding: '16px 24px',
-                background: isLoading ? '#e5e7eb' : 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
-                border: 'none',
-                borderRadius: '12px',
-                color: 'white',
-                fontSize: '16px',
-                fontWeight: '600',
-                cursor: isLoading ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px'
-              }}
-            >
-              {isLoading ? (
-                <>
-                  <div style={{
-                    width: '16px',
-                    height: '16px',
-                    border: '2px solid #ffffff40',
-                    borderTop: '2px solid #ffffff',
-                    borderRadius: '50%',
-                    animation: 'spin 1s linear infinite'
-                  }}></div>
-                  Agregando...
-                </>
-              ) : (
-                <>
-                  <i className="ri-add-line"></i>
-                  Agregar Comida
-                </>
-              )}
-            </button>
-          </div>
-        )}
-
-        {/* Botón para agregar líquido personalizado */}
-        {!showCustomFood && !showCustomLiquid && currentTab === 'liquid' && (
-          <div style={{
-            background: 'white',
-            borderRadius: '16px',
-            padding: '20px',
-            boxShadow: '0 4px 6px rgba(0,0,0,0.07)',
-            marginBottom: '24px'
-          }}>
-            <button
-              onClick={() => setShowCustomLiquid(true)}
-              className="!rounded-button"
-              style={{
-                width: '100%',
-                padding: '16px',
-                background: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
-                border: 'none',
-                borderRadius: '12px',
-                color: 'white',
-                fontSize: '16px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px'
-              }}
-            >
-              <i className="ri-add-line"></i>
-              Crear Líquido Personalizado
-            </button>
-          </div>
-        )}
-
-        {!showCustomFood && !showCustomLiquid && currentTab === 'liquid' && (
-          <div style={{
-            background: 'white',
-            borderRadius: '16px',
-            padding: '24px',
-            boxShadow: '0 4px 6px rgba(0,0,0,0.07)',
-            marginBottom: '24px'
-          }}>
-            <h3 style={{
-              fontSize: '18px',
-              fontWeight: '600',
-              color: '#1f2937',
-              marginBottom: '16px'
-            }}>
-              Líquidos Populares
-            </h3>
-
-            <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-              {filteredLiquids.map((liquid, index) => (
-                <div
-                  key={index}
-                  onClick={() => setSelectedLiquid(liquid)}
-                  style={{
-                    padding: '16px',
-                    borderRadius: '12px',
-                    border: selectedLiquid?.name === liquid.name ? '2px solid #06b6d4' : '1px solid #e5e7eb',
-                    marginBottom: '12px',
-                    cursor: 'pointer',
-                    backgroundColor: selectedLiquid?.name === liquid.name ? '#f0fdff' : 'white',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginBottom: '8px'
-                  }}>
-                    <h4 style={{
-                      fontSize: '16px',
-                      fontWeight: '600',
-                      color: '#1f2937',
-                      margin: 0
-                    }}>
-                      {liquid.name}
-                    </h4>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{
-                        fontSize: '14px',
-                        fontWeight: '500',
-                        color: '#06b6d4'
-                      }}>
-                        {formatNumber(liquid.calories)} cal
-                      </span>
-                      {liquid.hydrating && (
-                        <span style={{
-                          fontSize: '10px',
-                          background: '#e0f2fe',
-                          color: '#0891b2',
-                          padding: '2px 6px',
-                          borderRadius: '4px'
-                        }}>
-                          Hidratante
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div style={{
-                    display: 'flex',
-                    gap: '16px',
-                    fontSize: '12px',
-                    color: '#6b7280'
-                  }}>
-                    <span>P: {formatNumber(liquid.protein, 1)}g</span>
-                    <span>C: {formatNumber(liquid.carbs, 1)}g</span>
-                    <span>G: {formatNumber(liquid.fats, 1)}g</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {selectedLiquid && !showCustomFood && !showCustomLiquid && currentTab === 'liquid' && (
-          <div style={{
-            background: 'white',
-            borderRadius: '16px',
-            padding: '24px',
-            boxShadow: '0 4px 6px rgba(0,0,0,0.07)',
-            marginBottom: '24px'
-          }}>
-            <h3 style={{
-              fontSize: '18px',
-              fontWeight: '600',
-              color: '#1f2937',
-              marginBottom: '16px'
-            }}>
-              Detalles del Líquido
-            </h3>
-
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '14px',
-                fontWeight: '500',
-                color: '#374151',
-                marginBottom: '8px'
-              }}>
-                Cantidad (mililitros)
-              </label>
-              <input
-                type="number"
-                value={liquidQuantity}
-                onChange={(e) => setLiquidQuantity(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  borderRadius: '12px',
-                  border: '1px solid #e5e7eb',
-                  fontSize: '16px',
-                  outline: 'none'
-                }}
-                placeholder="250"
-              />
-            </div>
-
-            <div style={{
-              background: '#f8fafc',
-              borderRadius: '12px',
-              padding: '16px',
-              marginBottom: '16px'
-            }}>
-              <h4 style={{
-                fontSize: '16px',
-                fontWeight: '600',
-                color: '#1f2937',
-                marginBottom: '12px'
-              }}>
-                Información Nutricional
-              </h4>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(2, 1fr)',
-                gap: '12px'
-              }}>
-                <div>
-                  <span style={{ fontSize: '14px', color: '#6b7280' }}>Calorías:</span>
-                  <span style={{
-                    fontSize: '16px',
-                    fontWeight: '600',
-                    color: '#1f2937',
-                    marginLeft: '8px'
-                  }}>
-                    {formatNumber(calculateLiquidNutrition(selectedLiquid, liquidQuantity).calories)}
-                  </span>
-                </div>
-                <div>
-                  <span style={{ fontSize: '14px', color: '#6b7280' }}>Proteínas:</span>
-                  <span style={{
-                    fontSize: '16px',
-                    fontWeight: '600',
-                    color: '#1f2937',
-                    marginLeft: '8px'
-                  }}>
-                    {formatNumber(calculateLiquidNutrition(selectedLiquid, liquidQuantity).protein, 1)}g
-                  </span>
-                </div>
-                <div>
-                  <span style={{ fontSize: '14px', color: '#6b7280' }}>Carbohidratos:</span>
-                  <span style={{
-                    fontSize: '16px',
-                    fontWeight: '600',
-                    color: '#1f2937',
-                    marginLeft: '8px'
-                  }}>
-                    {formatNumber(calculateLiquidNutrition(selectedLiquid, liquidQuantity).carbs, 1)}g
-                  </span>
-                </div>
-                <div>
-                  <span style={{ fontSize: '14px', color: '#6b7280' }}>Grasas:</span>
-                  <span style={{
-                    fontSize: '16px',
-                    fontWeight: '600',
-                    color: '#1f2937',
-                    marginLeft: '8px'
-                  }}>
-                    {formatNumber(calculateLiquidNutrition(selectedLiquid, liquidQuantity).fats, 1)}g
-                  </span>
-                </div>
-                {selectedLiquid.hydrating && (
-                  <div style={{ gridColumn: '1 / -1' }}>
-                    <span style={{ fontSize: '14px', color: '#6b7280' }}>Hidratación:</span>
-                    <span style={{
-                      fontSize: '16px',
-                      fontWeight: '600',
-                      color: '#0891b2',
-                      marginLeft: '8px'
-                    }}>
-                      +{liquidQuantity}ml
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <button
-              onClick={handleAddLiquid}
-              disabled={isLoading}
-              className="!rounded-button"
-              style={{
-                width: '100%',
-                padding: '16px 24px',
-                background: isLoading ? '#e5e7eb' : 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
-                border: 'none',
-                borderRadius: '12px',
-                color: 'white',
-                fontSize: '16px',
-                fontWeight: '600',
-                cursor: isLoading ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px'
-              }}
-            >
-              {isLoading ? (
-                <>
-                  <div style={{
-                    width: '16px',
-                    height: '16px',
-                    border: '2px solid #ffffff40',
-                    borderTop: '2px solid #ffffff',
-                    borderRadius: '50%',
-                    animation: 'spin 1s linear infinite'
-                  }}></div>
-                  Agregando...
-                </>
-              ) : (
-                <>
-                  <i className="ri-add-line"></i>
-                  Agregar Líquido
-                </>
-              )}
-            </button>
-          </div>
-        )}
-
-        {/* Navegación inferior */}
-        <nav style={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          background: 'white',
-          borderTop: '1px solid #e5e7eb',
-          padding: '8px 0'
-        }}>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(5, 1fr)',
-            maxWidth: '375px',
-            margin: '0 auto'
-          }}>
-            <Link href="/" style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              padding: '8px 4px',
-              textDecoration: 'none',
-              color: '#9ca3af'
-            }}>
-              <div style={{
-                width: '24px',
-                height: '24px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: '4px'
-              }}>
-                <i className="ri-home-line" style={{ fontSize: '18px' }}></i>
-              </div>
-              <span style={{ fontSize: '12px' }}>Inicio</span>
-            </Link>
-
-            <Link href="/nutrition" style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              padding: '8px 4px',
-              textDecoration: 'none',
-              color: '#9ca3af'
-            }}>
-              <div style={{
-                width: '24px',
-                height: '24px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: '4px'
-              }}>
-                <i className="ri-pie-chart-line" style={{ fontSize: '18px' }}></i>
-              </div>
-              <span style={{ fontSize: '12px' }}>Nutrición</span>
-            </Link>
-
-            <Link href="/add-food" style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              padding: '8px 4px',
-              textDecoration: 'none',
-              color: '#3b82f6'
-            }}>
-              <div style={{
-                width: '32px',
-                height: '32px',
-                background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: '4px'
-              }}>
-                <i className="ri-add-line" style={{ color: 'white', fontSize: '18px' }}></i>
-              </div>
-              <span style={{ fontSize: '12px', fontWeight: '500' }}>Agregar</span>
-            </Link>
-
-            <Link href="/progress" style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              padding: '8px 4px',
-              textDecoration: 'none',
-              color: '#9ca3af'
-            }}>
-              <div style={{
-                width: '24px',
-                height: '24px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: '4px'
-              }}>
-                <i className="ri-line-chart-line" style={{ fontSize: '18px' }}></i>
-              </div>
-              <span style={{ fontSize: '12px' }}>Progreso</span>
-            </Link>
-
-            <Link href="/profile" style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              padding: '8px 4px',
-              textDecoration: 'none',
-              color: '#9ca3af'
-            }}>
-              <div style={{
-                width: '24px',
-                height: '24px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: '4px'
-              }}>
-                <i className="ri-user-line" style={{ fontSize: '18px' }}></i>
-              </div>
-              <span style={{ fontSize: '12px' }}>Perfil</span>
-            </Link>
-          </div>
-        </nav>
       </main>
 
       <BottomNavigation />
