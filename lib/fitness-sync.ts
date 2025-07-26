@@ -1,3 +1,4 @@
+
 // Google Fit API Integration for Smartwatch Sync
 export interface FitnessData {
   steps: number;
@@ -18,13 +19,18 @@ export interface SyncResult {
 export class FitnessSyncService {
   private accessToken: string | null = null;
   private readonly FITNESS_API_BASE = 'https://www.googleapis.com/fitness/v1/users/me';
-  
+
   constructor() {
-    this.accessToken = localStorage.getItem('google_access_token');
+    // Only access localStorage on the client-side
+    if (typeof window !== 'undefined') {
+      this.accessToken = localStorage.getItem('google_access_token');
+    }
   }
 
   // Solicitar permisos de Google Fit
   async requestFitnessPermissions(): Promise<boolean> {
+    if (typeof window === 'undefined') return false;
+
     try {
       if (!window.google) {
         throw new Error('Google API no está cargada');
@@ -41,7 +47,9 @@ export class FitnessSyncService {
         callback: (response: any) => {
           if (response.access_token) {
             this.accessToken = response.access_token;
-            localStorage.setItem('google_access_token', response.access_token);
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('google_access_token', response.access_token);
+            }
           }
         }
       });
@@ -56,6 +64,13 @@ export class FitnessSyncService {
 
   // Sincronizar datos del smartwatch
   async syncFitnessData(date: string = new Date().toISOString().split('T')[0]): Promise<SyncResult> {
+    if (typeof window === 'undefined') {
+      return {
+        success: false,
+        error: 'No se puede sincronizar en el servidor'
+      };
+    }
+
     if (!this.accessToken) {
       return {
         success: false,
@@ -69,10 +84,10 @@ export class FitnessSyncService {
 
       // Obtener datos de pasos
       const stepsData = await this.fetchDataSource('derived:com.google.step_count.delta:com.google.android.gms:estimated_steps', startTime, endTime);
-      
+
       // Obtener datos de calorías
       const caloriesData = await this.fetchDataSource('derived:com.google.calories.expended:com.google.android.gms:merge_calories_expended', startTime, endTime);
-      
+
       // Obtener datos de actividad
       const activeMinutesData = await this.fetchDataSource('derived:com.google.active_minutes:com.google.android.gms:merge_active_minutes', startTime, endTime);
 
@@ -162,15 +177,19 @@ export class FitnessSyncService {
 
   // Guardar datos de fitness localmente
   private saveFitnessData(data: FitnessData): void {
+    if (typeof window === 'undefined') return;
+
     const key = `fitness_${data.date}`;
     localStorage.setItem(key, JSON.stringify(data));
-    
+
     // Actualizar perfil del usuario con promedios
     this.updateUserAverages(data);
   }
 
   // Actualizar promedios del usuario
   private updateUserAverages(data: FitnessData): void {
+    if (typeof window === 'undefined') return;
+
     const userProfile = localStorage.getItem('userProfile');
     if (userProfile) {
       const profile = JSON.parse(userProfile);
@@ -179,9 +198,9 @@ export class FitnessSyncService {
       profile.avgCaloriesBurned = data.calories;
       profile.lastSyncTime = new Date().toISOString();
       profile.syncEnabled = true;
-      
+
       localStorage.setItem('userProfile', JSON.stringify(profile));
-      
+
       // Disparar evento para actualizar UI
       window.dispatchEvent(new CustomEvent('fitnessDataUpdated', { detail: data }));
     }
@@ -189,6 +208,8 @@ export class FitnessSyncService {
 
   // Obtener datos de fitness guardados
   getFitnessData(date: string): FitnessData | null {
+    if (typeof window === 'undefined') return null;
+
     const key = `fitness_${date}`;
     const data = localStorage.getItem(key);
     return data ? JSON.parse(data) : null;
@@ -196,11 +217,14 @@ export class FitnessSyncService {
 
   // Verificar si hay permisos de fitness
   hasPermissions(): boolean {
+    if (typeof window === 'undefined') return false;
     return this.accessToken !== null;
   }
 
   // Obtener última sincronización
   getLastSyncTime(): string | null {
+    if (typeof window === 'undefined') return null;
+
     const userProfile = localStorage.getItem('userProfile');
     if (userProfile) {
       const profile = JSON.parse(userProfile);
@@ -227,16 +251,18 @@ export class FitnessSyncService {
     };
 
     simulatedData.distance = this.calculateDistance(simulatedData.steps);
-    
+
     this.saveFitnessData(simulatedData);
     return simulatedData;
   }
 
   // Desconectar sincronización
   disconnect(): void {
+    if (typeof window === 'undefined') return;
+
     localStorage.removeItem('google_access_token');
     this.accessToken = null;
-    
+
     // Actualizar perfil
     const userProfile = localStorage.getItem('userProfile');
     if (userProfile) {
