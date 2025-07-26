@@ -238,7 +238,13 @@ export default function AddFood() {
 
     const nutrition = selectedFood
       ? calculateNutrition(foodToAdd, quantity)
-      : foodToEnd;
+      : {
+          calories: safeNumber(customFood.calories),
+          protein: safeNumber(customFood.protein),
+          carbs: safeNumber(customFood.carbs),
+          fats: safeNumber(customFood.fats),
+          fiber: safeNumber(customFood.fiber, 0)
+        };
 
     const today = new Date().toISOString().split('T')[0];
 
@@ -299,7 +305,14 @@ export default function AddFood() {
 
     const nutrition = selectedLiquid
       ? calculateLiquidNutrition(liquidToAdd, liquidQuantity)
-      : liquidToEnd;
+      : {
+          calories: safeNumber(customLiquid.calories),
+          protein: safeNumber(customLiquid.protein),
+          carbs: safeNumber(customLiquid.carbs),
+          fats: safeNumber(customLiquid.fats),
+          fiber: safeNumber(customLiquid.fiber, 0),
+          hydrating: customLiquid.hydrating
+        };
 
     const today = new Date().toISOString().split('T')[0];
 
@@ -791,7 +804,7 @@ export default function AddFood() {
               </div>
             </div>
           </div>
-        `).join('')
+        `).join('')}
         }
       </div>
 

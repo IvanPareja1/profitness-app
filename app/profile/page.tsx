@@ -165,11 +165,11 @@ export default function Profile() {
       } catch (error) {
         console.error('Error parsing user profile:', error);
       }
-    } else if (userData) {
+    } else {
       // Crear perfil inicial si no existe
-      const initialProfile = {
-        name: userData.name || '',
-        email: userData.email || '',
+      const initialProfile: UserProfile = {
+        name: userData?.name || '',
+        email: userData?.email || '',
         age: '',
         weight: '',
         height: '',
