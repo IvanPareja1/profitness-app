@@ -55,6 +55,9 @@ export default function Home() {
   useEffect(() => {
     setMounted(true);
 
+    // Verificar si estamos en el cliente antes de acceder a localStorage
+    if (typeof window === 'undefined') return;
+
     // Verificar autenticación antes de cargar datos
     const isAuthenticated = localStorage.getItem('isAuthenticated');
     if (!isAuthenticated || isAuthenticated !== 'true') {
@@ -97,6 +100,8 @@ export default function Home() {
     setCurrentDate(formattedDate);
 
     const loadTodayData = (): void => {
+      if (typeof window === 'undefined') return;
+
       try {
         const todayKey = today.toISOString().split('T')[0];
         const savedData = localStorage.getItem(`nutrition_${todayKey}`);
@@ -138,6 +143,8 @@ export default function Home() {
     };
 
     const handleLanguageChange = () => {
+      if (typeof window === 'undefined') return;
+
       try {
         const userProfile = localStorage.getItem('userProfile');
         if (userProfile) {
@@ -343,7 +350,7 @@ export default function Home() {
             alignItems: 'center',
             justifyContent: 'center'
           }}>
-            {!userData?.picture && (
+            {! userData?.picture && (
               <span style={{
                 color: 'white',
                 fontWeight: '600',
