@@ -200,7 +200,7 @@ export default function AddFood() {
     liquid.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const calculateNutrition = (food, qty) => {
+  const calculateNutrition = (food: any, qty: string | number) => {
     const multiplier = safeNumber(qty) / 100;
     return {
       calories: Math.round(safeNumber(food.calories) * multiplier),
@@ -211,7 +211,7 @@ export default function AddFood() {
     };
   };
 
-  const calculateLiquidNutrition = (liquid, qty) => {
+  const calculateLiquidNutrition = (liquid: any, qty: string | number) => {
     const multiplier = safeNumber(qty) / 100;
     return {
       calories: Math.round(safeNumber(liquid.calories) * multiplier),
@@ -1359,6 +1359,7 @@ export default function AddFood() {
         {/* Food Tab */}
         {currentTab === 'food' && (
           <>
+
             {/* Detection methods section */}
             <div style={{
               background: 'white',
@@ -1454,6 +1455,7 @@ export default function AddFood() {
             {/* Search and popular foods */}
             {!showCustomFood && (
               <>
+
                 <div style={{
                   background: 'white',
                   borderRadius: '16px',
@@ -1638,7 +1640,7 @@ export default function AddFood() {
                         gridTemplateColumns: 'repeat(2, 1fr)',
                         gap: '8px'
                       }}>
-                        {['desayuno', 'almuerzo', 'cena', 'snack'].map((type) => (
+                        {[ 'desayuno', 'almuerzo', 'cena', 'snack' ].map((type) => (
                           <button
                             key={type}
                             onClick={() => setMealType(type)}
@@ -2028,7 +2030,7 @@ export default function AddFood() {
                     gridTemplateColumns: 'repeat(2, 1fr)',
                     gap: '8px'
                   }}>
-                    {['desayuno', 'almuerzo', 'cena', 'snack'].map((type) => (
+                    {[ 'desayuno', 'almuerzo', 'cena', 'snack' ].map((type) => (
                       <button
                         key={type}
                         onClick={() => setMealType(type)}
@@ -2093,14 +2095,17 @@ export default function AddFood() {
               </div>
             )}
           </>
+
         )}
 
         {/* Liquid Tab */}
         {currentTab === 'liquid' && (
           <>
+
             {/* Search and popular liquids */}
             {!showCustomLiquid && (
               <>
+
                 <div style={{
                   background: 'white',
                   borderRadius: '16px',
