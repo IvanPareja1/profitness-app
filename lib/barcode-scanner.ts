@@ -5,6 +5,9 @@ export interface BarcodeResult {
   format: string;
 }
 
+// Declaración de tipos para QuaggaJS sin conflictos
+declare const Quagga: any;
+
 // Función para inicializar el escáner de códigos de barras
 export async function initializeBarcodeScanner(
   videoElement: HTMLVideoElement,
@@ -13,10 +16,10 @@ export async function initializeBarcodeScanner(
   try {
     // Importar QuaggaJS dinámicamente para evitar errores de SSR
     const QuaggaModule = await import('quagga');
-    const Quagga = (QuaggaModule as any).default || QuaggaModule;
+    const QuaggaInstance = (QuaggaModule as any).default || QuaggaModule;
 
     // Configurar QuaggaJS
-    Quagga.init({
+    QuaggaInstance.init({
       inputStream: {
         name: "Live",
         type: "LiveStream",
@@ -51,10 +54,10 @@ export async function initializeBarcodeScanner(
       }
 
       // Iniciar el escáner
-      Quagga.start();
+      QuaggaInstance.start();
 
       // Escuchar por códigos detectados
-      Quagga.onDetected((result: any) => {
+      QuaggaInstance.onDetected((result: any) => {
         if (result && result.codeResult && result.codeResult.code) {
           onBarcodeDetected({
             code: result.codeResult.code,
@@ -74,10 +77,12 @@ export function stopBarcodeScanner(): void {
   try {
     // Importar QuaggaJS dinámicamente
     import('quagga').then(QuaggaModule => {
-      const Quagga = (QuaggaModule as any).default || QuaggaModule;
-      if (Quagga) {
-        Quagga.stop();
+      const QuaggaInstance = (QuaggaModule as any).default || QuaggaModule;
+      if (QuaggaInstance) {
+        QuaggaInstance.stop();
       }
+    }).catch(error => {
+      console.error('Error stopping barcode scanner:', error);
     });
   } catch (error) {
     console.error('Error stopping barcode scanner:', error);
