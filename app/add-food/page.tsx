@@ -467,7 +467,6 @@ export default function AddFood() {
 
     } catch (error) {
       console.log('Error accessing camera:', error);
-      // Handle camera access error
     }
   };
 
@@ -927,7 +926,7 @@ export default function AddFood() {
               </div>
             </div>
           </div>
-        `).join ''}
+        `).join('')}
       </div>
 
       <div style="display: flex; gap: 8px;">
@@ -1094,13 +1093,172 @@ export default function AddFood() {
     }
   };
 
-  const showBarcodeScanner = () => {
-    startBarcodeScanner();
+  const detectFoodFromCamera = async () => {
+    if (isAnalyzing) return;
+
+    setIsAnalyzing(true);
+
+    const analysisMessage = document.createElement('div');
+    analysisMessage.style.cssText = `
+      position: fixed;
+      top: 120px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(139, 92, 246, 0.9);
+      color: white;
+      padding: 10px 16px;
+      border-radius: 8px;
+      z-index: 2002;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    `;
+    analysisMessage.innerHTML = `
+      <div style="width: 16px; height: 16px; border: 2px solid white; border-top: 2px solid #ffffff; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+      ${DEMO_CONFIG.ENABLED ? 'Simulando detección...' : 'Analizando imagen con IA...'}
+    `;
+    document.body.appendChild(analysisMessage);
+
+    try {
+      let detectedFoodResults: any[] = [];
+
+      if (DEMO_CONFIG.ENABLED) {
+        // Modo demo - usar simulación
+        await new Promise(resolve => setTimeout(resolve, 2500));
+
+        const detectedFoodOptions = [
+          { name: 'Pechuga de pollo', calories: 165, protein: 31, carbs: 0, fats: 3.6, fiber: 0, confidence: 0.89 },
+          { name: 'Arroz blanco', calories: 130, protein: 2.7, carbs: 28, fats: 0.3, fiber: 0.4, confidence: 0.92 },
+          { name: 'Brócoli', calories: 34, protein: 2.8, carbs: 7, fats: 0.4, fiber: 2.6, confidence: 0.85 },
+          { name: 'Banana', calories: 89, protein: 1.1, carbs: 23, fats: 0.3, fiber: 2.6, confidence: 0.91 },
+          { name: 'Salmón', calories: 208, protein: 25, carbs: 0, fats: 12, fiber: 0, confidence: 0.87 }
+        ];
+
+        detectedFoodResults = detectedFoodOptions
+          .sort(() => Math.random() - 0.5)
+          .slice(0, Math.floor(Math.random() * 3) + 1);
+      } else {
+        // Modo real - usar Google Vision API
+        if (videoRef.current) {
+          const imageFile = await captureImageFromVideo(videoRef.current);
+          detectedFoodResults = await detectFoodInImage(imageFile);
+        }
+      }
+
+      if (document.body.contains(analysisMessage)) {
+        document.body.removeChild(analysisMessage);
+      }
+
+      setDetectedFoods(detectedFoodResults);
+      setIsAnalyzing(false);
+
+      if (detectedFoodResults.length > 0) {
+        showDetectionResults(detectedFoodResults);
+      } else {
+        showNoDetectionMessage();
+      }
+
+    } catch (error) {
+      console.error('Error en detección:', error);
+
+      if (document.body.contains(analysisMessage)) {
+        document.body.removeChild(analysisMessage);
+      }
+
+      setIsAnalyzing(false);
+      showErrorMessage();
+    }
   };
 
-  const handleCustomFoodNameChange = (value: string) => {
-    setCustomFood({ ...customFood, name: value });
-    searchFoodDatabase(value);
+  const scanBarcode = async () => {
+    if (isScanning || isLoadingProduct) return;
+
+    setIsScanning(true);
+    setIsLoadingProduct(false);
+    setProductNotFound(false);
+
+    const scanMessage = document.createElement('div');
+    scanMessage.style.cssText = `
+      position: fixed;
+      top: 120px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(16, 185, 129, 0.9);
+      color: white;
+      padding: 10px 16px;
+      border-radius: 8px;
+      z-index: 2002;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    `;
+    scanMessage.innerHTML = `
+      <div style="width: 16px; height: 16px; border: 2px solid white; border-top: 2px solid #ffffff; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+      Escaneando código de barras...
+    `;
+    document.body.appendChild(scanMessage);
+
+    setTimeout(() => {
+      if (document.body.contains(scanMessage)) {
+        document.body.removeChild(scanMessage);
+      }
+      setIsScanning(false);
+      setIsLoadingProduct(true);
+
+      const loadingMessage = document.createElement('div');
+      loadingMessage.style.cssText = `
+        position: fixed;
+        top: 120px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(59, 130, 246, 0.9);
+        color: white;
+        padding: 10px 16px;
+        border-radius: 8px;
+        z-index: 2002;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      `;
+      loadingMessage.innerHTML = `
+        <div style="width: 16px; height: 16px; border: 2px solid white; border-top: 2px solid #ffffff; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+        Consultando OpenFoodFacts...
+      `;
+      document.body.appendChild(loadingMessage);
+
+      // Realizar consulta real a OpenFoodFacts API
+      fetchProductFromBarcode()
+        .then(product => {
+          if (document.body.contains(loadingMessage)) {
+            document.body.removeChild(loadingMessage);
+          }
+          setIsLoadingProduct(false);
+
+          if (product) {
+            showProductModal(product);
+          } else {
+            setProductNotFound(true);
+            setTimeout(() => {
+              setProductNotFound(false);
+            }, 3000);
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching product:', error);
+          if (document.body.contains(loadingMessage)) {
+            document.body.removeChild(loadingMessage);
+          }
+          setIsLoadingProduct(false);
+          setProductNotFound(true);
+          setTimeout(() => {
+            setProductNotFound(false);
+          }, 3000);
+        });
+
+    }, 1500);
   };
 
   return (
@@ -1289,7 +1447,7 @@ export default function AddFood() {
                 <span style={{ fontSize: '12px', color: DEMO_CONFIG.ENABLED ? '#d97706' : '#3b82f6' }}>
                   {DEMO_CONFIG.ENABLED
                     ? 'Modo demostración activado. Las funciones de escaneo son simuladas.'
-                    : 'Funciones de escaneo conectadas a servicios reales de OpenFoodFacts.'
+                    : 'Funciones de escaneo conectadas a servicios reales de OpenFoodFacts y Google Vision API.'
                   }
                 </span>
               </div>
@@ -1599,9 +1757,10 @@ export default function AddFood() {
                       )}
                     </button>
                   </div>
-                )
-              }
-            </>
+                )}
+              </>
+
+            )}
 
             {/* Custom food form */}
             {showCustomFood && (
@@ -1899,13 +2058,14 @@ export default function AddFood() {
                   )}
                 </button>
               </div>
-            )
-          }
-        </>
+            )}
+          </>
+        )}
 
         {/* Liquid Tab */}
         {currentTab === 'liquid' && (
           <>
+            {/* Search and popular liquids */}
             {!showCustomLiquid && (
               <>
                 <div style={{
@@ -2208,9 +2368,10 @@ export default function AddFood() {
                       )}
                     </button>
                   </div>
-                )
-              }
-            }
+                )}
+              </>
+
+            )}
 
             {/* Custom liquid form */}
             {showCustomLiquid && (
@@ -2523,9 +2684,9 @@ export default function AddFood() {
                   )}
                 </button>
               </div>
-            )
-          }
-        </>
+            )}
+          </>
+        )}
 
         {/* Barcode scanner modal */}
         {showBarcodeScanner && (
@@ -2655,7 +2816,7 @@ export default function AddFood() {
               zIndex: 2001
             }}>
               <button
-                onClick={simulateBarcodeDetection}
+                onClick={scanBarcode}
                 disabled={isScanning || isLoadingProduct}
                 className="!rounded-button"
                 style={{
@@ -2838,7 +2999,7 @@ export default function AddFood() {
               zIndex: 2001
             }}>
               <button
-                onClick={simulateFoodDetection}
+                onClick={detectFoodFromCamera}
                 disabled={isAnalyzing}
                 className="!rounded-button"
                 style={{
@@ -2895,3 +3056,4 @@ export default function AddFood() {
     </div>
   );
 }
+</code>

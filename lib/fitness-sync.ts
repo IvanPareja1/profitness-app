@@ -233,29 +233,6 @@ export class FitnessSyncService {
     return null;
   }
 
-  // Simular datos para modo demo
-  simulateFitnessData(date: string = new Date().toISOString().split('T')[0]): FitnessData {
-    // Solo simular si está en modo desarrollo
-    if (process.env.NODE_ENV !== 'development') {
-      throw new Error('Simulación solo disponible en modo desarrollo');
-    }
-
-    const simulatedData: FitnessData = {
-      steps: Math.floor(Math.random() * 5000) + 3000, // 3000-8000 pasos
-      calories: Math.floor(Math.random() * 800) + 200, // 200-1000 calorías
-      heartRate: Math.floor(Math.random() * 40) + 60, // 60-100 bpm
-      activeMinutes: Math.floor(Math.random() * 60) + 30, // 30-90 minutos
-      distance: 0,
-      sleepHours: Math.floor(Math.random() * 3) + 6, // 6-9 horas
-      date
-    };
-
-    simulatedData.distance = this.calculateDistance(simulatedData.steps);
-
-    this.saveFitnessData(simulatedData);
-    return simulatedData;
-  }
-
   // Desconectar sincronización
   disconnect(): void {
     if (typeof window === 'undefined') return;
