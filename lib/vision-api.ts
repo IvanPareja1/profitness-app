@@ -1,6 +1,6 @@
 
 // Google Vision API Configuration - SEGURO
-export const VISION_API_KEY = "TU_API_KEY_AQUI"; // Reemplaza con tu API Key real
+export const VISION_API_KEY = "AIzaSyBhYkIRJN8BX450AX8YZEg_drHlfWYf8No";
 
 // Verificar que la configuración esté presente
 if (!VISION_API_KEY || VISION_API_KEY === "TU_API_KEY_AQUI") {
