@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import BottomNavigation from '../../components/BottomNavigation';
 import { NutritionCalculator } from '../../lib/nutrition-calculator';
+import { fitnessSync, FitnessData } from '../../lib/fitness-sync';
 
 export default function Profile() {
   const [mounted, setMounted] = useState(false);
@@ -18,6 +19,16 @@ export default function Profile() {
   const [showRestDayModal, setShowRestDayModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editProfile, setEditProfile] = useState<any>({});
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
+  const [syncMessage, setSyncMessage] = useState('');
+  const [fitnessData, setFitnessData] = useState<FitnessData | null>(null);
+  const [calculatorData, setCalculatorData] = useState<any>(null);
+  const [restDayConfig, setRestDayConfig] = useState({
+    enabled: false,
+    selectedDays: [] as string[],
+    reducedCalories: false,
+    calorieReduction: 200
+  });
   const router = useRouter();
 
   useEffect(() => {
@@ -44,6 +55,19 @@ export default function Profile() {
         setUserProfile(profile);
         setEditProfile(profile);
         setLanguage(profile.language || 'es');
+      }
+
+      // Cargar datos de fitness del día actual
+      const today = new Date().toISOString().split('T')[0];
+      const todayFitnessData = fitnessSync.getFitnessData(today);
+      if (todayFitnessData) {
+        setFitnessData(todayFitnessData);
+      }
+
+      // Cargar configuración de días de descanso
+      const restConfig = localStorage.getItem('restDaySettings');
+      if (restConfig) {
+        setRestDayConfig(JSON.parse(restConfig));
       }
     } catch (error) {
       console.log('Error loading user data:', error);
@@ -89,11 +113,35 @@ export default function Profile() {
       syncData: 'Sincronizar Datos',
       syncDescription: 'Sincroniza tus datos con dispositivos fitness',
       syncNow: 'Sincronizar Ahora',
+      syncing: 'Sincronizando...',
+      syncSuccess: 'Sincronización exitosa',
+      syncError: 'Error en sincronización',
+      requestPermissions: 'Solicitar Permisos',
       nutritionCalculator: 'Calculadora Nutricional',
       calculateTargets: 'Calcular Objetivos',
       restDayConfig: 'Configuración de Descanso',
       restDayDescription: 'Configura tus días de descanso',
-      configure: 'Configurar'
+      configure: 'Configurar',
+      steps: 'Pasos',
+      activeMinutes: 'Minutos activos',
+      heartRate: 'Ritmo cardíaco',
+      distance: 'Distancia',
+      lastSync: 'Última sincronización',
+      fitnessDataTitle: 'Datos de Fitness Hoy',
+      enableRestDays: 'Habilitar días de descanso',
+      selectDays: 'Seleccionar días',
+      monday: 'Lunes',
+      tuesday: 'Martes',
+      wednesday: 'Miércoles',
+      thursday: 'Jueves',
+      friday: 'Viernes',
+      saturday: 'Sábado',
+      sunday: 'Domingo',
+      reduceCalories: 'Reducir calorías en días de descanso',
+      calorieReduction: 'Reducción de calorías',
+      applied: 'Aplicado',
+      syncWithDevice: 'Sincronizar con dispositivo',
+      permissionsNeeded: 'Se requieren permisos para sincronizar'
     },
     en: {
       profile: 'Profile',
@@ -133,15 +181,168 @@ export default function Profile() {
       syncData: 'Sync Data',
       syncDescription: 'Sync your data with fitness devices',
       syncNow: 'Sync Now',
+      syncing: 'Syncing...',
+      syncSuccess: 'Sync successful',
+      syncError: 'Sync error',
+      requestPermissions: 'Request Permissions',
       nutritionCalculator: 'Nutrition Calculator',
       calculateTargets: 'Calculate Targets',
       restDayConfig: 'Rest Day Configuration',
       restDayDescription: 'Configure your rest days',
-      configure: 'Configure'
+      configure: 'Configure',
+      steps: 'Steps',
+      activeMinutes: 'Active minutes',
+      heartRate: 'Heart rate',
+      distance: 'Distance',
+      lastSync: 'Last sync',
+      fitnessDataTitle: 'Today\'s Fitness Data',
+      enableRestDays: 'Enable rest days',
+      selectDays: 'Select days',
+      monday: 'Monday',
+      tuesday: 'Tuesday',
+      wednesday: 'Wednesday',
+      thursday: 'Thursday',
+      friday: 'Friday',
+      saturday: 'Saturday',
+      sunday: 'Sunday',
+      reduceCalories: 'Reduce calories on rest days',
+      calorieReduction: 'Calorie reduction',
+      applied: 'Applied',
+      syncWithDevice: 'Sync with device',
+      permissionsNeeded: 'Permissions needed to sync'
     }
   };
 
   const t = translations[language as keyof typeof translations] || translations.es;
+
+  const handleSyncFitnessData = async () => {
+    setSyncStatus('syncing');
+    setSyncMessage(t.syncing);
+
+    try {
+      // Verificar si hay permisos
+      if (!fitnessSync.hasPermissions()) {
+        const permissionGranted = await fitnessSync.requestFitnessPermissions();
+        if (!permissionGranted) {
+          setSyncStatus('error');
+          setSyncMessage(t.permissionsNeeded);
+          return;
+        }
+      }
+
+      // Sincronizar datos
+      const today = new Date().toISOString().split('T')[0];
+      const syncResult = await fitnessSync.syncFitnessData(today);
+
+      if (syncResult.success && syncResult.data) {
+        setFitnessData(syncResult.data);
+        setSyncStatus('success');
+        setSyncMessage(t.syncSuccess);
+
+        // Actualizar perfil con datos sincronizados
+        const updatedProfile = {
+          ...userProfile,
+          lastSyncTime: new Date().toISOString(),
+          syncEnabled: true
+        };
+        setUserProfile(updatedProfile);
+        localStorage.setItem('userProfile', JSON.stringify(updatedProfile));
+      } else {
+        setSyncStatus('error');
+        setSyncMessage(syncResult.error || t.syncError);
+      }
+    } catch (error) {
+      setSyncStatus('error');
+      setSyncMessage(t.syncError);
+    }
+
+    // Resetear estado después de 3 segundos
+    setTimeout(() => {
+      setSyncStatus('idle');
+      setSyncMessage('');
+    }, 3000);
+  };
+
+  const handleCalculateNutrition = () => {
+    if (!editProfile.age || !editProfile.weight || !editProfile.height) {
+      alert('Por favor completa tu información personal primero');
+      return;
+    }
+
+    const targets = NutritionCalculator.calculateNutritionTargets({
+      age: editProfile.age,
+      weight: editProfile.weight,
+      height: editProfile.height,
+      gender: editProfile.gender || 'male',
+      activityLevel: editProfile.activityLevel || 'moderate',
+      workActivity: editProfile.workActivity || 'moderate',
+      goal: editProfile.goal || 'maintain'
+    });
+
+    setCalculatorData(targets);
+
+    // Actualizar perfil automáticamente
+    const updatedProfile = {
+      ...userProfile,
+      targetCalories: targets.targetCalories,
+      targetProtein: targets.targetProtein,
+      targetCarbs: targets.targetCarbs,
+      targetFats: targets.targetFats,
+      lastCalculation: new Date().toISOString()
+    };
+
+    setUserProfile(updatedProfile);
+    localStorage.setItem('userProfile', JSON.stringify(updatedProfile));
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('profileUpdated'));
+    }
+  };
+
+  const handleRestDayConfig = () => {
+    localStorage.setItem('restDaySettings', JSON.stringify(restDayConfig));
+
+    // Aplicar configuración de descanso si es día de descanso
+    const today = new Date().toLocaleDateString('es-ES', { weekday: 'long' });
+    const todayKey = getDayKey(today);
+
+    if (restDayConfig.enabled && restDayConfig.selectedDays.includes(todayKey)) {
+      // Aplicar reducción de calorías si está habilitada
+      if (restDayConfig.reducedCalories) {
+        const updatedProfile = {
+          ...userProfile,
+          restDayActive: true,
+          adjustedCalories: (userProfile.targetCalories || 2000) - restDayConfig.calorieReduction
+        };
+        setUserProfile(updatedProfile);
+        localStorage.setItem('userProfile', JSON.stringify(updatedProfile));
+      }
+    }
+  };
+
+  const getDayKey = (dayName: string): string => {
+    const dayMap: { [key: string]: string } = {
+      'lunes': 'monday',
+      'martes': 'tuesday',
+      'miércoles': 'wednesday',
+      'jueves': 'thursday',
+      'viernes': 'friday',
+      'sábado': 'saturday',
+      'domingo': 'sunday'
+    };
+    return dayMap[dayName.toLowerCase()] || dayName;
+  };
+
+  const toggleRestDay = (day: string) => {
+    const newSelectedDays = restDayConfig.selectedDays.includes(day)
+      ? restDayConfig.selectedDays.filter(d => d !== day)
+      : [...restDayConfig.selectedDays, day];
+
+    setRestDayConfig({
+      ...restDayConfig,
+      selectedDays: newSelectedDays
+    });
+  };
 
   const handleSaveProfile = () => {
     try {
@@ -194,36 +395,139 @@ export default function Profile() {
   };
 
   const handleLogout = () => {
+    try {
+      const userData = localStorage.getItem('userData');
+      const userProfile = localStorage.getItem('userProfile');
+      const userProfilePhoto = localStorage.getItem('userProfilePhoto');
+
+      if (userData) {
+        const user = JSON.parse(userData);
+        const userEmail = user.email;
+        const userKey = `user_${userEmail}`;
+
+        const nutritionData: { [key: string]: string } = {};
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith('nutrition_')) {
+            const value = localStorage.getItem(key);
+            if (value) {
+              nutritionData[key] = value;
+            }
+          }
+        }
+
+        const restDaySettings = localStorage.getItem('restDaySettings');
+        const hydrationReminder = localStorage.getItem('hydrationReminder');
+        const healthData = localStorage.getItem('healthData');
+
+        const userBackup = {
+          userData: user,
+          userProfile: userProfile ? JSON.parse(userProfile) : null,
+          userProfilePhoto: userProfilePhoto,
+          nutritionData: nutritionData,
+          restDaySettings: restDaySettings,
+          hydrationReminder: hydrationReminder,
+          healthData: healthData,
+          lastLogin: new Date().toISOString(),
+          lastLogout: new Date().toISOString()
+        };
+
+        localStorage.setItem(userKey, JSON.stringify(userBackup));
+
+        const logoutMessage = document.createElement('div');
+        logoutMessage.style.cssText = `
+          position: fixed;
+          top: 20px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+          border: 1px solid #93c5fd;
+          border-radius: 12px;
+          padding: 16px 24px;
+          z-index: 3000;
+          box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          max-width: 320px;
+          width: 90%;
+        `;
+
+        logoutMessage.innerHTML = `
+          <div style="width: 24px; height: 24px; background: #3b82f6; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+            <i class="ri-save-line" style="color: white; font-size: 14px;"></i>
+          </div>
+          <div>
+            <p style="font-size: 14px; font-weight: 600; color: #1e40af; margin: 0;">Datos guardados</p>
+            <p style="font-size: 12px; color: #1d4ed8; margin: 0;">Tus datos están seguros</p>
+          </div>
+        `;
+
+        document.body.appendChild(logoutMessage);
+
+        setTimeout(() => {
+          if (document.body.contains(logoutMessage)) {
+            document.body.removeChild(logoutMessage);
+          }
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('Error al guardar datos antes del logout:', error);
+    }
+
     localStorage.removeItem('isAuthenticated');
     localStorage.removeItem('userData');
     localStorage.removeItem('userProfile');
-    router.push('/login');
+    localStorage.removeItem('userProfilePhoto');
+
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i);
+      if (key && (key.startsWith('nutrition_') || key === 'restDaySettings' || key === 'hydrationReminder' || key === 'healthData')) {
+        localStorage.removeItem(key);
+      }
+    }
+
+    setTimeout(() => {
+      router.push('/login');
+    }, 1500);
   };
 
   const getGoalText = (goal: string) => {
-    switch(goal) {
-      case 'lose': return t.goalLose;
-      case 'maintain': return t.goalMaintain;
-      case 'gain': return t.goalGain;
-      default: return t.goalMaintain;
+    switch (goal) {
+      case 'lose':
+        return t.goalLose;
+      case 'maintain':
+        return t.goalMaintain;
+      case 'gain':
+        return t.goalGain;
+      default:
+        return t.goalMaintain;
     }
   };
 
   const getGoalIcon = (goal: string) => {
-    switch(goal) {
-      case 'lose': return 'ri-arrow-down-line';
-      case 'maintain': return 'ri-pause-line';
-      case 'gain': return 'ri-arrow-up-line';
-      default: return 'ri-pause-line';
+    switch (goal) {
+      case 'lose':
+        return 'ri-arrow-down-line';
+      case 'maintain':
+        return 'ri-pause-line';
+      case 'gain':
+        return 'ri-arrow-up-line';
+      default:
+        return 'ri-pause-line';
     }
   };
 
   const getGoalColor = (goal: string) => {
-    switch(goal) {
-      case 'lose': return '#ef4444';
-      case 'maintain': return '#3b82f6';
-      case 'gain': return '#16a34a';
-      default: return '#3b82f6';
+    switch (goal) {
+      case 'lose':
+        return '#ef4444';
+      case 'maintain':
+        return '#3b82f6';
+      case 'gain':
+        return '#16a34a';
+      default:
+        return '#3b82f6';
     }
   };
 
@@ -344,6 +648,91 @@ export default function Profile() {
           </button>
         </div>
 
+        {/* Fitness Data Card */}
+        {fitnessData && (
+          <div style={{
+            background: 'white',
+            borderRadius: '20px',
+            padding: '24px',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.07)',
+            marginBottom: '24px'
+          }}>
+            <h3 style={{
+              fontSize: '18px',
+              fontWeight: '600',
+              color: '#1f2937',
+              margin: '0 0 16px 0'
+            }}>
+              {t.fitnessDataTitle}
+            </h3>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, 1fr)',
+              gap: '16px'
+            }}>
+              <div style={{
+                textAlign: 'center',
+                padding: '16px',
+                background: '#f0f9ff',
+                borderRadius: '12px'
+              }}>
+                <i className="ri-walk-line" style={{ fontSize: '24px', color: '#3b82f6', marginBottom: '8px' }}></i>
+                <p style={{ fontSize: '20px', fontWeight: '600', color: '#1f2937', margin: '0 0 4px 0' }}>
+                  {fitnessData.steps.toLocaleString()}
+                </p>
+                <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>{t.steps}</p>
+              </div>
+              <div style={{
+                textAlign: 'center',
+                padding: '16px',
+                background: '#f0fdf4',
+                borderRadius: '12px'
+              }}>
+                <i className="ri-time-line" style={{ fontSize: '24px', color: '#16a34a', marginBottom: '8px' }}></i>
+                <p style={{ fontSize: '20px', fontWeight: '600', color: '#1f2937', margin: '0 0 4px 0' }}>
+                  {fitnessData.activeMinutes}
+                </p>
+                <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>{t.activeMinutes}</p>
+              </div>
+              <div style={{
+                textAlign: 'center',
+                padding: '16px',
+                background: '#fef3c7',
+                borderRadius: '12px'
+              }}>
+                <i className="ri-heart-pulse-line" style={{ fontSize: '24px', color: '#f59e0b', marginBottom: '8px' }}></i>
+                <p style={{ fontSize: '20px', fontWeight: '600', color: '#1f2937', margin: '0 0 4px 0' }}>
+                  {fitnessData.heartRate}
+                </p>
+                <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>{t.heartRate}</p>
+              </div>
+              <div style={{
+                textAlign: 'center',
+                padding: '16px',
+                background: '#fef2f2',
+                borderRadius: '12px'
+              }}>
+                <i className="ri-road-map-line" style={{ fontSize: '24px', color: '#ef4444', marginBottom: '8px' }}></i>
+                <p style={{ fontSize: '20px', fontWeight: '600', color: '#1f2937', margin: '0 0 4px 0' }}>
+                  {fitnessData.distance} km
+                </p>
+                <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>{t.distance}</p>
+              </div>
+            </div>
+            {userProfile.lastSyncTime && (
+              <p style={{
+                fontSize: '12px',
+                color: '#6b7280',
+                textAlign: 'center',
+                marginTop: '16px',
+                margin: '16px 0 0 0'
+              }}>
+                {t.lastSync}: {new Date(userProfile.lastSyncTime).toLocaleString()}
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Quick Actions */}
         <div style={{
           background: 'white',
@@ -428,28 +817,34 @@ export default function Profile() {
               className="!rounded-button"
               style={{
                 padding: '12px',
-                background: '#f0fdf4',
-                border: '1px solid #dcfce7',
+                background: syncStatus === 'syncing' ? '#fef3c7' : syncStatus === 'success' ? '#f0fdf4' : syncStatus === 'error' ? '#fef2f2' : '#f0fdf4',
+                border: `1px solid ${syncStatus === 'syncing' ? '#fde68a' : syncStatus === 'success' ? '#dcfce7' : syncStatus === 'error' ? '#fecaca' : '#dcfce7'}`,
                 borderRadius: '12px',
-                cursor: 'pointer',
+                cursor: syncStatus === 'syncing' ? 'not-allowed' : 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '12px',
                 minHeight: '65px',
-                width: '100%'
+                width: '100%',
+                opacity: syncStatus === 'syncing' ? 0.7 : 1
               }}
+              disabled={syncStatus === 'syncing'}
             >
               <div style={{
                 width: '40px',
                 height: '40px',
-                background: '#16a34a',
+                background: syncStatus === 'syncing' ? '#f59e0b' : syncStatus === 'success' ? '#16a34a' : syncStatus === 'error' ? '#ef4444' : '#16a34a',
                 borderRadius: '50%',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0
               }}>
-                <i className="ri-refresh-line" style={{ color: 'white', fontSize: '18px' }}></i>
+                <i className={`ri-${syncStatus === 'syncing' ? 'loader-4-line' : syncStatus === 'success' ? 'check-line' : syncStatus === 'error' ? 'error-warning-line' : 'refresh-line'}`} style={{
+                  color: 'white',
+                  fontSize: '18px',
+                  animation: syncStatus === 'syncing' ? 'spin 1s linear infinite' : 'none'
+                }}></i>
               </div>
               <div style={{
                 textAlign: 'left',
@@ -475,7 +870,7 @@ export default function Profile() {
                   overflow: 'hidden',
                   textOverflow: 'ellipsis'
                 }}>
-                  {t.fitnessData}
+                  {syncMessage || t.fitnessData}
                 </p>
               </div>
             </button>
@@ -738,13 +1133,10 @@ export default function Profile() {
               alignItems: 'center',
               justifyContent: 'center'
             }}>
-              <i 
-                className={getGoalIcon(userProfile.goal || 'maintain')}
-                style={{ 
-                  color: 'white', 
-                  fontSize: '20px' 
-                }}
-              ></i>
+              <i className={getGoalIcon(userProfile.goal || 'maintain')} style={{
+                color: 'white',
+                fontSize: '20px'
+              }}></i>
             </div>
             <div>
               <p style={{
@@ -799,7 +1191,16 @@ export default function Profile() {
                 color: '#1f2937',
                 margin: 0
               }}>
-                {userProfile.targetCalories || 2000}
+                {userProfile.adjustedCalories || userProfile.targetCalories || 2000}
+                {userProfile.restDayActive && (
+                  <span style={{
+                    fontSize: '12px',
+                    color: '#ef4444',
+                    marginLeft: '4px'
+                  }}>
+                    ({t.applied})
+                  </span>
+                )}
               </p>
             </div>
             <div>
@@ -1293,7 +1694,7 @@ export default function Profile() {
               <button
                 onClick={() => {
                   setShowSyncModal(false);
-                  // Aquí iría la lógica de sincronización
+                  handleSyncFitnessData();
                 }}
                 className="!rounded-button"
                 style={{
@@ -1332,7 +1733,9 @@ export default function Profile() {
             borderRadius: '20px',
             padding: '24px',
             width: '90%',
-            maxWidth: '320px'
+            maxWidth: '400px',
+            maxHeight: '80vh',
+            overflowY: 'auto'
           }}>
             <h3 style={{
               fontSize: '18px',
@@ -1349,6 +1752,56 @@ export default function Profile() {
             }}>
               Calcula tus objetivos nutricionales basados en tu perfil
             </p>
+
+            {calculatorData && (
+              <div style={{
+                background: '#f8fafc',
+                border: '1px solid #e5e7eb',
+                borderRadius: '12px',
+                padding: '16px',
+                marginBottom: '20px'
+              }}>
+                <h4 style={{
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#1f2937',
+                  margin: '0 0 12px 0'
+                }}>
+                  Objetivos Calculados:
+                </h4>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, 1fr)',
+                  gap: '12px'
+                }}>
+                  <div>
+                    <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 2px 0' }}>Calorías:</p>
+                    <p style={{ fontSize: '16px', fontWeight: '500', color: '#1f2937', margin: 0 }}>
+                      {calculatorData.targetCalories}
+                    </p>
+                  </div>
+                  <div>
+                    <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 2px 0' }}>Proteínas:</p>
+                    <p style={{ fontSize: '16px', fontWeight: '500', color: '#1f2937', margin: 0 }}>
+                      {calculatorData.targetProtein}g
+                    </p>
+                  </div>
+                  <div>
+                    <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 2px 0' }}>Carbohidratos:</p>
+                    <p style={{ fontSize: '16px', fontWeight: '500', color: '#1f2937', margin: 0 }}>
+                      {calculatorData.targetCarbs}g
+                    </p>
+                  </div>
+                  <div>
+                    <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 2px 0' }}>Grasas:</p>
+                    <p style={{ fontSize: '16px', fontWeight: '500', color: '#1f2937', margin: 0 }}>
+                      {calculatorData.targetFats}g
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div style={{
               display: 'flex',
               gap: '12px'
@@ -1370,8 +1823,7 @@ export default function Profile() {
               </button>
               <button
                 onClick={() => {
-                  setShowCalculatorModal(false);
-                  // Aquí iría la lógica de cálculo
+                  handleCalculateNutrition();
                 }}
                 className="!rounded-button"
                 style={{
@@ -1410,7 +1862,9 @@ export default function Profile() {
             borderRadius: '20px',
             padding: '24px',
             width: '90%',
-            maxWidth: '320px'
+            maxWidth: '400px',
+            maxHeight: '80vh',
+            overflowY: 'auto'
           }}>
             <h3 style={{
               fontSize: '18px',
@@ -1427,9 +1881,149 @@ export default function Profile() {
             }}>
               {t.restDayDescription}
             </p>
+
             <div style={{
               display: 'flex',
-              gap: '12px'
+              flexDirection: 'column',
+              gap: '16px'
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                padding: '12px',
+                background: '#f8fafc',
+                borderRadius: '8px',
+                border: '1px solid #e5e7eb'
+              }}>
+                <input
+                  type="checkbox"
+                  id="enableRestDays"
+                  checked={restDayConfig.enabled}
+                  onChange={(e) => setRestDayConfig({ ...restDayConfig, enabled: e.target.checked })}
+                  style={{
+                    width: '16px',
+                    height: '16px',
+                    cursor: 'pointer'
+                  }}
+                />
+                <label
+                  htmlFor="enableRestDays"
+                  style={{
+                    fontSize: '14px',
+                    color: '#374151',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {t.enableRestDays}
+                </label>
+              </div>
+
+              {restDayConfig.enabled && (
+                <>
+                  <div>
+                    <p style={{
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      color: '#374151',
+                      marginBottom: '8px'
+                    }}>
+                      {t.selectDays}:
+                    </p>
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(2, 1fr)',
+                      gap: '8px'
+                    }}>
+                      {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(day => (
+                        <button
+                          key={day}
+                          onClick={() => toggleRestDay(day)}
+                          className="!rounded-button"
+                          style={{
+                            padding: '8px 12px',
+                            background: restDayConfig.selectedDays.includes(day) ? '#ef4444' : '#f8fafc',
+                            color: restDayConfig.selectedDays.includes(day) ? 'white' : '#374151',
+                            border: '1px solid #e5e7eb',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            fontSize: '12px'
+                          }}
+                        >
+                          {t[day as keyof typeof t]}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '12px',
+                    background: '#f8fafc',
+                    borderRadius: '8px',
+                    border: '1px solid #e5e7eb'
+                  }}>
+                    <input
+                      type="checkbox"
+                      id="reduceCalories"
+                      checked={restDayConfig.reducedCalories}
+                      onChange={(e) => setRestDayConfig({ ...restDayConfig, reducedCalories: e.target.checked })}
+                      style={{
+                        width: '16px',
+                        height: '16px',
+                        cursor: 'pointer'
+                      }}
+                    />
+                    <label
+                      htmlFor="reduceCalories"
+                      style={{
+                        fontSize: '14px',
+                        color: '#374151',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {t.reduceCalories}
+                    </label>
+                  </div>
+
+                  {restDayConfig.reducedCalories && (
+                    <div>
+                      <label style={{
+                        display: 'block',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        color: '#374151',
+                        marginBottom: '6px'
+                      }}>
+                        {t.calorieReduction}:
+                      </label>
+                      <input
+                        type="number"
+                        value={restDayConfig.calorieReduction}
+                        onChange={(e) => setRestDayConfig({ ...restDayConfig, calorieReduction: parseInt(e.target.value) || 0 })}
+                        min="0"
+                        max="500"
+                        style={{
+                          width: '100%',
+                          padding: '12px',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '8px',
+                          fontSize: '14px',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            <div style={{
+              display: 'flex',
+              gap: '12px',
+              marginTop: '20px'
             }}>
               <button
                 onClick={() => setShowRestDayModal(false)}
@@ -1448,8 +2042,8 @@ export default function Profile() {
               </button>
               <button
                 onClick={() => {
+                  handleRestDayConfig();
                   setShowRestDayModal(false);
-                  // Aquí iría la lógica de configuración de descanso
                 }}
                 className="!rounded-button"
                 style={{
