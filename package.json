@@ -13,7 +13,6 @@
     "next": "14.0.0",
     "react": "^18",
     "react-dom": "^18",
-    "quagga": "^0.12.1",
     "recharts": "^2.8.0"
   },
   "devDependencies": {

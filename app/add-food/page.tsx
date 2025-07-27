@@ -12,7 +12,7 @@ import {
   getProductByBarcode, 
   isValidBarcode,
   BarcodeResult 
-} from '../../lib/barcode-scanner';
+} from '../../lib/simple-barcode-scanner';
 
 interface FoodItem {
   id: string;
@@ -95,6 +95,7 @@ export default function AddFoodPage() {
   const [isScanning, setIsScanning] = useState(false);
   const [detectedProduct, setDetectedProduct] = useState<any>(null);
   const [showProductModal, setShowProductModal] = useState(false);
+  const [barcodeScanner, setBarcodeScanner] = useState<any>(null);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -115,6 +116,17 @@ export default function AddFoodPage() {
       console.log('Error loading user profile:', error);
     }
   }, [router]);
+
+  useEffect(() => {
+    return () => {
+      if (barcodeScanner) {
+        stopBarcodeScanner(barcodeScanner);
+      }
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [barcodeScanner, cameraStream]);
 
   const translations = {
     es: {
@@ -518,7 +530,12 @@ export default function AddFoodPage() {
       cameraStream.getTracks().forEach(track => track.stop());
       setCameraStream(null);
     }
+    if (barcodeScanner) {
+      stopBarcodeScanner(barcodeScanner);
+      setBarcodeScanner(null);
+    }
     setShowCamera(false);
+    setIsScanning(false);
   };
 
   const handleVisionScan = async () => {
@@ -536,7 +553,7 @@ export default function AddFoodPage() {
           product_name: topFood.name,
           brands: 'Detectado visualmente',
           quantity: '100g',
-          image_url: 'https://readdy.ai/api/search-image?query=food%20%20%20%20topFood.name%20%20%20%20realistic%20healthy&width=200&height=200&seq=food_detected&orientation=squarish',
+          image_url: `https://readdy.ai/api/search-image?query=food%20${topFood.name}%20realistic%20healthy&width=200&height=200&seq=food_detected&orientation=squarish`,
           nutriments: {
             'energy-kcal_100g': topFood.calories,
             'proteins_100g': topFood.protein,
@@ -592,8 +609,21 @@ export default function AddFoodPage() {
         videoRef.current.srcObject = stream;
 
         if (mode === 'barcode') {
-          videoRef.current.addEventListener('loadedmetadata', () => {
-            initializeBarcodeScanner(videoRef.current!, handleBarcodeDetected);
+          videoRef.current.addEventListener('loadedmetadata', async () => {
+            try {
+              const scanner = await initializeBarcodeScanner(
+                videoRef.current!,
+                handleBarcodeDetected,
+                (error) => {
+                  console.error('Error en escáner:', error);
+                  alert('Error al inicializar el escáner');
+                }
+              );
+              setBarcodeScanner(scanner);
+            } catch (error) {
+              console.error('Error inicializando escáner:', error);
+              alert('Error al inicializar el escáner de códigos');
+            }
           });
         }
       }
@@ -650,8 +680,8 @@ export default function AddFoodPage() {
     };
 
     const detectionBadge = product.detected_type === 'barcode' ? 
-      '<i class="ri-qr-code-line" style="color: #3b82f6; font-size: 14px;"></i><span style="font-size: 11px; color: #3b82f6; font-weight: 500;">Código de Barras</span>' :
-      '<i class="ri-eye-line" style="color: #10b981; font-size: 14px;"></i><span style="font-size: 11px; color: #10b981; font-weight: 500;">Detección Visual</span>';
+      `<i class="ri-qr-code-line" style="color: #3b82f6; font-size: 14px;"></i><span style="font-size: 11px; color: #3b82f6; font-weight: 500;">Código de Barras</span>` :
+      `<i class="ri-eye-line" style="color: #10b981; font-size: 14px;"></i><span style="font-size: 11px; color: #10b981; font-weight: 500;">Detección Visual</span>`;
 
     modal.innerHTML = `
       <div style="background: white; border-radius: 16px; padding: 24px; max-width: 340px; width: 100%; max-height: 90vh; overflow-y: auto;">
@@ -1229,7 +1259,7 @@ export default function AddFoodPage() {
               )}
             </div>
 
-            {/* Métodos de escaneo */}
+            {/* Scan Methods */}
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(2, 1fr)',
@@ -1348,7 +1378,7 @@ export default function AddFoodPage() {
                   type="text"
                   placeholder={t.enterName}
                   value={customFood.name}
-                  onChange={(e) => setCustomFood({...customFood, name: e.target.value})}
+                  onChange={(e) => setCustomFood({ ...customFood, name: e.target.value })}
                   style={{
                     width: '100%',
                     padding: '8px 12px',
@@ -1379,7 +1409,7 @@ export default function AddFoodPage() {
                     type="number"
                     placeholder={t.enterCalories}
                     value={customFood.calories}
-                    onChange={(e) => setCustomFood({...customFood, calories: e.target.value})}
+                    onChange={(e) => setCustomFood({ ...customFood, calories: e.target.value })}
                     style={{
                       width: '100%',
                       padding: '8px 12px',
@@ -1406,7 +1436,7 @@ export default function AddFoodPage() {
                     step="0.1"
                     placeholder={t.enterProtein}
                     value={customFood.protein}
-                    onChange={(e) => setCustomFood({...customFood, protein: e.target.value})}
+                    onChange={(e) => setCustomFood({ ...customFood, protein: e.target.value })}
                     style={{
                       width: '100%',
                       padding: '8px 12px',
@@ -1433,7 +1463,7 @@ export default function AddFoodPage() {
                     step="0.1"
                     placeholder={t.enterCarbs}
                     value={customFood.carbs}
-                    onChange={(e) => setCustomFood({...customFood, carbs: e.target.value})}
+                    onChange={(e) => setCustomFood({ ...customFood, carbs: e.target.value })}
                     style={{
                       width: '100%',
                       padding: '8px 12px',
@@ -1460,7 +1490,7 @@ export default function AddFoodPage() {
                     step="0.1"
                     placeholder={t.enterFats}
                     value={customFood.fats}
-                    onChange={(e) => setCustomFood({...customFood, fats: e.target.value})}
+                    onChange={(e) => setCustomFood({ ...customFood, fats: e.target.value })}
                     style={{
                       width: '100%',
                       padding: '8px 12px',
@@ -1488,7 +1518,7 @@ export default function AddFoodPage() {
                   step="0.1"
                   placeholder={t.enterFiber}
                   value={customFood.fiber}
-                  onChange={(e) => setCustomFood({...customFood, fiber: e.target.value})}
+                  onChange={(e) => setCustomFood({ ...customFood, fiber: e.target.value })}
                   style={{
                     width: '100%',
                     padding: '8px 12px',
@@ -1578,7 +1608,7 @@ export default function AddFoodPage() {
                   type="text"
                   placeholder={t.enterName}
                   value={customLiquid.name}
-                  onChange={(e) => setCustomLiquid({...customLiquid, name: e.target.value})}
+                  onChange={(e) => setCustomLiquid({ ...customLiquid, name: e.target.value })}
                   style={{
                     width: '100%',
                     padding: '8px 12px',
@@ -1609,7 +1639,7 @@ export default function AddFoodPage() {
                     type="number"
                     placeholder={t.enterCalories}
                     value={customLiquid.calories}
-                    onChange={(e) => setCustomLiquid({...customLiquid, calories: e.target.value})}
+                    onChange={(e) => setCustomLiquid({ ...customLiquid, calories: e.target.value })}
                     style={{
                       width: '100%',
                       padding: '8px 12px',
@@ -1636,7 +1666,7 @@ export default function AddFoodPage() {
                     step="0.1"
                     placeholder={t.enterProtein}
                     value={customLiquid.protein}
-                    onChange={(e) => setCustomLiquid({...customLiquid, protein: e.target.value})}
+                    onChange={(e) => setCustomLiquid({ ...customLiquid, protein: e.target.value })}
                     style={{
                       width: '100%',
                       padding: '8px 12px',
@@ -1663,7 +1693,7 @@ export default function AddFoodPage() {
                     step="0.1"
                     placeholder={t.enterCarbs}
                     value={customLiquid.carbs}
-                    onChange={(e) => setCustomLiquid({...customLiquid, carbs: e.target.value})}
+                    onChange={(e) => setCustomLiquid({ ...customLiquid, carbs: e.target.value })}
                     style={{
                       width: '100%',
                       padding: '8px 12px',
@@ -1690,7 +1720,7 @@ export default function AddFoodPage() {
                     step="0.1"
                     placeholder={t.enterFats}
                     value={customLiquid.fats}
-                    onChange={(e) => setCustomLiquid({...customLiquid, fats: e.target.value})}
+                    onChange={(e) => setCustomLiquid({ ...customLiquid, fats: e.target.value })}
                     style={{
                       width: '100%',
                       padding: '8px 12px',
