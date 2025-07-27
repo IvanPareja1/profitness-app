@@ -1848,7 +1848,7 @@ export default function AddFood() {
                     </button>
                   </div>
 
-                  <div style={{ position: 'relative', marginBottom: '16px' }}>
+                  <div style={{ marginBottom: '16px' }}>
                     <label style={{
                       display: 'block',
                       fontSize: '14px',
@@ -2940,7 +2940,7 @@ export default function AddFood() {
                       }
                     `}</style>
                   </div>
-                )
+                )}
 
                 {/* Camera detection modal */}
                 {showCameraDetection && (
@@ -3112,13 +3112,14 @@ export default function AddFood() {
                       }
                     `}</style>
                   </div>
-                )
-              </>
-            )
-          }
-        </main>
+                )}
+              </>)
+            })
+          </>)
+        }
+      </main>
 
-        <BottomNavigation />
-      </div>
-    );
-  }
+      <BottomNavigation />
+    </div>
+  );
+}
