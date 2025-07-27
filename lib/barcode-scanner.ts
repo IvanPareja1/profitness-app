@@ -1,7 +1,48 @@
+
 // Configuración para escaneo de códigos de barras
 export interface BarcodeResult {
   code: string;
   format: string;
+}
+
+// Tipos para QuaggaJS
+declare module 'quagga' {
+  export interface QuaggaJSConfigObject {
+    inputStream?: {
+      name?: string;
+      type?: string;
+      target?: HTMLElement;
+      constraints?: {
+        width?: number;
+        height?: number;
+        facingMode?: string;
+      };
+    };
+    decoder?: {
+      readers?: string[];
+    };
+    locate?: boolean;
+    frequency?: number;
+    debug?: boolean;
+    halfSample?: boolean;
+  }
+
+  export interface QuaggaJSResultObject {
+    codeResult?: {
+      code?: string;
+      format?: string;
+    };
+  }
+
+  export interface QuaggaJSStatic {
+    init(config: QuaggaJSConfigObject, callback?: (err: any) => void): void;
+    start(): void;
+    stop(): void;
+    onDetected(callback: (result: QuaggaJSResultObject) => void): void;
+  }
+
+  const Quagga: QuaggaJSStatic;
+  export default Quagga;
 }
 
 // Función para inicializar el escáner de códigos de barras
@@ -11,10 +52,11 @@ export async function initializeBarcodeScanner(
 ): Promise<void> {
   try {
     // Importar QuaggaJS dinámicamente para evitar errores de SSR
-    const Quagga = await import('quagga');
-    
+    const QuaggaModule = await import('quagga');
+    const Quagga = QuaggaModule.default;
+
     // Configurar QuaggaJS
-    Quagga.default.init({
+    Quagga.init({
       inputStream: {
         name: "Live",
         type: "LiveStream",
@@ -47,12 +89,12 @@ export async function initializeBarcodeScanner(
         console.error('Error initializing barcode scanner:', err);
         return;
       }
-      
+
       // Iniciar el escáner
-      Quagga.default.start();
-      
+      Quagga.start();
+
       // Escuchar por códigos detectados
-      Quagga.default.onDetected((result: any) => {
+      Quagga.onDetected((result: any) => {
         if (result && result.codeResult && result.codeResult.code) {
           onBarcodeDetected({
             code: result.codeResult.code,
@@ -71,9 +113,10 @@ export async function initializeBarcodeScanner(
 export function stopBarcodeScanner(): void {
   try {
     // Importar QuaggaJS dinámicamente
-    import('quagga').then(Quagga => {
-      if (Quagga.default) {
-        Quagga.default.stop();
+    import('quagga').then(QuaggaModule => {
+      const Quagga = QuaggaModule.default;
+      if (Quagga) {
+        Quagga.stop();
       }
     });
   } catch (error) {
@@ -85,16 +128,16 @@ export function stopBarcodeScanner(): void {
 export async function getProductByBarcode(barcode: string): Promise<any> {
   try {
     const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
-    
+
     if (!response.ok) {
       throw new Error('Producto no encontrado');
     }
-    
+
     const data = await response.json();
-    
+
     if (data.status === 1 && data.product) {
       const product = data.product;
-      
+
       // Mapear a nuestro formato
       return {
         product_name: product.product_name || 'Producto desconocido',
@@ -126,11 +169,11 @@ export function isValidBarcode(code: string): boolean {
   if (code.length < 8 || code.length > 14) {
     return false;
   }
-  
+
   // Validar que contenga solo números
   if (!/^\d+$/.test(code)) {
     return false;
   }
-  
+
   return true;
 }
