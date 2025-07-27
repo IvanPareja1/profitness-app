@@ -881,15 +881,15 @@ export default function AddFood() {
     };
 
     const handleSelectFood = (foodName: string) => {
-      const selectedFood = foods.find(f => f.name === foodName);
-      if (selectedFood) {
+      const selectedFoodItem = foods.find(f => f.name === foodName);
+      if (selectedFoodItem) {
         setCustomFood({
-          name: selectedFood.name,
-          calories: selectedFood.calories.toString(),
-          protein: selectedFood.protein.toString(),
-          carbs: selectedFood.carbs.toString(),
-          fats: selectedFood.fats.toString(),
-          fiber: selectedFood.fiber.toString()
+          name: selectedFoodItem.name,
+          calories: selectedFoodItem.calories.toString(),
+          protein: selectedFoodItem.protein.toString(),
+          carbs: selectedFoodItem.carbs.toString(),
+          fats: selectedFoodItem.fats.toString(),
+          fiber: selectedFoodItem.fiber.toString()
         });
 
         setShowCustomFood(true);
@@ -927,7 +927,7 @@ export default function AddFood() {
               </div>
             </div>
           </div>
-        `).join('')}
+        `).join ''}
       </div>
 
       <div style="display: flex; gap: 8px;">
@@ -2210,7 +2210,7 @@ export default function AddFood() {
                   </div>
                 )
               }
-            </>
+            }
 
             {/* Custom liquid form */}
             {showCustomLiquid && (
