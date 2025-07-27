@@ -108,12 +108,12 @@ const liquidOptions = [
   { name: 'Leche descremada', calories: 34, protein: 3.4, carbs: 5, fats: 0.1, fiber: 0, hydrating: false }
 ];
 
-const safeNumber = (value, defaultValue = 0) => {
+const safeNumber = (value: string | number, defaultValue: number = 0): number => {
   const parsed = parseFloat(value.toString());
   return isNaN(parsed) ? defaultValue : parsed;
 };
 
-const formatNumber = (value, decimals = 0) => {
+const formatNumber = (value: string | number, decimals: number = 0): string => {
   const num = safeNumber(value);
   return decimals > 0 ? num.toFixed(decimals) : Math.round(num).toString();
 };
