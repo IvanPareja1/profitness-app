@@ -5,9 +5,9 @@ export interface BarcodeResult {
   format: string;
 }
 
-// Tipos para QuaggaJS
-declare module 'quagga' {
-  export interface QuaggaJSConfigObject {
+// Tipos para QuaggaJS - Declaración global
+declare global {
+  interface QuaggaJSConfigObject {
     inputStream?: {
       name?: string;
       type?: string;
@@ -27,22 +27,19 @@ declare module 'quagga' {
     halfSample?: boolean;
   }
 
-  export interface QuaggaJSResultObject {
+  interface QuaggaJSResultObject {
     codeResult?: {
       code?: string;
       format?: string;
     };
   }
 
-  export interface QuaggaJSStatic {
+  interface QuaggaJSStatic {
     init(config: QuaggaJSConfigObject, callback?: (err: any) => void): void;
     start(): void;
     stop(): void;
     onDetected(callback: (result: QuaggaJSResultObject) => void): void;
   }
-
-  const Quagga: QuaggaJSStatic;
-  export default Quagga;
 }
 
 // Función para inicializar el escáner de códigos de barras
@@ -53,7 +50,7 @@ export async function initializeBarcodeScanner(
   try {
     // Importar QuaggaJS dinámicamente para evitar errores de SSR
     const QuaggaModule = await import('quagga');
-    const Quagga = QuaggaModule.default;
+    const Quagga = (QuaggaModule as any).default || QuaggaModule;
 
     // Configurar QuaggaJS
     Quagga.init({
@@ -114,7 +111,7 @@ export function stopBarcodeScanner(): void {
   try {
     // Importar QuaggaJS dinámicamente
     import('quagga').then(QuaggaModule => {
-      const Quagga = QuaggaModule.default;
+      const Quagga = (QuaggaModule as any).default || QuaggaModule;
       if (Quagga) {
         Quagga.stop();
       }
@@ -171,7 +168,7 @@ export function isValidBarcode(code: string): boolean {
   }
 
   // Validar que contenga solo números
-  if (!/^\d+$/.test(code)) {
+  if (!(/^\d+$/.test(code))) {
     return false;
   }
 
