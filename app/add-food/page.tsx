@@ -1359,7 +1359,6 @@ export default function AddFood() {
         {/* Food Tab */}
         {currentTab === 'food' && (
           <>
-
             {/* Detection methods section */}
             <div style={{
               background: 'white',
@@ -1455,7 +1454,6 @@ export default function AddFood() {
             {/* Search and popular foods */}
             {!showCustomFood && (
               <>
-
                 <div style={{
                   background: 'white',
                   borderRadius: '16px',
@@ -1793,10 +1791,9 @@ export default function AddFood() {
                       )}
                     </button>
                   </div>
-                )
-              }
-
-            </>
+                )}
+              </>
+            )}
 
             {/* Custom food form */}
             {showCustomFood && (
@@ -2094,19 +2091,16 @@ export default function AddFood() {
                   )}
                 </button>
               </div>
-            )
-          }
-
-        </>
+            )}
+          </>
+        )}
 
         {/* Liquid Tab */}
         {currentTab === 'liquid' && (
           <>
-
             {/* Search and popular liquids */}
             {!showCustomLiquid && (
               <>
-
                 <div style={{
                   background: 'white',
                   borderRadius: '16px',
@@ -2419,7 +2413,6 @@ export default function AddFood() {
                         cursor: isLoading ? 'not-allowed' : 'pointer',
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center',
                         gap: '8px'
                       }}
                     >
@@ -2443,10 +2436,9 @@ export default function AddFood() {
                       )}
                     </button>
                   </div>
-                )
-              }
-
-            </>
+                )}
+              </>
+            )}
 
             {/* Custom liquid form */}
             {showCustomLiquid && (
@@ -2759,10 +2751,9 @@ export default function AddFood() {
                   )}
                 </button>
               </div>
-            )
-          }
-
-        </>
+            )}
+          </>
+        )}
 
         {/* Barcode scanner modal */}
         {showBarcodeScanner && (
@@ -2953,8 +2944,7 @@ export default function AddFood() {
               }
             `}</style>
           </div>
-        )
-        }
+        )}
 
         {/* Camera detection modal */}
         {showCameraDetection && (
@@ -3126,9 +3116,7 @@ export default function AddFood() {
               }
             `}</style>
           </div>
-        )
-        }
-
+        )}
       </main>
 
       <BottomNavigation />

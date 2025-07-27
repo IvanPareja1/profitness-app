@@ -95,9 +95,9 @@ export default function Profile() {
       weight: 'Peso',
       activity: 'Actividad',
       goal: 'Objetivo',
-      goalLose: 'Perder peso',
-      goalMaintain: 'Mantener peso',
-      goalGain: 'Ganar peso',
+      goalLose: 'Pérdida de peso',
+      goalMaintain: 'Mantenimiento',
+      goalMuscle: 'Ganar músculo',
       nutritionGoals: 'Objetivos Nutricionales',
       calories: 'Calorías',
       protein: 'Proteínas',
@@ -163,9 +163,9 @@ export default function Profile() {
       weight: 'Weight',
       activity: 'Activity',
       goal: 'Goal',
-      goalLose: 'Lose weight',
-      goalMaintain: 'Maintain weight',
-      goalGain: 'Gain weight',
+      goalLose: 'Weight loss',
+      goalMaintain: 'Maintenance',
+      goalMuscle: 'Gain muscle',
       nutritionGoals: 'Nutrition Goals',
       calories: 'Calories',
       protein: 'Protein',
@@ -498,8 +498,8 @@ export default function Profile() {
         return t.goalLose;
       case 'maintain':
         return t.goalMaintain;
-      case 'gain':
-        return t.goalGain;
+      case 'muscle':
+        return t.goalMuscle;
       default:
         return t.goalMaintain;
     }
@@ -511,8 +511,8 @@ export default function Profile() {
         return 'ri-arrow-down-line';
       case 'maintain':
         return 'ri-pause-line';
-      case 'gain':
-        return 'ri-arrow-up-line';
+      case 'muscle':
+        return 'ri-building-line';
       default:
         return 'ri-pause-line';
     }
@@ -524,7 +524,7 @@ export default function Profile() {
         return '#ef4444';
       case 'maintain':
         return '#3b82f6';
-      case 'gain':
+      case 'muscle':
         return '#16a34a';
       default:
         return '#3b82f6';
@@ -677,10 +677,21 @@ export default function Profile() {
                 borderRadius: '12px'
               }}>
                 <i className="ri-walk-line" style={{ fontSize: '24px', color: '#3b82f6', marginBottom: '8px' }}></i>
-                <p style={{ fontSize: '20px', fontWeight: '600', color: '#1f2937', margin: '0 0 4px 0' }}>
+                <p style={{
+                  fontSize: '20px',
+                  fontWeight: '600',
+                  color: '#1f2937',
+                  margin: '0 0 4px 0'
+                }}>
                   {fitnessData.steps.toLocaleString()}
                 </p>
-                <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>{t.steps}</p>
+                <p style={{
+                  fontSize: '12px',
+                  color: '#6b7280',
+                  margin: 0
+                }}>
+                  {t.steps}
+                </p>
               </div>
               <div style={{
                 textAlign: 'center',
@@ -689,10 +700,21 @@ export default function Profile() {
                 borderRadius: '12px'
               }}>
                 <i className="ri-time-line" style={{ fontSize: '24px', color: '#16a34a', marginBottom: '8px' }}></i>
-                <p style={{ fontSize: '20px', fontWeight: '600', color: '#1f2937', margin: '0 0 4px 0' }}>
+                <p style={{
+                  fontSize: '20px',
+                  fontWeight: '600',
+                  color: '#1f2937',
+                  margin: '0 0 4px 0'
+                }}>
                   {fitnessData.activeMinutes}
                 </p>
-                <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>{t.activeMinutes}</p>
+                <p style={{
+                  fontSize: '12px',
+                  color: '#6b7280',
+                  margin: 0
+                }}>
+                  {t.activeMinutes}
+                </p>
               </div>
               <div style={{
                 textAlign: 'center',
@@ -701,10 +723,21 @@ export default function Profile() {
                 borderRadius: '12px'
               }}>
                 <i className="ri-heart-pulse-line" style={{ fontSize: '24px', color: '#f59e0b', marginBottom: '8px' }}></i>
-                <p style={{ fontSize: '20px', fontWeight: '600', color: '#1f2937', margin: '0 0 4px 0' }}>
+                <p style={{
+                  fontSize: '20px',
+                  fontWeight: '600',
+                  color: '#1f2937',
+                  margin: '0 0 4px 0'
+                }}>
                   {fitnessData.heartRate}
                 </p>
-                <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>{t.heartRate}</p>
+                <p style={{
+                  fontSize: '12px',
+                  color: '#6b7280',
+                  margin: 0
+                }}>
+                  {t.heartRate}
+                </p>
               </div>
               <div style={{
                 textAlign: 'center',
@@ -713,10 +746,21 @@ export default function Profile() {
                 borderRadius: '12px'
               }}>
                 <i className="ri-road-map-line" style={{ fontSize: '24px', color: '#ef4444', marginBottom: '8px' }}></i>
-                <p style={{ fontSize: '20px', fontWeight: '600', color: '#1f2937', margin: '0 0 4px 0' }}>
+                <p style={{
+                  fontSize: '20px',
+                  fontWeight: '600',
+                  color: '#1f2937',
+                  margin: '0 0 4px 0'
+                }}>
                   {fitnessData.distance} km
                 </p>
-                <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>{t.distance}</p>
+                <p style={{
+                  fontSize: '12px',
+                  color: '#6b7280',
+                  margin: 0
+                }}>
+                  {t.distance}
+                </p>
               </div>
             </div>
             {userProfile.lastSyncTime && (
@@ -1017,7 +1061,9 @@ export default function Profile() {
                 fontSize: '12px',
                 color: '#6b7280',
                 margin: '0 0 4px 0'
-              }}>{t.age}</p>
+              }}>
+                {t.age}
+              </p>
               <p style={{
                 fontSize: '16px',
                 fontWeight: '500',
@@ -1032,7 +1078,9 @@ export default function Profile() {
                 fontSize: '12px',
                 color: '#6b7280',
                 margin: '0 0 4px 0'
-              }}>{t.height}</p>
+              }}>
+                {t.height}
+              </p>
               <p style={{
                 fontSize: '16px',
                 fontWeight: '500',
@@ -1047,7 +1095,9 @@ export default function Profile() {
                 fontSize: '12px',
                 color: '#6b7280',
                 margin: '0 0 4px 0'
-              }}>{t.weight}</p>
+              }}>
+                {t.weight}
+              </p>
               <p style={{
                 fontSize: '16px',
                 fontWeight: '500',
@@ -1062,7 +1112,9 @@ export default function Profile() {
                 fontSize: '12px',
                 color: '#6b7280',
                 margin: '0 0 4px 0'
-              }}>{t.activity}</p>
+              }}>
+                {t.activity}
+              </p>
               <p style={{
                 fontSize: '16px',
                 fontWeight: '500',
@@ -1184,7 +1236,9 @@ export default function Profile() {
                 fontSize: '12px',
                 color: '#6b7280',
                 margin: '0 0 4px 0'
-              }}>{t.calories}</p>
+              }}>
+                {t.calories}
+              </p>
               <p style={{
                 fontSize: '16px',
                 fontWeight: '500',
@@ -1208,7 +1262,9 @@ export default function Profile() {
                 fontSize: '12px',
                 color: '#6b7280',
                 margin: '0 0 4px 0'
-              }}>{t.protein}</p>
+              }}>
+                {t.protein}
+              </p>
               <p style={{
                 fontSize: '16px',
                 fontWeight: '500',
@@ -1223,7 +1279,9 @@ export default function Profile() {
                 fontSize: '12px',
                 color: '#6b7280',
                 margin: '0 0 4px 0'
-              }}>{t.carbs}</p>
+              }}>
+                {t.carbs}
+              </p>
               <p style={{
                 fontSize: '16px',
                 fontWeight: '500',
@@ -1238,7 +1296,9 @@ export default function Profile() {
                 fontSize: '12px',
                 color: '#6b7280',
                 margin: '0 0 4px 0'
-              }}>{t.fats}</p>
+              }}>
+                {t.fats}
+              </p>
               <p style={{
                 fontSize: '16px',
                 fontWeight: '500',
@@ -1555,7 +1615,7 @@ export default function Profile() {
                 >
                   <option value="lose">{t.goalLose}</option>
                   <option value="maintain">{t.goalMaintain}</option>
-                  <option value="gain">{t.goalGain}</option>
+                  <option value="muscle">{t.goalMuscle}</option>
                 </select>
               </div>
 
