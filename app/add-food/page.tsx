@@ -109,7 +109,7 @@ const liquidOptions = [
 ];
 
 const safeNumber = (value, defaultValue = 0) => {
-  const parsed = parseFloat(value);
+  const parsed = parseFloat(value.toString());
   return isNaN(parsed) ? defaultValue : parsed;
 };
 
@@ -1791,9 +1791,9 @@ export default function AddFood() {
                       )}
                     </button>
                   </div>
-                )}
-              </>
-            )}
+                )
+              }
+            </>
 
             {/* Custom food form */}
             {showCustomFood && (
@@ -2091,9 +2091,9 @@ export default function AddFood() {
                   )}
                 </button>
               </div>
-            )}
-          </>
-        )}
+            )
+          }
+        </>
 
         {/* Liquid Tab */}
         {currentTab === 'liquid' && (
@@ -2436,9 +2436,9 @@ export default function AddFood() {
                       )}
                     </button>
                   </div>
-                )}
-              </>
-            )}
+                )
+              }
+            </>
 
             {/* Custom liquid form */}
             {showCustomLiquid && (
@@ -2751,9 +2751,9 @@ export default function AddFood() {
                   )}
                 </button>
               </div>
-            )}
-          </>
-        )}
+            )
+          }
+        </>
 
         {/* Barcode scanner modal */}
         {showBarcodeScanner && (
@@ -2944,182 +2944,182 @@ export default function AddFood() {
               }
             `}</style>
           </div>
-        )}
+        )
+      }
 
-        {/* Camera detection modal */}
-        {showCameraDetection && (
+      {/* Camera detection modal */}
+      {showCameraDetection && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'black',
+          zIndex: 2000,
+          display: 'flex',
+          flexDirection: 'column'
+        }}>
           <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'black',
-            zIndex: 2000,
+            position: 'absolute',
+            top: '20px',
+            left: '20px',
+            right: '20px',
             display: 'flex',
-            flexDirection: 'column'
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            zIndex: 2001
           }}>
-            <div style={{
-              position: 'absolute',
-              top: '20px',
-              left: '20px',
-              right: '20px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              zIndex: 2001
-            }}>
-              <div>
-                <h3 style={{
-                  color: 'white',
-                  fontSize: '18px',
-                  fontWeight: '600',
-                  margin: 0
-                }}>
-                  Detectar Comida
-                </h3>
-                <p style={{
-                  color: '#a3a3a3',
-                  fontSize: '12px',
-                  margin: '2px 0 0 0'
-                }}>
-                  {DEMO_CONFIG.ENABLED ? 'Modo Demo IA' : 'IA Visual'}
-                </p>
-              </div>
-              <button
-                onClick={stopCamera}
-                className="!rounded-button"
-                style={{
-                  width: '40px',
-                  height: '40px',
-                  background: 'rgba(255,255,255,0.2)',
-                  border: 'none',
-                  borderRadius: '50%',
-                  color: 'white',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <i className="ri-close-line" style={{ fontSize: '20px' }}></i>
-              </button>
+            <div>
+              <h3 style={{
+                color: 'white',
+                fontSize: '18px',
+                fontWeight: '600',
+                margin: 0
+              }}>
+                Detectar Comida
+              </h3>
+              <p style={{
+                color: '#a3a3a3',
+                fontSize: '12px',
+                margin: '2px 0 0 0'
+              }}>
+                {DEMO_CONFIG.ENABLED ? 'Modo Demo IA' : 'IA Visual'}
+              </p>
             </div>
-
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
+            <button
+              onClick={stopCamera}
+              className="!rounded-button"
               style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover'
+                width: '40px',
+                height: '40px',
+                background: 'rgba(255,255,255,0.2)',
+                border: 'none',
+                borderRadius: '50%',
+                color: 'white',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
               }}
-            />
-
-            <div style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: '200px',
-              height: '200px',
-              border: '2px solid #8b5cf6',
-              borderRadius: '50%',
-              background: 'rgba(139, 92, 246, 0.1)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 2001
-            }}>
-              {isAnalyzing && (
-                <div style={{
-                  width: '180px',
-                  height: '180px',
-                  border: '2px solid #8b5cf6',
-                  borderRadius: '50%',
-                  animation: 'pulse 2s ease-in-out infinite'
-                }}></div>
-              )}
-              <div style={{ textAlign: 'center', position: 'absolute' }}>
-                <i className="ri-camera-line" style={{
-                  color: 'white',
-                  fontSize: '32px',
-                  marginBottom: '8px'
-                }}></i>
-                <p style={{
-                  color: 'white',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  margin: 0
-                }}>
-                  {isAnalyzing ? 'Analizando...' : 'Coloca la comida aquí'}
-                </p>
-              </div>
-            </div>
-
-            <div style={{
-              position: 'absolute',
-              bottom: '40px',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              zIndex: 2001
-            }}>
-              <button
-                onClick={detectFoodFromCamera}
-                disabled={isAnalyzing}
-                className="!rounded-button"
-                style={{
-                  padding: '16px 24px',
-                  background: isAnalyzing ? 'rgba(255,255,255,0.3)' : '#8b5cf6',
-                  border: 'none',
-                  borderRadius: '12px',
-                  color: 'white',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  cursor: isAnalyzing ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px'
-                }}
-              >
-                {isAnalyzing ? (
-                  <>
-                    <div style={{
-                      width: '16px',
-                      height: '16px',
-                      border: '2px solid #ffffff40',
-                      borderTop: '2px solid #ffffff',
-                      borderRadius: '50%',
-                      animation: 'spin 1s linear infinite'
-                    }}></div>
-                    Analizando...
-                  </>
-                ) : (
-                  <>
-                    <i className="ri-eye-line"></i>
-                    {DEMO_CONFIG.ENABLED ? 'Simular Detección' : 'Detectar Comida'}
-                  </>
-                )}
-              </button>
-            </div>
-
-            <style jsx>{`
-              @keyframes pulse {
-                0% { transform: scale(1); opacity: 1; }
-                50% { transform: scale(1.05); opacity: 0.7; }
-                100% { transform: scale(1); opacity: 1; }
-              }
-              @keyframes spin {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
-              }
-            `}</style>
+            >
+              <i className="ri-close-line" style={{ fontSize: '20px' }}></i>
+            </button>
           </div>
-        )}
-      </main>
 
-      <BottomNavigation />
-    </div>
-  );
-}
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover'
+            }}
+          />
+
+          <div style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '200px',
+            height: '200px',
+            border: '2px solid #8b5cf6',
+            borderRadius: '50%',
+            background: 'rgba(139, 92, 246, 0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 2001
+          }}>
+            {isAnalyzing && (
+              <div style={{
+                width: '180px',
+                height: '180px',
+                border: '2px solid #8b5cf6',
+                borderRadius: '50%',
+                animation: 'pulse 2s ease-in-out infinite'
+              }}></div>
+            )}
+            <div style={{ textAlign: 'center', position: 'absolute' }}>
+              <i className="ri-camera-line" style={{
+                color: 'white',
+                fontSize: '32px',
+                marginBottom: '8px'
+              }}></i>
+              <p style={{
+                color: 'white',
+                fontSize: '14px',
+                fontWeight: '500',
+                margin: 0
+              }}>
+                {isAnalyzing ? 'Analizando...' : 'Coloca la comida aquí'}
+              </p>
+            </div>
+          </div>
+
+          <div style={{
+            position: 'absolute',
+            bottom: '40px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 2001
+          }}>
+            <button
+              onClick={detectFoodFromCamera}
+              disabled={isAnalyzing}
+              className="!rounded-button"
+              style={{
+                padding: '16px 24px',
+                background: isAnalyzing ? 'rgba(255,255,255,0.3)' : '#8b5cf6',
+                border: 'none',
+                borderRadius: '12px',
+                color: 'white',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: isAnalyzing ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              {isAnalyzing ? (
+                <>
+                  <div style={{
+                    width: '16px',
+                    height: '16px',
+                    border: '2px solid #ffffff40',
+                    borderTop: '2px solid #ffffff',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite'
+                  }}></div>
+                  Analizando...
+                </>
+              ) : (
+                <>
+                  <i className="ri-eye-line"></i>
+                  {DEMO_CONFIG.ENABLED ? 'Simular Detección' : 'Detectar Comida'}
+                </>
+              )}
+            </button>
+          </div>
+
+          <style jsx>{`
+            @keyframes pulse {
+              0% { transform: scale(1); opacity: 1; }
+              50% { transform: scale(1.05); opacity: 0.7; }
+              100% { transform: scale(1); opacity: 1; }
+            }
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          `}</style>
+        </div>
+      )
+    }
+  </main>
+
+  <BottomNavigation />
+</div>
