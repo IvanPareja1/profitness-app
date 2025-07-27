@@ -924,7 +924,7 @@ export default function AddFood() {
               </div>
             </div>
           </div>
-        `).join('')}
+        `).join ''}
       </div>
 
       <div style="display: flex; gap: 8px;">
@@ -1793,314 +1793,9 @@ export default function AddFood() {
                   </div>
                 )
               }
-            </>
 
-            {/* Custom food form */}
-            {showCustomFood && (
-              <div style={{
-                background: 'white',
-                borderRadius: '16px',
-                padding: '20px',
-                boxShadow: '0 4px 6px rgba(0,0,0,0.07)',
-                marginBottom: '24px'
-              }}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  marginBottom: '16px'
-                }}>
-                  <h3 style={{
-                    fontSize: '16px',
-                    fontWeight: '600',
-                    color: '#1f2937',
-                    margin: 0
-                  }}>
-                    Agregar Comida Personalizada
-                  </h3>
-                  <button
-                    onClick={() => {
-                      setShowCustomFood(false);
-                      setCustomFood({
-                        name: '',
-                        calories: '',
-                        protein: '',
-                        carbs: '',
-                        fats: '',
-                        fiber: ''
-                      });
-                      setShowSuggestions(false);
-                    }}
-                    className="!rounded-button"
-                    style={{
-                      width: '32px',
-                      height: '32px',
-                      background: '#f3f4f6',
-                      border: 'none',
-                      borderRadius: '50%',
-                      color: '#6b7280',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
-                  >
-                    <i className="ri-close-line" style={{ fontSize: '16px' }}></i>
-                  </button>
-                </div>
-
-                <div style={{ position: 'relative', marginBottom: '16px' }}>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    color: '#374151',
-                    marginBottom: '8px'
-                  }}>
-                    Nombre del alimento
-                  </label>
-                  <input
-                    type="text"
-                    value={customFood.name}
-                    onChange={(e) => handleCustomFoodNameChange(e.target.value)}
-                    placeholder="Ej: Pollo a la plancha"
-                    style={{
-                      width: '100%',
-                      padding: '12px 16px',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      outline: 'none'
-                    }}
-                  />
-                </div>
-
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(2, 1fr)',
-                  gap: '12px',
-                  marginBottom: '16px'
-                }}>
-                  <div>
-                    <label style={{
-                      display: 'block',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      color: '#374151',
-                      marginBottom: '8px'
-                    }}>
-                      Calorías (100g)
-                    </label>
-                    <input
-                      type="number"
-                      value={customFood.calories}
-                      onChange={(e) => setCustomFood({ ...customFood, calories: e.target.value })}
-                      placeholder="0"
-                      style={{
-                        width: '100%',
-                        padding: '12px 16px',
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        outline: 'none'
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{
-                      display: 'block',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      color: '#374151',
-                      marginBottom: '8px'
-                    }}>
-                      Proteínas (g)
-                    </label>
-                    <input
-                      type="number"
-                      value={customFood.protein}
-                      onChange={(e) => setCustomFood({ ...customFood, protein: e.target.value })}
-                      placeholder="0"
-                      step="0.1"
-                      style={{
-                        width: '100%',
-                        padding: '12px 16px',
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        outline: 'none'
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{
-                      display: 'block',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      color: '#374151',
-                      marginBottom: '8px'
-                    }}>
-                      Carbohidratos (g)
-                    </label>
-                    <input
-                      type="number"
-                      value={customFood.carbs}
-                      onChange={(e) => setCustomFood({ ...customFood, carbs: e.target.value })}
-                      placeholder="0"
-                      step="0.1"
-                      style={{
-                        width: '100%',
-                        padding: '12px 16px',
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        outline: 'none'
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{
-                      display: 'block',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      color: '#374151',
-                      marginBottom: '8px'
-                    }}>
-                      Grasas (g)
-                    </label>
-                    <input
-                      type="number"
-                      value={customFood.fats}
-                      onChange={(e) => setCustomFood({ ...customFood, fats: e.target.value })}
-                      placeholder="0"
-                      step="0.1"
-                      style={{
-                        width: '100%',
-                        padding: '12px 16px',
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        outline: 'none'
-                      }}
-                    />
-                  </div>
-                </div>
-
-                <div style={{ marginBottom: '16px' }}>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    color: '#374151',
-                    marginBottom: '8px'
-                  }}>
-                    Fibra (g) - Opcional
-                  </label>
-                  <input
-                    type="number"
-                    value={customFood.fiber}
-                    onChange={(e) => setCustomFood({ ...customFood, fiber: e.target.value })}
-                    placeholder="0"
-                    step="0.1"
-                    style={{
-                      width: '100%',
-                      padding: '12px 16px',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      outline: 'none'
-                    }}
-                  />
-                </div>
-
-                <div style={{ marginBottom: '16px' }}>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    color: '#374151',
-                    marginBottom: '8px'
-                  }}>
-                    Tipo de comida
-                  </label>
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(2, 1fr)',
-                    gap: '8px'
-                  }}>
-                    {['desayuno', 'almuerzo', 'cena', 'snack'].map((type) => (
-                      <button
-                        key={type}
-                        onClick={() => setMealType(type)}
-                        className="!rounded-button"
-                        style={{
-                          padding: '10px 12px',
-                          background: mealType === type ? '#3b82f6' : '#f3f4f6',
-                          color: mealType === type ? 'white' : '#6b7280',
-                          border: 'none',
-                          borderRadius: '8px',
-                          fontSize: '12px',
-                          fontWeight: '500',
-                          cursor: 'pointer',
-                          textTransform: 'capitalize'
-                        }}
-                      >
-                        {type}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <button
-                  onClick={handleCustomFoodSubmit}
-                  disabled={isLoading || !customFood.name || !customFood.calories || !customFood.protein || !customFood.carbs || !customFood.fats}
-                  className="!rounded-button"
-                  style={{
-                    width: '100%',
-                    padding: '16px',
-                    background: (isLoading || !customFood.name || !customFood.calories || !customFood.protein || !customFood.carbs || !customFood.fats) ? '#9ca3af' : 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '12px',
-                    fontSize: '16px',
-                    fontWeight: '600',
-                    cursor: (isLoading || !customFood.name || !customFood.calories || !customFood.protein || !customFood.carbs || !customFood.fats) ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px'
-                  }}
-                >
-                  {isLoading ? (
-                    <>
-                      <div style={{
-                        width: '16px',
-                        height: '16px',
-                        border: '2px solid #ffffff40',
-                        borderTop: '2px solid #ffffff',
-                        borderRadius: '50%',
-                        animation: 'spin 1s linear infinite'
-                      }}></div>
-                      Agregando...
-                    </>
-                  ) : (
-                    <>
-                      <i className="ri-add-line"></i>
-                      Agregar Comida Personalizada
-                    </>
-                  )}
-                </button>
-              </div>
-            )
-          }
-        </>
-
-        {/* Liquid Tab */}
-        {currentTab === 'liquid' && (
-          <>
-            {/* Search and popular liquids */}
-            {!showCustomLiquid && (
-              <>
+              {/* Custom food form */}
+              {showCustomFood && (
                 <div style={{
                   background: 'white',
                   borderRadius: '16px',
@@ -2120,151 +1815,72 @@ export default function AddFood() {
                       color: '#1f2937',
                       margin: 0
                     }}>
-                      Buscar Líquidos
+                      Agregar Comida Personalizada
                     </h3>
                     <button
-                      onClick={() => setShowCustomLiquid(true)}
+                      onClick={() => {
+                        setShowCustomFood(false);
+                        setCustomFood({
+                          name: '',
+                          calories: '',
+                          protein: '',
+                          carbs: '',
+                          fats: '',
+                          fiber: ''
+                        });
+                        setShowSuggestions(false);
+                      }}
                       className="!rounded-button"
                       style={{
-                        padding: '8px 12px',
+                        width: '32px',
+                        height: '32px',
                         background: '#f3f4f6',
                         border: 'none',
-                        borderRadius: '8px',
-                        color: '#374151',
-                        fontSize: '12px',
-                        fontWeight: '500',
+                        borderRadius: '50%',
+                        color: '#6b7280',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '4px'
+                        justifyContent: 'center'
                       }}
                     >
-                      <i className="ri-add-line" style={{ fontSize: '14px' }}></i>
-                      Personalizado
+                      <i className="ri-close-line" style={{ fontSize: '16px' }}></i>
                     </button>
                   </div>
 
                   <div style={{ position: 'relative', marginBottom: '16px' }}>
+                    <label style={{
+                      display: 'block',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      color: '#374151',
+                      marginBottom: '8px'
+                    }}>
+                      Nombre del alimento
+                    </label>
                     <input
                       type="text"
-                      placeholder="Buscar líquidos..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
+                      value={customFood.name}
+                      onChange={(e) => handleCustomFoodNameChange(e.target.value)}
+                      placeholder="Ej: Pollo a la plancha"
                       style={{
                         width: '100%',
-                        padding: '12px 16px 12px 44px',
+                        padding: '12px 16px',
                         border: '1px solid #e5e7eb',
-                        borderRadius: '12px',
+                        borderRadius: '8px',
                         fontSize: '14px',
-                        outline: 'none',
-                        background: '#f9fafb'
+                        outline: 'none'
                       }}
                     />
-                    <i className="ri-search-line" style={{
-                      position: 'absolute',
-                      left: '16px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      color: '#9ca3af',
-                      fontSize: '16px'
-                    }}></i>
                   </div>
 
                   <div style={{
                     display: 'grid',
-                    gap: '8px',
-                    maxHeight: '300px',
-                    overflowY: 'auto'
+                    gridTemplateColumns: 'repeat(2, 1fr)',
+                    gap: '12px',
+                    marginBottom: '16px'
                   }}>
-                    {filteredLiquids.map((liquid, index) => (
-                      <div
-                        key={index}
-                        onClick={() => setSelectedLiquid(liquid)}
-                        style={{
-                          padding: '12px',
-                          border: selectedLiquid?.name === liquid.name ? '2px solid #3b82f6' : '1px solid #e5e7eb',
-                          borderRadius: '8px',
-                          cursor: 'pointer',
-                          background: selectedLiquid?.name === liquid.name ? '#eff6ff' : 'white',
-                          transition: 'all 0.2s'
-                        }}
-                      >
-                        <div style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center'
-                        }}>
-                          <div>
-                            <div style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '8px',
-                              marginBottom: '4px'
-                            }}>
-                              <h4 style={{
-                                fontSize: '14px',
-                                fontWeight: '600',
-                                color: '#1f2937',
-                                margin: 0
-                              }}>
-                                {liquid.name}
-                              </h4>
-                              {liquid.hydrating && (
-                                <span style={{
-                                  background: '#dbeafe',
-                                  color: '#1d4ed8',
-                                  padding: '2px 6px',
-                                  borderRadius: '4px',
-                                  fontSize: '10px',
-                                  fontWeight: '500'
-                                }}>
-                                  Hidratante
-                                </span>
-                              )}
-                            </div>
-                            <div style={{
-                              display: 'flex',
-                              gap: '12px',
-                              fontSize: '11px',
-                              color: '#6b7280'
-                            }}>
-                              <span>{liquid.calories} cal</span>
-                              <span>{liquid.protein}g prot</span>
-                              <span>{liquid.carbs}g carb</span>
-                              <span>{liquid.fats}g gras</span>
-                            </div>
-                          </div>
-                          {selectedLiquid?.name === liquid.name && (
-                            <i className="ri-check-line" style={{
-                              color: '#3b82f6',
-                              fontSize: '18px'
-                            }}></i>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Liquid quantity */}
-                {selectedLiquid && (
-                  <div style={{
-                    background: 'white',
-                    borderRadius: '16px',
-                    padding: '20px',
-                    boxShadow: '0 4px 6px rgba(0,0,0,0.07)',
-                    marginBottom: '24px'
-                  }}>
-                    <h3 style={{
-                      fontSize: '16px',
-                      fontWeight: '600',
-                      color: '#1f2937',
-                      marginBottom: '16px'
-                    }}>
-                      Detalles
-                    </h3>
-
-                    <div style={{ marginBottom: '16px' }}>
+                    <div>
                       <label style={{
                         display: 'block',
                         fontSize: '14px',
@@ -2272,12 +1888,13 @@ export default function AddFood() {
                         color: '#374151',
                         marginBottom: '8px'
                       }}>
-                        Cantidad (ml)
+                        Calorías (100g)
                       </label>
                       <input
                         type="number"
-                        value={liquidQuantity}
-                        onChange={(e) => setLiquidQuantity(e.target.value)}
+                        value={customFood.calories}
+                        onChange={(e) => setCustomFood({ ...customFood, calories: e.target.value })}
+                        placeholder="0"
                         style={{
                           width: '100%',
                           padding: '12px 16px',
@@ -2288,838 +1905,1220 @@ export default function AddFood() {
                         }}
                       />
                     </div>
-
-                    {/* Nutrition preview */}
-                    <div style={{
-                      background: '#f9fafb',
-                      borderRadius: '8px',
-                      padding: '12px',
-                      marginBottom: '16px'
-                    }}>
-                      <h4 style={{
-                        fontSize: '12px',
-                        fontWeight: '600',
-                        color: '#6b7280',
-                        marginBottom: '8px',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.5px'
+                    <div>
+                      <label style={{
+                        display: 'block',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        color: '#374151',
+                        marginBottom: '8px'
                       }}>
-                        Información Nutricional
-                      </h4>
-                      {(() => {
-                        const nutrition = calculateLiquidNutrition(selectedLiquid, liquidQuantity);
-                        return (
-                          <div style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(2, 1fr)',
-                            gap: '8px'
-                          }}>
-                            <div style={{ textAlign: 'center' }}>
-                              <div style={{
-                                fontSize: '16px',
-                                fontWeight: '700',
-                                color: '#dc2626'
-                              }}>
-                                {nutrition.calories}
-                              </div>
-                              <div style={{
-                                fontSize: '10px',
-                                color: '#6b7280'
-                              }}>
-                                Calorías
-                              </div>
-                            </div>
-                            <div style={{ textAlign: 'center' }}>
-                              <div style={{
-                                fontSize: '16px',
-                                fontWeight: '700',
-                                color: '#059669'
-                              }}>
-                                {nutrition.protein}g
-                              </div>
-                              <div style={{
-                                fontSize: '10px',
-                                color: '#6b7280'
-                              }}>
-                                Proteínas
-                              </div>
-                            </div>
-                            <div style={{ textAlign: 'center' }}>
-                              <div style={{
-                                fontSize: '16px',
-                                fontWeight: '700',
-                                color: '#d97706'
-                              }}>
-                                {nutrition.carbs}g
-                              </div>
-                              <div style={{
-                                fontSize: '10px',
-                                color: '#6b7280'
-                              }}>
-                                Carbohidratos
-                              </div>
-                            </div>
-                            <div style={{ textAlign: 'center' }}>
-                              <div style={{
-                                fontSize: '16px',
-                                fontWeight: '700',
-                                color: '#7c3aed'
-                              }}>
-                                {nutrition.fats}g
-                              </div>
-                              <div style={{
-                                fontSize: '10px',
-                                color: '#6b7280'
-                              }}>
-                                Grasas
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })()}
-                      {selectedLiquid.hydrating && (
-                        <div style={{
-                          marginTop: '8px',
-                          padding: '8px',
-                          background: '#dbeafe',
-                          borderRadius: '6px',
-                          textAlign: 'center'
-                        }}>
-                          <span style={{
-                            fontSize: '12px',
-                            color: '#1d4ed8',
-                            fontWeight: '500'
-                          }}>
-                            <i className="ri-drop-line" style={{ marginRight: '4px' }}></i>
-                            +{liquidQuantity}ml de hidratación
-                          </span>
-                        </div>
-                      )}
+                        Proteínas (g)
+                      </label>
+                      <input
+                        type="number"
+                        value={customFood.protein}
+                        onChange={(e) => setCustomFood({ ...customFood, protein: e.target.value })}
+                        placeholder="0"
+                        step="0.1"
+                        style={{
+                          width: '100%',
+                          padding: '12px 16px',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                          fontSize: '14px',
+                          outline: 'none'
+                        }}
+                      />
                     </div>
+                    <div>
+                      <label style={{
+                        display: 'block',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        color: '#374151',
+                        marginBottom: '8px'
+                      }}>
+                        Carbohidratos (g)
+                      </label>
+                      <input
+                        type="number"
+                        value={customFood.carbs}
+                        onChange={(e) => setCustomFood({ ...customFood, carbs: e.target.value })}
+                        placeholder="0"
+                        step="0.1"
+                        style={{
+                          width: '100%',
+                          padding: '12px 16px',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                          fontSize: '14px',
+                          outline: 'none'
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{
+                        display: 'block',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        color: '#374151',
+                        marginBottom: '8px'
+                      }}>
+                        Grasas (g)
+                      </label>
+                      <input
+                        type="number"
+                        value={customFood.fats}
+                        onChange={(e) => setCustomFood({ ...customFood, fats: e.target.value })}
+                        placeholder="0"
+                        step="0.1"
+                        style={{
+                          width: '100%',
+                          padding: '12px 16px',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                          fontSize: '14px',
+                          outline: 'none'
+                        }}
+                      />
+                    </div>
+                  </div>
 
-                    <button
-                      onClick={handleAddLiquid}
-                      disabled={isLoading}
-                      className="!rounded-button"
+                  <div style={{ marginBottom: '16px' }}>
+                    <label style={{
+                      display: 'block',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      color: '#374151',
+                      marginBottom: '8px'
+                    }}>
+                      Fibra (g) - Opcional
+                    </label>
+                    <input
+                      type="number"
+                      value={customFood.fiber}
+                      onChange={(e) => setCustomFood({ ...customFood, fiber: e.target.value })}
+                      placeholder="0"
+                      step="0.1"
                       style={{
                         width: '100%',
-                        padding: '16px',
-                        background: isLoading ? '#9ca3af' : 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '12px',
-                        fontSize: '16px',
-                        fontWeight: '600',
-                        cursor: isLoading ? 'not-allowed' : 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px'
+                        padding: '12px 16px',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        outline: 'none'
                       }}
-                    >
-                      {isLoading ? (
-                        <>
-                          <div style={{
-                            width: '16px',
-                            height: '16px',
-                            border: '2px solid #ffffff40',
-                            borderTop: '2px solid #ffffff',
-                            borderRadius: '50%',
-                            animation: 'spin 1s linear infinite'
-                          }}></div>
-                          Agregando...
-                        </>
-                      ) : (
-                        <>
-                          <i className="ri-add-line"></i>
-                          Agregar Líquido
-                        </>
-                      )}
-                    </button>
+                    />
                   </div>
-                )
-              }
-            </>
 
-            {/* Custom liquid form */}
-            {showCustomLiquid && (
-              <div style={{
-                background: 'white',
-                borderRadius: '16px',
-                padding: '20px',
-                boxShadow: '0 4px 6px rgba(0,0,0,0.07)',
-                marginBottom: '24px'
-              }}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  marginBottom: '16px'
-                }}>
-                  <h3 style={{
-                    fontSize: '16px',
-                    fontWeight: '600',
-                    color: '#1f2937',
-                    margin: 0
-                  }}>
-                    Agregar Líquido Personalizado
-                  </h3>
+                  <div style={{ marginBottom: '16px' }}>
+                    <label style={{
+                      display: 'block',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      color: '#374151',
+                      marginBottom: '8px'
+                    }}>
+                      Tipo de comida
+                    </label>
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(2, 1fr)',
+                      gap: '8px'
+                    }}>
+                      {['desayuno', 'almuerzo', 'cena', 'snack'].map((type) => (
+                        <button
+                          key={type}
+                          onClick={() => setMealType(type)}
+                          className="!rounded-button"
+                          style={{
+                            padding: '10px 12px',
+                            background: mealType === type ? '#3b82f6' : '#f3f4f6',
+                            color: mealType === type ? 'white' : '#6b7280',
+                            border: 'none',
+                            borderRadius: '8px',
+                            fontSize: '12px',
+                            fontWeight: '500',
+                            cursor: 'pointer',
+                            textTransform: 'capitalize'
+                          }}
+                        >
+                          {type}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                   <button
-                    onClick={() => {
-                      setShowCustomLiquid(false);
-                      setCustomLiquid({
-                        name: '',
-                        calories: '',
-                        protein: '',
-                        carbs: '',
-                        fats: '',
-                        fiber: '',
-                        hydrating: false
-                      });
-                    }}
+                    onClick={handleCustomFoodSubmit}
+                    disabled={isLoading || !customFood.name || !customFood.calories || !customFood.protein || !customFood.carbs || !customFood.fats}
                     className="!rounded-button"
                     style={{
-                      width: '32px',
-                      height: '32px',
-                      background: '#f3f4f6',
+                      width: '100%',
+                      padding: '16px',
+                      background: (isLoading || !customFood.name || !customFood.calories || !customFood.protein || !customFood.carbs || !customFood.fats) ? '#9ca3af' : 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                      color: 'white',
                       border: 'none',
-                      borderRadius: '50%',
-                      color: '#6b7280',
-                      cursor: 'pointer',
+                      borderRadius: '12px',
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      cursor: (isLoading || !customFood.name || !customFood.calories || !customFood.protein || !customFood.carbs || !customFood.fats) ? 'not-allowed' : 'pointer',
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'center'
+                      justifyContent: 'center',
+                      gap: '8px'
                     }}
                   >
-                    <i className="ri-close-line" style={{ fontSize: '16px' }}></i>
+                    {isLoading ? (
+                      <>
+                        <div style={{
+                          width: '16px',
+                          height: '16px',
+                          border: '2px solid #ffffff40',
+                          borderTop: '2px solid #ffffff',
+                          borderRadius: '50%',
+                          animation: 'spin 1s linear infinite'
+                        }}></div>
+                        Agregando...
+                      </>
+                    ) : (
+                      <>
+                        <i className="ri-add-line"></i>
+                        Agregar Comida Personalizada
+                      </>
+                    )}
                   </button>
                 </div>
+              )
+            }
 
-                <div style={{ marginBottom: '16px' }}>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    color: '#374151',
-                    marginBottom: '8px'
-                  }}>
-                    Nombre del líquido
-                  </label>
-                  <input
-                    type="text"
-                    value={customLiquid.name}
-                    onChange={(e) => setCustomLiquid({ ...customLiquid, name: e.target.value })}
-                    placeholder="Ej: Batido de proteínas"
-                    style={{
-                      width: '100%',
-                      padding: '12px 16px',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      outline: 'none'
-                    }}
-                  />
-                </div>
-
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(2, 1fr)',
-                  gap: '12px',
-                  marginBottom: '16px'
-                }}>
-                  <div>
-                    <label style={{
-                      display: 'block',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      color: '#374151',
-                      marginBottom: '8px'
+            {/* Liquid Tab */}
+            {currentTab === 'liquid' && (
+              <>
+                {/* Search and popular liquids */}
+                {!showCustomLiquid && (
+                  <>
+                    <div style={{
+                      background: 'white',
+                      borderRadius: '16px',
+                      padding: '20px',
+                      boxShadow: '0 4px 6px rgba(0,0,0,0.07)',
+                      marginBottom: '24px'
                     }}>
-                      Calorías (100ml)
-                    </label>
-                    <input
-                      type="number"
-                      value={customLiquid.calories}
-                      onChange={(e) => setCustomLiquid({ ...customLiquid, calories: e.target.value })}
-                      placeholder="0"
-                      style={{
-                        width: '100%',
-                        padding: '12px 16px',
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        outline: 'none'
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{
-                      display: 'block',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      color: '#374151',
-                      marginBottom: '8px'
-                    }}>
-                      Proteínas (g)
-                    </label>
-                    <input
-                      type="number"
-                      value={customLiquid.protein}
-                      onChange={(e) => setCustomLiquid({ ...customLiquid, protein: e.target.value })}
-                      placeholder="0"
-                      step="0.1"
-                      style={{
-                        width: '100%',
-                        padding: '12px 16px',
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        outline: 'none'
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{
-                      display: 'block',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      color: '#374151',
-                      marginBottom: '8px'
-                    }}>
-                      Carbohidratos (g)
-                    </label>
-                    <input
-                      type="number"
-                      value={customLiquid.carbs}
-                      onChange={(e) => setCustomLiquid({ ...customLiquid, carbs: e.target.value })}
-                      placeholder="0"
-                      step="0.1"
-                      style={{
-                        width: '100%',
-                        padding: '12px 16px',
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        outline: 'none'
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{
-                      display: 'block',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      color: '#374151',
-                      marginBottom: '8px'
-                    }}>
-                      Grasas (g)
-                    </label>
-                    <input
-                      type="number"
-                      value={customLiquid.fats}
-                      onChange={(e) => setCustomLiquid({ ...customLiquid, fats: e.target.value })}
-                      placeholder="0"
-                      step="0.1"
-                      style={{
-                        width: '100%',
-                        padding: '12px 16px',
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        outline: 'none'
-                      }}
-                    />
-                  </div>
-                </div>
-
-                <div style={{ marginBottom: '16px' }}>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    color: '#374151',
-                    marginBottom: '8px'
-                  }}>
-                    Fibra (g) - Opcional
-                  </label>
-                  <input
-                    type="number"
-                    value={customLiquid.fiber}
-                    onChange={(e) => setCustomLiquid({ ...customLiquid, fiber: e.target.value })}
-                    placeholder="0"
-                    step="0.1"
-                    style={{
-                      width: '100%',
-                      padding: '12px 16px',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      outline: 'none'
-                    }}
-                  />
-                </div>
-
-                <div style={{ marginBottom: '16px' }}>
-                  <label style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    cursor: 'pointer'
-                  }}>
-                    <input
-                      type="checkbox"
-                      checked={customLiquid.hydrating}
-                      onChange={(e) => setCustomLiquid({ ...customLiquid, hydrating: e.target.checked })}
-                      style={{
-                        width: '16px',
-                        height: '16px',
-                        accentColor: '#3b82f6'
-                      }}
-                    />
-                    <span style={{
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      color: '#374151'
-                    }}>
-                      Es hidratante (cuenta para el objetivo de agua)
-                    </span>
-                  </label>
-                </div>
-
-                <div style={{ marginBottom: '16px' }}>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    color: '#374151',
-                    marginBottom: '8px'
-                  }}>
-                    Cantidad (ml)
-                  </label>
-                  <input
-                    type="number"
-                    value={liquidQuantity}
-                    onChange={(e) => setLiquidQuantity(e.target.value)}
-                    placeholder="250"
-                    style={{
-                      width: '100%',
-                      padding: '12px 16px',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      outline: 'none'
-                    }}
-                  />
-                </div>
-
-                <button
-                  onClick={handleCustomLiquidSubmit}
-                  disabled={isLoading || !customLiquid.name || !customLiquid.calories || !customLiquid.protein || !customLiquid.carbs || !customLiquid.fats}
-                  className="!rounded-button"
-                  style={{
-                    width: '100%',
-                    padding: '16px',
-                    background: (isLoading || !customLiquid.name || !customLiquid.calories || !customLiquid.protein || !customLiquid.carbs || !customLiquid.fats) ? '#9ca3af' : 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '12px',
-                    fontSize: '16px',
-                    fontWeight: '600',
-                    cursor: (isLoading || !customLiquid.name || !customLiquid.calories || !customLiquid.protein || !customLiquid.carbs || !customLiquid.fats) ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px'
-                  }}
-                >
-                  {isLoading ? (
-                    <>
                       <div style={{
-                        width: '16px',
-                        height: '16px',
-                        border: '2px solid #ffffff40',
-                        borderTop: '2px solid #ffffff',
-                        borderRadius: '50%',
-                        animation: 'spin 1s linear infinite'
-                      }}></div>
-                      Agregando...
-                    </>
-                  ) : (
-                    <>
-                      <i className="ri-add-line"></i>
-                      Agregar Líquido Personalizado
-                    </>
-                  )}
-                </button>
-              </div>
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        marginBottom: '16px'
+                      }}>
+                        <h3 style={{
+                          fontSize: '16px',
+                          fontWeight: '600',
+                          color: '#1f2937',
+                          margin: 0
+                        }}>
+                          Buscar Líquidos
+                        </h3>
+                        <button
+                          onClick={() => setShowCustomLiquid(true)}
+                          className="!rounded-button"
+                          style={{
+                            padding: '8px 12px',
+                            background: '#f3f4f6',
+                            border: 'none',
+                            borderRadius: '8px',
+                            color: '#374151',
+                            fontSize: '12px',
+                            fontWeight: '500',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                        >
+                          <i className="ri-add-line" style={{ fontSize: '14px' }}></i>
+                          Personalizado
+                        </button>
+                      </div>
+
+                      <div style={{ position: 'relative', marginBottom: '16px' }}>
+                        <input
+                          type="text"
+                          placeholder="Buscar líquidos..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          style={{
+                            width: '100%',
+                            padding: '12px 16px 12px 44px',
+                            border: '1px solid #e5e7eb',
+                            borderRadius: '12px',
+                            fontSize: '14px',
+                            outline: 'none',
+                            background: '#f9fafb'
+                          }}
+                        />
+                        <i className="ri-search-line" style={{
+                          position: 'absolute',
+                          left: '16px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          color: '#9ca3af',
+                          fontSize: '16px'
+                        }}></i>
+                      </div>
+
+                      <div style={{
+                        display: 'grid',
+                        gap: '8px',
+                        maxHeight: '300px',
+                        overflowY: 'auto'
+                      }}>
+                        {filteredLiquids.map((liquid, index) => (
+                          <div
+                            key={index}
+                            onClick={() => setSelectedLiquid(liquid)}
+                            style={{
+                              padding: '12px',
+                              border: selectedLiquid?.name === liquid.name ? '2px solid #3b82f6' : '1px solid #e5e7eb',
+                              borderRadius: '8px',
+                              cursor: 'pointer',
+                              background: selectedLiquid?.name === liquid.name ? '#eff6ff' : 'white',
+                              transition: 'all 0.2s'
+                            }}
+                          >
+                            <div style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center'
+                            }}>
+                              <div>
+                                <div style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '8px',
+                                  marginBottom: '4px'
+                                }}>
+                                  <h4 style={{
+                                    fontSize: '14px',
+                                    fontWeight: '600',
+                                    color: '#1f2937',
+                                    margin: 0
+                                  }}>
+                                    {liquid.name}
+                                  </h4>
+                                  {liquid.hydrating && (
+                                    <span style={{
+                                      background: '#dbeafe',
+                                      color: '#1d4ed8',
+                                      padding: '2px 6px',
+                                      borderRadius: '4px',
+                                      fontSize: '10px',
+                                      fontWeight: '500'
+                                    }}>
+                                      Hidratante
+                                    </span>
+                                  )}
+                                </div>
+                                <div style={{
+                                  display: 'flex',
+                                  gap: '12px',
+                                  fontSize: '11px',
+                                  color: '#6b7280'
+                                }}>
+                                  <span>{liquid.calories} cal</span>
+                                  <span>{liquid.protein}g prot</span>
+                                  <span>{liquid.carbs}g carb</span>
+                                  <span>{liquid.fats}g gras</span>
+                                </div>
+                              </div>
+                              {selectedLiquid?.name === liquid.name && (
+                                <i className="ri-check-line" style={{
+                                  color: '#3b82f6',
+                                  fontSize: '18px'
+                                }}></i>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Liquid quantity */}
+                    {selectedLiquid && (
+                      <div style={{
+                        background: 'white',
+                        borderRadius: '16px',
+                        padding: '20px',
+                        boxShadow: '0 4px 6px rgba(0,0,0,0.07)',
+                        marginBottom: '24px'
+                      }}>
+                        <h3 style={{
+                          fontSize: '16px',
+                          fontWeight: '600',
+                          color: '#1f2937',
+                          marginBottom: '16px'
+                        }}>
+                          Detalles
+                        </h3>
+
+                        <div style={{ marginBottom: '16px' }}>
+                          <label style={{
+                            display: 'block',
+                            fontSize: '14px',
+                            fontWeight: '500',
+                            color: '#374151',
+                            marginBottom: '8px'
+                          }}>
+                            Cantidad (ml)
+                          </label>
+                          <input
+                            type="number"
+                            value={liquidQuantity}
+                            onChange={(e) => setLiquidQuantity(e.target.value)}
+                            style={{
+                              width: '100%',
+                              padding: '12px 16px',
+                              border: '1px solid #e5e7eb',
+                              borderRadius: '8px',
+                              fontSize: '14px',
+                              outline: 'none'
+                            }}
+                          />
+                        </div>
+
+                        {/* Nutrition preview */}
+                        <div style={{
+                          background: '#f9fafb',
+                          borderRadius: '8px',
+                          padding: '12px',
+                          marginBottom: '16px'
+                        }}>
+                          <h4 style={{
+                            fontSize: '12px',
+                            fontWeight: '600',
+                            color: '#6b7280',
+                            marginBottom: '8px',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px'
+                          }}>
+                            Información Nutricional
+                          </h4>
+                          {(() => {
+                            const nutrition = calculateLiquidNutrition(selectedLiquid, liquidQuantity);
+                            return (
+                              <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(2, 1fr)',
+                                gap: '8px'
+                              }}>
+                                <div style={{ textAlign: 'center' }}>
+                                  <div style={{
+                                    fontSize: '16px',
+                                    fontWeight: '700',
+                                    color: '#dc2626'
+                                  }}>
+                                    {nutrition.calories}
+                                  </div>
+                                  <div style={{
+                                    fontSize: '10px',
+                                    color: '#6b7280'
+                                  }}>
+                                    Calorías
+                                  </div>
+                                </div>
+                                <div style={{ textAlign: 'center' }}>
+                                  <div style={{
+                                    fontSize: '16px',
+                                    fontWeight: '700',
+                                    color: '#059669'
+                                  }}>
+                                    {nutrition.protein}g
+                                  </div>
+                                  <div style={{
+                                    fontSize: '10px',
+                                    color: '#6b7280'
+                                  }}>
+                                    Proteínas
+                                  </div>
+                                </div>
+                                <div style={{ textAlign: 'center' }}>
+                                  <div style={{
+                                    fontSize: '16px',
+                                    fontWeight: '700',
+                                    color: '#d97706'
+                                  }}>
+                                    {nutrition.carbs}g
+                                  </div>
+                                  <div style={{
+                                    fontSize: '10px',
+                                    color: '#6b7280'
+                                  }}>
+                                    Carbohidratos
+                                  </div>
+                                </div>
+                                <div style={{ textAlign: 'center' }}>
+                                  <div style={{
+                                    fontSize: '16px',
+                                    fontWeight: '700',
+                                    color: '#7c3aed'
+                                  }}>
+                                    {nutrition.fats}g
+                                  </div>
+                                  <div style={{
+                                    fontSize: '10px',
+                                    color: '#6b7280'
+                                  }}>
+                                    Grasas
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })()}
+                          {selectedLiquid.hydrating && (
+                            <div style={{
+                              marginTop: '8px',
+                              padding: '8px',
+                              background: '#dbeafe',
+                              borderRadius: '6px',
+                              textAlign: 'center'
+                            }}>
+                              <span style={{
+                                fontSize: '12px',
+                                color: '#1d4ed8',
+                                fontWeight: '500'
+                              }}>
+                                <i className="ri-drop-line" style={{ marginRight: '4px' }}></i>
+                                +{liquidQuantity}ml de hidratación
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        <button
+                          onClick={handleAddLiquid}
+                          disabled={isLoading}
+                          className="!rounded-button"
+                          style={{
+                            width: '100%',
+                            padding: '16px',
+                            background: isLoading ? '#9ca3af' : 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '12px',
+                            fontSize: '16px',
+                            fontWeight: '600',
+                            cursor: isLoading ? 'not-allowed' : 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px'
+                          }}
+                        >
+                          {isLoading ? (
+                            <>
+                              <div style={{
+                                width: '16px',
+                                height: '16px',
+                                border: '2px solid #ffffff40',
+                                borderTop: '2px solid #ffffff',
+                                borderRadius: '50%',
+                                animation: 'spin 1s linear infinite'
+                              }}></div>
+                              Agregando...
+                            </>
+                          ) : (
+                            <>
+                              <i className="ri-add-line"></i>
+                              Agregar Líquido
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    )
+                  }
+
+                  {/* Custom liquid form */}
+                  {showCustomLiquid && (
+                    <div style={{
+                      background: 'white',
+                      borderRadius: '16px',
+                      padding: '20px',
+                      boxShadow: '0 4px 6px rgba(0,0,0,0.07)',
+                      marginBottom: '24px'
+                    }}>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        marginBottom: '16px'
+                      }}>
+                        <h3 style={{
+                          fontSize: '16px',
+                          fontWeight: '600',
+                          color: '#1f2937',
+                          margin: 0
+                        }}>
+                          Agregar Líquido Personalizado
+                        </h3>
+                        <button
+                          onClick={() => {
+                            setShowCustomLiquid(false);
+                            setCustomLiquid({
+                              name: '',
+                              calories: '',
+                              protein: '',
+                              carbs: '',
+                              fats: '',
+                              fiber: '',
+                              hydrating: false
+                            });
+                          }}
+                          className="!rounded-button"
+                          style={{
+                            width: '32px',
+                            height: '32px',
+                            background: '#f3f4f6',
+                            border: 'none',
+                            borderRadius: '50%',
+                            color: '#6b7280',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          <i className="ri-close-line" style={{ fontSize: '16px' }}></i>
+                        </button>
+                      </div>
+
+                      <div style={{ marginBottom: '16px' }}>
+                        <label style={{
+                          display: 'block',
+                          fontSize: '14px',
+                          fontWeight: '500',
+                          color: '#374151',
+                          marginBottom: '8px'
+                        }}>
+                          Nombre del líquido
+                        </label>
+                        <input
+                          type="text"
+                          value={customLiquid.name}
+                          onChange={(e) => setCustomLiquid({ ...customLiquid, name: e.target.value })}
+                          placeholder="Ej: Batido de proteínas"
+                          style={{
+                            width: '100%',
+                            padding: '12px 16px',
+                            border: '1px solid #e5e7eb',
+                            borderRadius: '8px',
+                            fontSize: '14px',
+                            outline: 'none'
+                          }}
+                        />
+                      </div>
+
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(2, 1fr)',
+                        gap: '12px',
+                        marginBottom: '16px'
+                      }}>
+                        <div>
+                          <label style={{
+                            display: 'block',
+                            fontSize: '14px',
+                            fontWeight: '500',
+                            color: '#374151',
+                            marginBottom: '8px'
+                          }}>
+                            Calorías (100ml)
+                          </label>
+                          <input
+                            type="number"
+                            value={customLiquid.calories}
+                            onChange={(e) => setCustomLiquid({ ...customLiquid, calories: e.target.value })}
+                            placeholder="0"
+                            style={{
+                              width: '100%',
+                              padding: '12px 16px',
+                              border: '1px solid #e5e7eb',
+                              borderRadius: '8px',
+                              fontSize: '14px',
+                              outline: 'none'
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{
+                            display: 'block',
+                            fontSize: '14px',
+                            fontWeight: '500',
+                            color: '#374151',
+                            marginBottom: '8px'
+                          }}>
+                            Proteínas (g)
+                          </label>
+                          <input
+                            type="number"
+                            value={customLiquid.protein}
+                            onChange={(e) => setCustomLiquid({ ...customLiquid, protein: e.target.value })}
+                            placeholder="0"
+                            step="0.1"
+                            style={{
+                              width: '100%',
+                              padding: '12px 16px',
+                              border: '1px solid #e5e7eb',
+                              borderRadius: '8px',
+                              fontSize: '14px',
+                              outline: 'none'
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{
+                            display: 'block',
+                            fontSize: '14px',
+                            fontWeight: '500',
+                            color: '#374151',
+                            marginBottom: '8px'
+                          }}>
+                            Carbohidratos (g)
+                          </label>
+                          <input
+                            type="number"
+                            value={customLiquid.carbs}
+                            onChange={(e) => setCustomLiquid({ ...customLiquid, carbs: e.target.value })}
+                            placeholder="0"
+                            step="0.1"
+                            style={{
+                              width: '100%',
+                              padding: '12px 16px',
+                              border: '1px solid #e5e7eb',
+                              borderRadius: '8px',
+                              fontSize: '14px',
+                              outline: 'none'
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{
+                            display: 'block',
+                            fontSize: '14px',
+                            fontWeight: '500',
+                            color: '#374151',
+                            marginBottom: '8px'
+                          }}>
+                            Grasas (g)
+                          </label>
+                          <input
+                            type="number"
+                            value={customLiquid.fats}
+                            onChange={(e) => setCustomLiquid({ ...customLiquid, fats: e.target.value })}
+                            placeholder="0"
+                            step="0.1"
+                            style={{
+                              width: '100%',
+                              padding: '12px 16px',
+                              border: '1px solid #e5e7eb',
+                              borderRadius: '8px',
+                              fontSize: '14px',
+                              outline: 'none'
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      <div style={{ marginBottom: '16px' }}>
+                        <label style={{
+                          display: 'block',
+                          fontSize: '14px',
+                          fontWeight: '500',
+                          color: '#374151',
+                          marginBottom: '8px'
+                        }}>
+                          Fibra (g) - Opcional
+                        </label>
+                        <input
+                          type="number"
+                          value={customLiquid.fiber}
+                          onChange={(e) => setCustomLiquid({ ...customLiquid, fiber: e.target.value })}
+                          placeholder="0"
+                          step="0.1"
+                          style={{
+                            width: '100%',
+                            padding: '12px 16px',
+                            border: '1px solid #e5e7eb',
+                            borderRadius: '8px',
+                            fontSize: '14px',
+                            outline: 'none'
+                          }}
+                        />
+                      </div>
+
+                      <div style={{ marginBottom: '16px' }}>
+                        <label style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          cursor: 'pointer'
+                        }}>
+                          <input
+                            type="checkbox"
+                            checked={customLiquid.hydrating}
+                            onChange={(e) => setCustomLiquid({ ...customLiquid, hydrating: e.target.checked })}
+                            style={{
+                              width: '16px',
+                              height: '16px',
+                              accentColor: '#3b82f6'
+                            }}
+                          />
+                          <span style={{
+                            fontSize: '14px',
+                            fontWeight: '500',
+                            color: '#374151'
+                          }}>
+                            Es hidratante (cuenta para el objetivo de agua)
+                          </span>
+                        </label>
+                      </div>
+
+                      <div style={{ marginBottom: '16px' }}>
+                        <label style={{
+                          display: 'block',
+                          fontSize: '14px',
+                          fontWeight: '500',
+                          color: '#374151',
+                          marginBottom: '8px'
+                        }}>
+                          Cantidad (ml)
+                        </label>
+                        <input
+                          type="number"
+                          value={liquidQuantity}
+                          onChange={(e) => setLiquidQuantity(e.target.value)}
+                          placeholder="250"
+                          style={{
+                            width: '100%',
+                            padding: '12px 16px',
+                            border: '1px solid #e5e7eb',
+                            borderRadius: '8px',
+                            fontSize: '14px',
+                            outline: 'none'
+                          }}
+                        />
+                      </div>
+
+                      <button
+                        onClick={handleCustomLiquidSubmit}
+                        disabled={isLoading || !customLiquid.name || !customLiquid.calories || !customLiquid.protein || !customLiquid.carbs || !customLiquid.fats}
+                        className="!rounded-button"
+                        style={{
+                          width: '100%',
+                          padding: '16px',
+                          background: (isLoading || !customLiquid.name || !customLiquid.calories || !customLiquid.protein || !customLiquid.carbs || !customLiquid.fats) ? '#9ca3af' : 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '12px',
+                          fontSize: '16px',
+                          fontWeight: '600',
+                          cursor: (isLoading || !customLiquid.name || !customLiquid.calories || !customLiquid.protein || !customLiquid.carbs || !customLiquid.fats) ? 'not-allowed' : 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '8px'
+                        }}
+                      >
+                        {isLoading ? (
+                          <>
+                            <div style={{
+                              width: '16px',
+                              height: '16px',
+                              border: '2px solid #ffffff40',
+                              borderTop: '2px solid #ffffff',
+                              borderRadius: '50%',
+                              animation: 'spin 1s linear infinite'
+                            }}></div>
+                            Agregando...
+                          </>
+                        ) : (
+                          <>
+                            <i className="ri-add-line"></i>
+                            Agregar Líquido Personalizado
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )
+                }
+
+                {/* Barcode scanner modal */}
+                {showBarcodeScanner && (
+                  <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'black',
+                    zIndex: 2000,
+                    display: 'flex',
+                    flexDirection: 'column'
+                  }}>
+                    <div style={{
+                      position: 'absolute',
+                      top: '20px',
+                      left: '20px',
+                      right: '20px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      zIndex: 2001
+                    }}>
+                      <div>
+                        <h3 style={{
+                          color: 'white',
+                          fontSize: '18px',
+                          fontWeight: '600',
+                          margin: 0
+                        }}>
+                          Escanear Producto
+                        </h3>
+                        <p style={{
+                          color: '#a3a3a3',
+                          fontSize: '12px',
+                          margin: '2px 0 0 0'
+                        }}>
+                          Conectado a OpenFoodFacts
+                        </p>
+                      </div>
+                      <button
+                        onClick={stopCamera}
+                        className="!rounded-button"
+                        style={{
+                          width: '40px',
+                          height: '40px',
+                          background: 'rgba(255,255,255,0.2)',
+                          border: 'none',
+                          borderRadius: '50%',
+                          color: 'white',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        <i className="ri-close-line" style={{ fontSize: '20px' }}></i>
+                      </button>
+                    </div>
+
+                    <video
+                      ref={videoRef}
+                      autoPlay
+                      playsInline
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover'
+                      }}
+                    />
+
+                    <div style={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: '50%',
+                      transform: 'translate(-50%, -50%)',
+                      width: '250px',
+                      height: '120px',
+                      border: '2px solid #10b981',
+                      borderRadius: '12px',
+                      background: 'rgba(16, 185, 129, 0.1)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      zIndex: 2001
+                    }}>
+                      {(isScanning || isLoadingProduct) && (
+                        <div style={{
+                          position: 'absolute',
+                          top: '0',
+                          left: '0',
+                          right: '0',
+                          height: '2px',
+                          background: '#10b981',
+                          animation: 'scan 2s linear infinite'
+                        }}></div>
+                      )}
+                      <div style={{ textAlign: 'center' }}>
+                        <p style={{
+                          color: 'white',
+                          fontSize: '14px',
+                          fontWeight: '500',
+                          margin: '0 0 4px 0'
+                        }}>
+                          {isLoadingProduct ? 'Buscando producto...' :
+                            isScanning ? 'Escaneando...' : 'Coloca el código de barras aqui'
+                          }
+                        </p>
+                        {productNotFound && (
+                          <p style={{
+                            color: '#fbbf24',
+                            fontSize: '12px',
+                            margin: 0
+                          }}>
+                            Producto no encontrado
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div style={{
+                      position: 'absolute',
+                      bottom: '40px',
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      zIndex: 2001
+                    }}>
+                      <button
+                        onClick={scanBarcode}
+                        disabled={isScanning || isLoadingProduct}
+                        className="!rounded-button"
+                        style={{
+                          padding: '16px 24px',
+                          background: (isScanning || isLoadingProduct) ? 'rgba(255,255,255,0.3)' : '#10b981',
+                          border: 'none',
+                          borderRadius: '12px',
+                          color: 'white',
+                          fontSize: '16px',
+                          fontWeight: '600',
+                          cursor: (isScanning || isLoadingProduct) ? 'not-allowed' : 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px'
+                        }}
+                      >
+                        {isLoadingProduct ? (
+                          <>
+                            <div style={{
+                              width: '16px',
+                              height: '16px',
+                              border: '2px solid #ffffff40',
+                              borderTop: '2px solid #ffffff',
+                              borderRadius: '50%',
+                              animation: 'spin 1s linear infinite'
+                            }}></div>
+                            Consultando...
+                          </>
+                        ) : isScanning ? (
+                          <>
+                            <div style={{
+                              width: '16px',
+                              height: '16px',
+                              border: '2px solid #ffffff40',
+                              borderTop: '2px solid #ffffff',
+                              borderRadius: '50%',
+                              animation: 'spin 1s linear infinite'
+                            }}></div>
+                            Escaneando...
+                          </>
+                        ) : (
+                          <>
+                            <i className="ri-qr-scan-line"></i>
+                            Escanear
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    <style jsx>{`
+                      @keyframes scan {
+                        0% { top: 0; }
+                        100% { top: 100%; }
+                      }
+                      @keyframes spin {
+                        0% { transform: rotate(0deg); }
+                        100% { transform: rotate(360deg); }
+                      }
+                    `}</style>
+                  </div>
+                )
+
+                {/* Camera detection modal */}
+                {showCameraDetection && (
+                  <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'black',
+                    zIndex: 2000,
+                    display: 'flex',
+                    flexDirection: 'column'
+                  }}>
+                    <div style={{
+                      position: 'absolute',
+                      top: '20px',
+                      left: '20px',
+                      right: '20px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      zIndex: 2001
+                    }}>
+                      <div>
+                        <h3 style={{
+                          color: 'white',
+                          fontSize: '18px',
+                          fontWeight: '600',
+                          margin: 0
+                        }}>
+                          Detectar Comida
+                        </h3>
+                        <p style={{
+                          color: '#a3a3a3',
+                          fontSize: '12px',
+                          margin: '2px 0 0 0'
+                        }}>
+                          {DEMO_CONFIG.ENABLED ? 'Modo Demo IA' : 'IA Visual'}
+                        </p>
+                      </div>
+                      <button
+                        onClick={stopCamera}
+                        className="!rounded-button"
+                        style={{
+                          width: '40px',
+                          height: '40px',
+                          background: 'rgba(255,255,255,0.2)',
+                          border: 'none',
+                          borderRadius: '50%',
+                          color: 'white',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        <i className="ri-close-line" style={{ fontSize: '20px' }}></i>
+                      </button>
+                    </div>
+
+                    <video
+                      ref={videoRef}
+                      autoPlay
+                      playsInline
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover'
+                      }}
+                    />
+
+                    <div style={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: '50%',
+                      transform: 'translate(-50%, -50%)',
+                      width: '200px',
+                      height: '200px',
+                      border: '2px solid #8b5cf6',
+                      borderRadius: '50%',
+                      background: 'rgba(139, 92, 246, 0.1)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      zIndex: 2001
+                    }}>
+                      {isAnalyzing && (
+                        <div style={{
+                          width: '180px',
+                          height: '180px',
+                          border: '2px solid #8b5cf6',
+                          borderRadius: '50%',
+                          animation: 'pulse 2s ease-in-out infinite'
+                        }}></div>
+                      )}
+                      <div style={{ textAlign: 'center', position: 'absolute' }}>
+                        <i className="ri-camera-line" style={{
+                          color: 'white',
+                          fontSize: '32px',
+                          marginBottom: '8px'
+                        }}></i>
+                        <p style={{
+                          color: 'white',
+                          fontSize: '14px',
+                          fontWeight: '500',
+                          margin: 0
+                        }}>
+                          {isAnalyzing ? 'Analizando...' : 'Coloca la comida aquí'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div style={{
+                      position: 'absolute',
+                      bottom: '40px',
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      zIndex: 2001
+                    }}>
+                      <button
+                        onClick={detectFoodFromCamera}
+                        disabled={isAnalyzing}
+                        className="!rounded-button"
+                        style={{
+                          padding: '16px 24px',
+                          background: isAnalyzing ? 'rgba(255,255,255,0.3)' : '#8b5cf6',
+                          border: 'none',
+                          borderRadius: '12px',
+                          color: 'white',
+                          fontSize: '16px',
+                          fontWeight: '600',
+                          cursor: isAnalyzing ? 'not-allowed' : 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px'
+                        }}
+                      >
+                        {isAnalyzing ? (
+                          <>
+                            <div style={{
+                              width: '16px',
+                              height: '16px',
+                              border: '2px solid #ffffff40',
+                              borderTop: '2px solid #ffffff',
+                              borderRadius: '50%',
+                              animation: 'spin 1s linear infinite'
+                            }}></div>
+                            Analizando...
+                          </>
+                        ) : (
+                          <>
+                            <i className="ri-eye-line"></i>
+                            {DEMO_CONFIG.ENABLED ? 'Simular Detección' : 'Detectar Comida'}
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    <style jsx>{`
+                      @keyframes pulse {
+                        0% { transform: scale(1); opacity: 1; }
+                        50% { transform: scale(1.05); opacity: 0.7; }
+                        100% { transform: scale(1); opacity: 1; }
+                      }
+                      @keyframes spin {
+                        0% { transform: rotate(0deg); }
+                        100% { transform: rotate(360deg); }
+                      }
+                    `}</style>
+                  </div>
+                )
+              </>
             )
           }
-        </>
+        </main>
 
-        {/* Barcode scanner modal */}
-        {showBarcodeScanner && (
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'black',
-            zIndex: 2000,
-            display: 'flex',
-            flexDirection: 'column'
-          }}>
-            <div style={{
-              position: 'absolute',
-              top: '20px',
-              left: '20px',
-              right: '20px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              zIndex: 2001
-            }}>
-              <div>
-                <h3 style={{
-                  color: 'white',
-                  fontSize: '18px',
-                  fontWeight: '600',
-                  margin: 0
-                }}>
-                  Escanear Producto
-                </h3>
-                <p style={{
-                  color: '#a3a3a3',
-                  fontSize: '12px',
-                  margin: '2px 0 0 0'
-                }}>
-                  Conectado a OpenFoodFacts
-                </p>
-              </div>
-              <button
-                onClick={stopCamera}
-                className="!rounded-button"
-                style={{
-                  width: '40px',
-                  height: '40px',
-                  background: 'rgba(255,255,255,0.2)',
-                  border: 'none',
-                  borderRadius: '50%',
-                  color: 'white',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <i className="ri-close-line" style={{ fontSize: '20px' }}></i>
-              </button>
-            </div>
-
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover'
-              }}
-            />
-
-            <div style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: '250px',
-              height: '120px',
-              border: '2px solid #10b981',
-              borderRadius: '12px',
-              background: 'rgba(16, 185, 129, 0.1)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 2001
-            }}>
-              {(isScanning || isLoadingProduct) && (
-                <div style={{
-                  position: 'absolute',
-                  top: '0',
-                  left: '0',
-                  right: '0',
-                  height: '2px',
-                  background: '#10b981',
-                  animation: 'scan 2s linear infinite'
-                }}></div>
-              )}
-              <div style={{ textAlign: 'center' }}>
-                <p style={{
-                  color: 'white',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  margin: '0 0 4px 0'
-                }}>
-                  {isLoadingProduct ? 'Buscando producto...' :
-                    isScanning ? 'Escaneando...' : 'Coloca el código de barras aqui'
-                  }
-                </p>
-                {productNotFound && (
-                  <p style={{
-                    color: '#fbbf24',
-                    fontSize: '12px',
-                    margin: 0
-                  }}>
-                    Producto no encontrado
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div style={{
-              position: 'absolute',
-              bottom: '40px',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              zIndex: 2001
-            }}>
-              <button
-                onClick={scanBarcode}
-                disabled={isScanning || isLoadingProduct}
-                className="!rounded-button"
-                style={{
-                  padding: '16px 24px',
-                  background: (isScanning || isLoadingProduct) ? 'rgba(255,255,255,0.3)' : '#10b981',
-                  border: 'none',
-                  borderRadius: '12px',
-                  color: 'white',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  cursor: (isScanning || isLoadingProduct) ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px'
-                }}
-              >
-                {isLoadingProduct ? (
-                  <>
-                    <div style={{
-                      width: '16px',
-                      height: '16px',
-                      border: '2px solid #ffffff40',
-                      borderTop: '2px solid #ffffff',
-                      borderRadius: '50%',
-                      animation: 'spin 1s linear infinite'
-                    }}></div>
-                    Consultando...
-                  </>
-                ) : isScanning ? (
-                  <>
-                    <div style={{
-                      width: '16px',
-                      height: '16px',
-                      border: '2px solid #ffffff40',
-                      borderTop: '2px solid #ffffff',
-                      borderRadius: '50%',
-                      animation: 'spin 1s linear infinite'
-                    }}></div>
-                    Escaneando...
-                  </>
-                ) : (
-                  <>
-                    <i className="ri-qr-scan-line"></i>
-                    Escanear
-                  </>
-                )}
-              </button>
-            </div>
-
-            <style jsx>{`
-              @keyframes scan {
-                0% { top: 0; }
-                100% { top: 100%; }
-              }
-              @keyframes spin {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
-              }
-            `}</style>
-          </div>
-        )}
-
-        {/* Camera detection modal */}
-        {showCameraDetection && (
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'black',
-            zIndex: 2000,
-            display: 'flex',
-            flexDirection: 'column'
-          }}>
-            <div style={{
-              position: 'absolute',
-              top: '20px',
-              left: '20px',
-              right: '20px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              zIndex: 2001
-            }}>
-              <div>
-                <h3 style={{
-                  color: 'white',
-                  fontSize: '18px',
-                  fontWeight: '600',
-                  margin: 0
-                }}>
-                  Detectar Comida
-                </h3>
-                <p style={{
-                  color: '#a3a3a3',
-                  fontSize: '12px',
-                  margin: '2px 0 0 0'
-                }}>
-                  {DEMO_CONFIG.ENABLED ? 'Modo Demo IA' : 'IA Visual'}
-                </p>
-              </div>
-              <button
-                onClick={stopCamera}
-                className="!rounded-button"
-                style={{
-                  width: '40px',
-                  height: '40px',
-                  background: 'rgba(255,255,255,0.2)',
-                  border: 'none',
-                  borderRadius: '50%',
-                  color: 'white',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <i className="ri-close-line" style={{ fontSize: '20px' }}></i>
-              </button>
-            </div>
-
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover'
-              }}
-            />
-
-            <div style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: '200px',
-              height: '200px',
-              border: '2px solid #8b5cf6',
-              borderRadius: '50%',
-              background: 'rgba(139, 92, 246, 0.1)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 2001
-            }}>
-              {isAnalyzing && (
-                <div style={{
-                  width: '180px',
-                  height: '180px',
-                  border: '2px solid #8b5cf6',
-                  borderRadius: '50%',
-                  animation: 'pulse 2s ease-in-out infinite'
-                }}></div>
-              )}
-              <div style={{ textAlign: 'center', position: 'absolute' }}>
-                <i className="ri-camera-line" style={{
-                  color: 'white',
-                  fontSize: '32px',
-                  marginBottom: '8px'
-                }}></i>
-                <p style={{
-                  color: 'white',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  margin: 0
-                }}>
-                  {isAnalyzing ? 'Analizando...' : 'Coloca la comida aquí'}
-                </p>
-              </div>
-            </div>
-
-            <div style={{
-              position: 'absolute',
-              bottom: '40px',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              zIndex: 2001
-            }}>
-              <button
-                onClick={detectFoodFromCamera}
-                disabled={isAnalyzing}
-                className="!rounded-button"
-                style={{
-                  padding: '16px 24px',
-                  background: isAnalyzing ? 'rgba(255,255,255,0.3)' : '#8b5cf6',
-                  border: 'none',
-                  borderRadius: '12px',
-                  color: 'white',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  cursor: isAnalyzing ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px'
-                }}
-              >
-                {isAnalyzing ? (
-                  <>
-                    <div style={{
-                      width: '16px',
-                      height: '16px',
-                      border: '2px solid #ffffff40',
-                      borderTop: '2px solid #ffffff',
-                      borderRadius: '50%',
-                      animation: 'spin 1s linear infinite'
-                    }}></div>
-                    Analizando...
-                  </>
-                ) : (
-                  <>
-                    <i className="ri-eye-line"></i>
-                    {DEMO_CONFIG.ENABLED ? 'Simular Detección' : 'Detectar Comida'}
-                  </>
-                )}
-              </button>
-            </div>
-
-            <style jsx>{`
-              @keyframes pulse {
-                0% { transform: scale(1); opacity: 1; }
-                50% { transform: scale(1.05); opacity: 0.7; }
-                100% { transform: scale(1); opacity: 1; }
-              }
-              @keyframes spin {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
-              }
-            `}</style>
-          </div>
-        )}
-      </main>
-
-      <BottomNavigation />
-    </div>
-  );
-}
+        <BottomNavigation />
+      </div>
+    );
+  }
