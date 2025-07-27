@@ -5,46 +5,6 @@ export interface BarcodeResult {
   format: string;
 }
 
-// Declaración de tipos para QuaggaJS
-declare module 'quagga' {
-  interface QuaggaJSConfigObject {
-    inputStream?: {
-      name?: string;
-      type?: string;
-      target?: HTMLElement;
-      constraints?: {
-        width?: number;
-        height?: number;
-        facingMode?: string;
-      };
-    };
-    decoder?: {
-      readers?: string[];
-    };
-    locate?: boolean;
-    frequency?: number;
-    debug?: boolean;
-    halfSample?: boolean;
-  }
-
-  interface QuaggaJSResultObject {
-    codeResult?: {
-      code?: string;
-      format?: string;
-    };
-  }
-
-  interface QuaggaJSStatic {
-    init(config: QuaggaJSConfigObject, callback?: (err: any) => void): void;
-    start(): void;
-    stop(): void;
-    onDetected(callback: (result: QuaggaJSResultObject) => void): void;
-  }
-
-  const Quagga: QuaggaJSStatic;
-  export = Quagga;
-}
-
 // Función para inicializar el escáner de códigos de barras
 export async function initializeBarcodeScanner(
   videoElement: HTMLVideoElement,
@@ -53,7 +13,7 @@ export async function initializeBarcodeScanner(
   try {
     // Importar QuaggaJS dinámicamente para evitar errores de SSR
     const QuaggaModule = await import('quagga');
-    const Quagga = QuaggaModule.default || QuaggaModule;
+    const Quagga = (QuaggaModule as any).default || QuaggaModule;
 
     // Configurar QuaggaJS
     Quagga.init({
@@ -114,7 +74,7 @@ export function stopBarcodeScanner(): void {
   try {
     // Importar QuaggaJS dinámicamente
     import('quagga').then(QuaggaModule => {
-      const Quagga = QuaggaModule.default || QuaggaModule;
+      const Quagga = (QuaggaModule as any).default || QuaggaModule;
       if (Quagga) {
         Quagga.stop();
       }
