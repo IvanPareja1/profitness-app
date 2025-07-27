@@ -924,7 +924,7 @@ export default function AddFood() {
               </div>
             </div>
           </div>
-        `).join ''}
+        `).join('')}
       </div>
 
       <div style="display: flex; gap: 8px;">
