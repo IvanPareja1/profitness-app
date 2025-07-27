@@ -1,4 +1,3 @@
-
 'use client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -1722,7 +1721,7 @@ export default function AddFood() {
                       }}
                     >
                       {isLoading ? (
-                        <>
+                        < >
                           <div style={{
                             width: '16px',
                             height: '16px',
@@ -1732,12 +1731,12 @@ export default function AddFood() {
                             animation: 'spin 1s linear infinite'
                           }}></div>
                           Agregando...
-                        </>
+                        </ >
                       ) : (
-                        <>
+                        < >
                           <i className="ri-add-line"></i>
                           Agregar Comida
-                        </>
+                        </ >
                       )}
                     </button>
                   </div>
@@ -2022,7 +2021,7 @@ export default function AddFood() {
                   }}
                 >
                   {isLoading ? (
-                    <>
+                    < >
                       <div style={{
                         width: '16px',
                         height: '16px',
@@ -2032,12 +2031,12 @@ export default function AddFood() {
                         animation: 'spin 1s linear infinite'
                       }}></div>
                       Agregando...
-                    </>
+                    </ >
                   ) : (
-                    <>
+                    < >
                       <i className="ri-add-line"></i>
                       Agregar Comida Personalizada
-                    </>
+                    </ >
                   )}
                 </button>
               </div>
@@ -2368,7 +2367,7 @@ export default function AddFood() {
                       }}
                     >
                       {isLoading ? (
-                        <>
+                        < >
                           <div style={{
                             width: '16px',
                             height: '16px',
@@ -2378,12 +2377,12 @@ export default function AddFood() {
                             animation: 'spin 1s linear infinite'
                           }}></div>
                           Agregando...
-                        </>
+                        </ >
                       ) : (
-                        <>
+                        < >
                           <i className="ri-add-line"></i>
                           Agregar Líquido
-                        </>
+                        </ >
                       )}
                     </button>
                   </div>
@@ -2683,7 +2682,7 @@ export default function AddFood() {
                   }}
                 >
                   {isLoading ? (
-                    <>
+                    < >
                       <div style={{
                         width: '16px',
                         height: '16px',
@@ -2693,12 +2692,12 @@ export default function AddFood() {
                         animation: 'spin 1s linear infinite'
                       }}></div>
                       Agregando...
-                    </>
+                    </ >
                   ) : (
-                    <>
+                    < >
                       <i className="ri-add-line"></i>
                       Agregar Líquido Personalizado
-                    </>
+                    </ >
                   )}
                 </button>
               </div>
@@ -2849,7 +2848,7 @@ export default function AddFood() {
                     }}
                   >
                     {isLoadingProduct ? (
-                      <>
+                      < >
                         <div style={{
                           width: '16px',
                           height: '16px',
@@ -2859,9 +2858,9 @@ export default function AddFood() {
                           animation: 'spin 1s linear infinite'
                         }}></div>
                         Consultando...
-                      </>
+                      </ >
                     ) : isScanning ? (
-                      <>
+                      < >
                         <div style={{
                           width: '16px',
                           height: '16px',
@@ -2871,12 +2870,12 @@ export default function AddFood() {
                           animation: 'spin 1s linear infinite'
                         }}></div>
                         Escaneando...
-                      </>
+                      </ >
                     ) : (
-                      <>
+                      < >
                         <i className="ri-qr-scan-line"></i>
                         Escanear
-                      </>
+                      </ >
                     )}
                   </button>
                 </div>
@@ -3032,7 +3031,7 @@ export default function AddFood() {
                     }}
                   >
                     {isAnalyzing ? (
-                      <>
+                      < >
                         <div style={{
                           width: '16px',
                           height: '16px',
@@ -3042,12 +3041,12 @@ export default function AddFood() {
                           animation: 'spin 1s linear infinite'
                         }}></div>
                         Analizando...
-                      </>
+                      </ >
                     ) : (
-                      <>
+                      < >
                         <i className="ri-eye-line"></i>
                         {DEMO_CONFIG.ENABLED ? 'Simular Detección' : 'Detectar Comida'}
-                      </>
+                      </ >
                     )}
                   </button>
                 </div>
