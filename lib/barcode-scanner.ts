@@ -5,8 +5,8 @@ export interface BarcodeResult {
   format: string;
 }
 
-// Tipos para QuaggaJS - Declaración global
-declare global {
+// Declaración de tipos para QuaggaJS
+declare module 'quagga' {
   interface QuaggaJSConfigObject {
     inputStream?: {
       name?: string;
@@ -40,6 +40,9 @@ declare global {
     stop(): void;
     onDetected(callback: (result: QuaggaJSResultObject) => void): void;
   }
+
+  const Quagga: QuaggaJSStatic;
+  export = Quagga;
 }
 
 // Función para inicializar el escáner de códigos de barras
@@ -50,7 +53,7 @@ export async function initializeBarcodeScanner(
   try {
     // Importar QuaggaJS dinámicamente para evitar errores de SSR
     const QuaggaModule = await import('quagga');
-    const Quagga = (QuaggaModule as any).default || QuaggaModule;
+    const Quagga = QuaggaModule.default || QuaggaModule;
 
     // Configurar QuaggaJS
     Quagga.init({
@@ -111,7 +114,7 @@ export function stopBarcodeScanner(): void {
   try {
     // Importar QuaggaJS dinámicamente
     import('quagga').then(QuaggaModule => {
-      const Quagga = (QuaggaModule as any).default || QuaggaModule;
+      const Quagga = QuaggaModule.default || QuaggaModule;
       if (Quagga) {
         Quagga.stop();
       }
