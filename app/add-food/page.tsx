@@ -1757,10 +1757,10 @@ export default function AddFood() {
                       )}
                     </button>
                   </div>
-                )}
-              </>
+                )
+              }
 
-            )}
+            </>
 
             {/* Custom food form */}
             {showCustomFood && (
@@ -2058,9 +2058,10 @@ export default function AddFood() {
                   )}
                 </button>
               </div>
-            )}
-          </>
-        )}
+            )
+          }
+
+        </>
 
         {/* Liquid Tab */}
         {currentTab === 'liquid' && (
@@ -2368,10 +2369,10 @@ export default function AddFood() {
                       )}
                     </button>
                   </div>
-                )}
-              </>
+                )
+              }
 
-            )}
+            </>
 
             {/* Custom liquid form */}
             {showCustomLiquid && (
@@ -2684,9 +2685,10 @@ export default function AddFood() {
                   )}
                 </button>
               </div>
-            )}
-          </>
-        )}
+            )
+          }
+
+        </>
 
         {/* Barcode scanner modal */}
         {showBarcodeScanner && (
@@ -2877,7 +2879,8 @@ export default function AddFood() {
               }
             `}</style>
           </div>
-        )}
+        )
+        }
 
         {/* Camera detection modal */}
         {showCameraDetection && (
@@ -3049,11 +3052,12 @@ export default function AddFood() {
               }
             `}</style>
           </div>
-        )}
+        )
+        }
+
       </main>
 
       <BottomNavigation />
     </div>
   );
 }
-</code>
