@@ -108,12 +108,12 @@ const liquidOptions = [
   { name: 'Leche descremada', calories: 34, protein: 3.4, carbs: 5, fats: 0.1, fiber: 0, hydrating: false }
 ];
 
-const safeNumber = (value: any, defaultValue: number = 0): number => {
+const safeNumber = (value, defaultValue = 0) => {
   const parsed = parseFloat(value);
   return isNaN(parsed) ? defaultValue : parsed;
 };
 
-const formatNumber = (value: any, decimals: number = 0): string => {
+const formatNumber = (value, decimals = 0) => {
   const num = safeNumber(value);
   return decimals > 0 ? num.toFixed(decimals) : Math.round(num).toString();
 };
@@ -122,8 +122,8 @@ export default function AddFood() {
   const [mounted, setMounted] = useState(false);
   const [currentTab, setCurrentTab] = useState('food');
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedFood, setSelectedFood] = useState<any>(null);
-  const [selectedLiquid, setSelectedLiquid] = useState<any>(null);
+  const [selectedFood, setSelectedFood] = useState(null);
+  const [selectedLiquid, setSelectedLiquid] = useState(null);
   const [quantity, setQuantity] = useState('100');
   const [liquidQuantity, setLiquidQuantity] = useState('250');
   const [mealType, setMealType] = useState('desayuno');
@@ -151,14 +151,14 @@ export default function AddFood() {
     hydrating: false
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [detectedFoods, setDetectedFoods] = useState<any>([]);
-  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [detectedFoods, setDetectedFoods] = useState([]);
+  const [cameraStream, setCameraStream] = useState(null);
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -200,7 +200,7 @@ export default function AddFood() {
     liquid.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const calculateNutrition = (food: any, qty: string) => {
+  const calculateNutrition = (food, qty) => {
     const multiplier = safeNumber(qty) / 100;
     return {
       calories: Math.round(safeNumber(food.calories) * multiplier),
@@ -211,7 +211,7 @@ export default function AddFood() {
     };
   };
 
-  const calculateLiquidNutrition = (liquid: any, qty: string) => {
+  const calculateLiquidNutrition = (liquid, qty) => {
     const multiplier = safeNumber(qty) / 100;
     return {
       calories: Math.round(safeNumber(liquid.calories) * multiplier),
@@ -373,7 +373,7 @@ export default function AddFood() {
     }
   };
 
-  const searchFoodDatabase = (query: string) => {
+  const searchFoodDatabase = (query) => {
     if (!query || query.length < 2) {
       setSuggestions([]);
       setShowSuggestions(false);
@@ -388,7 +388,7 @@ export default function AddFood() {
     setShowSuggestions(matches.length > 0);
   };
 
-  const autoFillMacros = (foodName: string) => {
+  const autoFillMacros = (foodName) => {
     const foundFood = foodDatabase.find(food =>
       food.name.toLowerCase() === foodName.toLowerCase()
     );
@@ -405,12 +405,12 @@ export default function AddFood() {
     }
   };
 
-  const handleCustomFoodNameChange = (value: string) => {
+  const handleCustomFoodNameChange = (value) => {
     setCustomFood({ ...customFood, name: value });
     searchFoodDatabase(value);
   };
 
-  const selectSuggestion = (food: any) => {
+  const selectSuggestion = (food) => {
     autoFillMacros(food.name);
     setShowSuggestions(false);
     setSuggestions([]);
@@ -569,7 +569,7 @@ export default function AddFood() {
     document.body.appendChild(analysisMessage);
 
     try {
-      let detectedFoodResults: any[] = [];
+      let detectedFoodResults = [];
 
       if (DEMO_CONFIG.ENABLED) {
         // Modo demo - usar simulación
@@ -601,11 +601,9 @@ export default function AddFood() {
       setDetectedFoods(detectedFoodResults);
       setIsAnalyzing(false);
 
-      // Mostrar resultados
       if (detectedFoodResults.length > 0) {
         showDetectionResults(detectedFoodResults);
       } else {
-        // Mostrar mensaje de no detección
         showNoDetectionMessage();
       }
 
@@ -745,7 +743,7 @@ export default function AddFood() {
     }, 10000);
   };
 
-  const showProductModal = (product: any) => {
+  const showProductModal = (product) => {
     const modal = document.createElement('div');
     modal.style.cssText = `
       position: fixed;
@@ -854,7 +852,7 @@ export default function AddFood() {
     }, 30000);
   };
 
-  const showDetectionResults = (foods: any[]) => {
+  const showDetectionResults = (foods) => {
     const resultsModal = document.createElement('div');
     resultsModal.style.cssText = `
       position: fixed;
@@ -879,7 +877,7 @@ export default function AddFood() {
       stopCamera();
     };
 
-    const handleSelectFood = (foodName: string) => {
+    const handleSelectFood = (foodName) => {
       const selectedFoodItem = foods.find(f => f.name === foodName);
       if (selectedFoodItem) {
         setCustomFood({
@@ -911,7 +909,7 @@ export default function AddFood() {
       <div style="margin-bottom: 16px;">
         ${foods.map(food => `
           <div class="food-item" data-food-name="${food.name}" style="display: flex; align-items: center; justify-content: space-between; padding: 12px; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 8px; cursor: pointer;">
-            <div style="flex: 1;">
+            <div>
               <h4 style="font-size: 14px; font-weight: 600; color: #1f2937; margin: 0 0 4px 0;">${food.name}</h4>
               <div style="display: flex; gap: 12px; font-size: 11px; color: #6b7280;">
                 <span>${food.calories} cal</span>
@@ -1121,7 +1119,7 @@ export default function AddFood() {
     document.body.appendChild(analysisMessage);
 
     try {
-      let detectedFoodResults: any[] = [];
+      let detectedFoodResults = [];
 
       if (DEMO_CONFIG.ENABLED) {
         // Modo demo - usar simulación
@@ -1361,6 +1359,7 @@ export default function AddFood() {
         {/* Food Tab */}
         {currentTab === 'food' && (
           <>
+
             {/* Detection methods section */}
             <div style={{
               background: 'white',
@@ -1456,6 +1455,7 @@ export default function AddFood() {
             {/* Search and popular foods */}
             {!showCustomFood && (
               <>
+
                 <div style={{
                   background: 'white',
                   borderRadius: '16px',
@@ -1689,28 +1689,64 @@ export default function AddFood() {
                             gap: '8px'
                           }}>
                             <div style={{ textAlign: 'center' }}>
-                              <div style={{ fontSize: '16px', fontWeight: '700', color: '#dc2626' }}>
+                              <div style={{
+                                fontSize: '16px',
+                                fontWeight: '700',
+                                color: '#dc2626'
+                              }}>
                                 {nutrition.calories}
                               </div>
-                              <div style={{ fontSize: '10px', color: '#6b7280' }}>Calorías</div>
+                              <div style={{
+                                fontSize: '10px',
+                                color: '#6b7280'
+                              }}>
+                                Calorías
+                              </div>
                             </div>
                             <div style={{ textAlign: 'center' }}>
-                              <div style={{ fontSize: '16px', fontWeight: '700', color: '#059669' }}>
+                              <div style={{
+                                fontSize: '16px',
+                                fontWeight: '700',
+                                color: '#059669'
+                              }}>
                                 {nutrition.protein}g
                               </div>
-                              <div style={{ fontSize: '10px', color: '#6b7280' }}>Proteínas</div>
+                              <div style={{
+                                fontSize: '10px',
+                                color: '#6b7280'
+                              }}>
+                                Proteínas
+                              </div>
                             </div>
                             <div style={{ textAlign: 'center' }}>
-                              <div style={{ fontSize: '16px', fontWeight: '700', color: '#d97706' }}>
+                              <div style={{
+                                fontSize: '16px',
+                                fontWeight: '700',
+                                color: '#d97706'
+                              }}>
                                 {nutrition.carbs}g
                               </div>
-                              <div style={{ fontSize: '10px', color: '#6b7280' }}>Carbohidratos</div>
+                              <div style={{
+                                fontSize: '10px',
+                                color: '#6b7280'
+                              }}>
+                                Carbohidratos
+                              </div>
                             </div>
                             <div style={{ textAlign: 'center' }}>
-                              <div style={{ fontSize: '16px', fontWeight: '700', color: '#7c3aed' }}>
+                              <div style={{
+                                fontSize: '16px',
+                                fontWeight: '700',
+                                color: '#7c3aed'
+                              }}>
                                 {nutrition.fats}g
                               </div>
-                              <div style={{ fontSize: '10px', color: '#6b7280' }}>Grasas</div>
+                              <div style={{
+                                fontSize: '10px',
+                                color: '#6b7280'
+                              }}>
+                                Grasas
+                              </div>
                             </div>
                           </div>
                         );
@@ -2066,9 +2102,11 @@ export default function AddFood() {
         {/* Liquid Tab */}
         {currentTab === 'liquid' && (
           <>
+
             {/* Search and popular liquids */}
             {!showCustomLiquid && (
               <>
+
                 <div style={{
                   background: 'white',
                   borderRadius: '16px',
@@ -2283,28 +2321,64 @@ export default function AddFood() {
                             gap: '8px'
                           }}>
                             <div style={{ textAlign: 'center' }}>
-                              <div style={{ fontSize: '16px', fontWeight: '700', color: '#dc2626' }}>
+                              <div style={{
+                                fontSize: '16px',
+                                fontWeight: '700',
+                                color: '#dc2626'
+                              }}>
                                 {nutrition.calories}
                               </div>
-                              <div style={{ fontSize: '10px', color: '#6b7280' }}>Calorías</div>
+                              <div style={{
+                                fontSize: '10px',
+                                color: '#6b7280'
+                              }}>
+                                Calorías
+                              </div>
                             </div>
                             <div style={{ textAlign: 'center' }}>
-                              <div style={{ fontSize: '16px', fontWeight: '700', color: '#059669' }}>
+                              <div style={{
+                                fontSize: '16px',
+                                fontWeight: '700',
+                                color: '#059669'
+                              }}>
                                 {nutrition.protein}g
                               </div>
-                              <div style={{ fontSize: '10px', color: '#6b7280' }}>Proteínas</div>
+                              <div style={{
+                                fontSize: '10px',
+                                color: '#6b7280'
+                              }}>
+                                Proteínas
+                              </div>
                             </div>
                             <div style={{ textAlign: 'center' }}>
-                              <div style={{ fontSize: '16px', fontWeight: '700', color: '#d97706' }}>
+                              <div style={{
+                                fontSize: '16px',
+                                fontWeight: '700',
+                                color: '#d97706'
+                              }}>
                                 {nutrition.carbs}g
                               </div>
-                              <div style={{ fontSize: '10px', color: '#6b7280' }}>Carbohidratos</div>
+                              <div style={{
+                                fontSize: '10px',
+                                color: '#6b7280'
+                              }}>
+                                Carbohidratos
+                              </div>
                             </div>
                             <div style={{ textAlign: 'center' }}>
-                              <div style={{ fontSize: '16px', fontWeight: '700', color: '#7c3aed' }}>
+                              <div style={{
+                                fontSize: '16px',
+                                fontWeight: '700',
+                                color: '#7c3aed'
+                              }}>
                                 {nutrition.fats}g
                               </div>
-                              <div style={{ fontSize: '10px', color: '#6b7280' }}>Grasas</div>
+                              <div style={{
+                                fontSize: '10px',
+                                color: '#6b7280'
+                              }}>
+                                Grasas
+                              </div>
                             </div>
                           </div>
                         );
