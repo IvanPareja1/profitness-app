@@ -151,7 +151,7 @@ export default function AddFood() {
     hydrating: false
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [suggestions, setSuggestions] = useState([]);
+  const [suggestions, setSuggestions] = useState<Array<{ name: string; calories: number; protein: number; carbs: number; fats: number; fiber: number }>>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -1791,9 +1791,9 @@ export default function AddFood() {
                       )}
                     </button>
                   </div>
-                )}
-              </>
-            )}
+                )
+              }
+            </>
 
             {/* Custom food form */}
             {showCustomFood && (
@@ -2091,9 +2091,9 @@ export default function AddFood() {
                   )}
                 </button>
               </div>
-            )}
-          </>
-        )}
+            )
+          }
+        </>
 
         {/* Liquid Tab */}
         {currentTab === 'liquid' && (
@@ -2436,9 +2436,9 @@ export default function AddFood() {
                       )}
                     </button>
                   </div>
-                )}
-              </>
-            )}
+                )
+              }
+            </>
 
             {/* Custom liquid form */}
             {showCustomLiquid && (
@@ -2751,9 +2751,9 @@ export default function AddFood() {
                   )}
                 </button>
               </div>
-            )}
-          </>
-        )}
+            )
+          }
+        </>
 
         {/* Barcode scanner modal */}
         {showBarcodeScanner && (
