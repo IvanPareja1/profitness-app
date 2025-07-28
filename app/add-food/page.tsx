@@ -598,6 +598,8 @@ export default function AddFoodPage() {
 
   const startCameraWithMode = async (mode: 'vision' | 'barcode') => {
     try {
+      setIsLoading(true);
+
       const constraints = {
         video: {
           facingMode: 'environment',
@@ -608,16 +610,24 @@ export default function AddFoodPage() {
 
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       setCameraStream(stream);
-      setShowCamera(true);
       setScanMode(mode);
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        videoRef.current.muted = true;
+        videoRef.current.playsInline = true;
+        videoRef.current.autoplay = true;
 
         videoRef.current.onloadedmetadata = () => {
-          videoRef.current!.play().catch(error => {
-            console.error('Error playing video:', error);
-          });
+          if (videoRef.current) {
+            videoRef.current.play().then(() => {
+              setShowCamera(true);
+              setIsLoading(false);
+            }).catch(error => {
+              console.error('Error playing video:', error);
+              setIsLoading(false);
+            });
+          }
         };
 
         if (mode === 'barcode') {
@@ -645,6 +655,7 @@ export default function AddFoodPage() {
       }
     } catch (error) {
       console.error('Error accessing camera:', error);
+      setIsLoading(false);
 
       if (error instanceof Error) {
         if (error.name === 'NotAllowedError') {
@@ -831,26 +842,8 @@ export default function AddFoodPage() {
         backgroundColor: 'black',
         zIndex: 2000
       }}>
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted
-          style={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover'
-          }}
-          onLoadedMetadata={() => {
-            if (videoRef.current) {
-              videoRef.current.play().catch(error => {
-                console.error('Error playing video:', error);
-              });
-            }
-          }}
-        />
-
-        {!cameraStream && (
+        {/* Loading indicator */}
+        {isLoading && (
           <div style={{
             position: 'absolute',
             top: 0,
@@ -863,7 +856,8 @@ export default function AddFoodPage() {
             justifyContent: 'center',
             color: 'white',
             fontSize: '16px',
-            fontWeight: '500'
+            fontWeight: '500',
+            zIndex: 2001
           }}>
             <div style={{
               display: 'flex',
@@ -883,6 +877,18 @@ export default function AddFoodPage() {
             </div>
           </div>
         )}
+
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover'
+          }}
+        />
 
         {scanMode === 'barcode' && (
           <div style={{
@@ -1034,7 +1040,7 @@ export default function AddFoodPage() {
           <div style={{ width: '48px' }}></div>
         </div>
 
-        {scanMode === 'vision' && (
+        {scanMode === 'vision' && !isLoading && (
           <div style={{
             position: 'absolute',
             bottom: '30px',
