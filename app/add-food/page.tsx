@@ -646,14 +646,18 @@ export default function AddFoodPage() {
     } catch (error) {
       console.error('Error accessing camera:', error);
 
-      if (error.name === 'NotAllowedError') {
-        alert('Permiso de cámara denegado. Por favor, permite el acceso a la cámara en la configuración de tu navegador.');
-      } else if (error.name === 'NotFoundError') {
-        alert('No se encontró ninguna cámara en tu dispositivo.');
-      } else if (error.name === 'NotSupportedError') {
-        alert('Tu navegador no soporta el acceso a la cámara.');
+      if (error instanceof Error) {
+        if (error.name === 'NotAllowedError') {
+          alert('Permiso de cámara denegado. Por favor, permite el acceso a la cámara en la configuración de tu navegador.');
+        } else if (error.name === 'NotFoundError') {
+          alert('No se encontró ninguna cámara en tu dispositivo.');
+        } else if (error.name === 'NotSupportedError') {
+          alert('Tu navegador no soporta el acceso a la cámara.');
+        } else {
+          alert('Error al acceder a la cámara: ' + error.message);
+        }
       } else {
-        alert('Error al acceder a la cámara: ' + error.message);
+        alert('Error desconocido al acceder a la cámara.');
       }
     }
   };
@@ -2090,27 +2094,19 @@ export default function AddFoodPage() {
           }}
         >
           {isLoading ? (
-            <>
-              <div style={{
-                width: '16px',
-                height: '16px',
-                border: '2px solid #ffffff40',
-                borderTop: '2px solid #ffffff',
-                borderRadius: '50%',
-                animation: 'spin 1s linear infinite'
-              }}></div>
-              <style jsx>{`
-                @keyframes spin {
-                  0% { transform: rotate(0deg); }
-                  100% { transform: rotate(360deg); }
-                }
-              `}</style>
-            </>
+            <div style={{
+              width: '16px',
+              height: '16px',
+              border: '2px solid #ffffff40',
+              borderTop: '2px solid #ffffff',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite'
+            }}></div>
           ) : (
-            <>
+            <div>
               <i className="ri-add-line"></i>
               {t.addToLog}
-            </>
+            </div>
           )}
         </button>
       </main>
