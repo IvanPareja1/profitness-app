@@ -10,6 +10,13 @@ import UpdateNotification from '../components/UpdateNotification';
 import CloudSyncManager from '../components/CloudSyncManager';
 import { cloudSync } from '../lib/cloud-sync';
 
+// Declarar tipos globales para ventana
+declare global {
+  interface Window {
+    showDataRestorePrompt?: () => void;
+  }
+}
+
 interface Meal {
   id: string;
   name: string;
@@ -278,29 +285,30 @@ export default function Home() {
 
   if (!mounted) {
     return (
-      <div style={{
-        minHeight: '100vh',
-        background: 'linear-gradient(135deg, #f0f9ff 0%, #e0e7ff 100%)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}>
+      <>
+        <style jsx global>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}</style>
         <div style={{
-          width: '32px',
-          height: '32px',
-          border: '3px solid #e5e7eb',
-          borderTop: '3px solid #3b82f6',
-          borderRadius: '50%',
-          animation: 'spin 1s linear infinite'
+          minHeight: '100vh',
+          background: 'linear-gradient(135deg, #f0f9ff 0%, #e0e7ff 100%)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
         }}>
-          <style jsx>{`
-            @keyframes spin {
-              0% { transform: rotate(0deg); }
-              100% { transform: rotate(360deg); }
-            }
-          `}</style>
+          <div style={{
+            width: '32px',
+            height: '32px',
+            border: '3px solid #e5e7eb',
+            borderTop: '3px solid #3b82f6',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite'
+          }}></div>
         </div>
-      </div>
+      </>
     );
   }
 
