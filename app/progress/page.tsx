@@ -61,13 +61,13 @@ export default function Progress() {
       fats: []
     };
 
-    // Generate sample data for the last N days
+    // Solo cargar datos reales del usuario, sin generar datos de demostración
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
       const dateKey = date.toISOString().split('T')[0];
 
-      // Try to get real data from localStorage
+      // Intentar obtener datos reales del localStorage
       try {
         const savedData = localStorage.getItem(`nutrition_${dateKey}`);
         if (savedData) {
@@ -76,35 +76,24 @@ export default function Progress() {
           data.protein.push({ date: dateKey, value: parsed.protein || 0 });
           data.carbs.push({ date: dateKey, value: parsed.carbs || 0 });
           data.fats.push({ date: dateKey, value: parsed.fats || 0 });
-        } else {
-          // Generate sample data if no real data
-          data.calories.push({ date: dateKey, value: Math.floor(Math.random() * 800) + 1200 });
-          data.protein.push({ date: dateKey, value: Math.floor(Math.random() * 60) + 80 });
-          data.carbs.push({ date: dateKey, value: Math.floor(Math.random() * 100) + 150 });
-          data.fats.push({ date: dateKey, value: Math.floor(Math.random() * 30) + 40 });
         }
+        // Si no hay datos guardados, simplemente no agregar nada (no generar datos falsos)
       } catch (error) {
         console.error('Error parsing nutrition data:', error);
-        // Generate sample data on error
-        data.calories.push({ date: dateKey, value: Math.floor(Math.random() * 800) + 1200 });
-        data.protein.push({ date: dateKey, value: Math.floor(Math.random() * 60) + 80 });
-        data.carbs.push({ date: dateKey, value: Math.floor(Math.random() * 100) + 150 });
-        data.fats.push({ date: dateKey, value: Math.floor(Math.random() * 30) + 40 });
+        // En caso de error, no agregar datos falsos
       }
 
-      // Get weight data from localStorage or use sample data
+      // Obtener datos de peso reales del localStorage
       try {
         const savedWeight = localStorage.getItem(`weight_${dateKey}`);
         if (savedWeight) {
           const weightData: WeightData = JSON.parse(savedWeight);
           data.weight.push({ date: dateKey, value: weightData.weight });
-        } else {
-          // Generate sample weight data
-          data.weight.push({ date: dateKey, value: 70 + Math.random() * 4 - 2 });
         }
+        // Si no hay peso guardado, no agregar datos falsos
       } catch (error) {
         console.error('Error parsing weight data:', error);
-        data.weight.push({ date: dateKey, value: 70 + Math.random() * 4 - 2 });
+        // En caso de error, no agregar datos falsos
       }
     }
 
@@ -195,11 +184,42 @@ export default function Progress() {
   };
 
   const createImprovedChart = (data: DataPoint[], color: string, max?: number, unit?: string): JSX.Element | null => {
-    if (data.length === 0) return null;
+    if (data.length === 0) {
+      return (
+        <div style={{
+          marginTop: '12px',
+          padding: '40px 20px',
+          textAlign: 'center',
+          backgroundColor: '#f8fafc',
+          borderRadius: '8px',
+          border: '1px solid #e2e8f0'
+        }}>
+          <i className="ri-bar-chart-line" style={{ 
+            fontSize: '32px', 
+            color: '#9ca3af', 
+            marginBottom: '12px' 
+          }}></i>
+          <p style={{
+            fontSize: '14px',
+            color: '#6b7280',
+            margin: '0 0 8px 0'
+          }}>
+            No hay datos disponibles
+          </p>
+          <p style={{
+            fontSize: '12px',
+            color: '#9ca3af',
+            margin: 0
+          }}>
+            Comienza registrando tu información
+          </p>
+        </div>
+      );
+    }
     
     const maxValue = max || getMaxValue(data);
     const minValue = getMinValue(data);
-    const range = maxValue - minValue;
+    const range = maxValue - minValue || 1; // Evitar división por cero
     
     // Create scale marks
     const scaleMarks: number[] = [];
@@ -304,6 +324,80 @@ export default function Progress() {
         </div>
       </div>
     );
+  };
+
+  // Función para calcular días consecutivos con datos reales
+  const calculateConsecutiveDays = (): number => {
+    let consecutiveDays = 0;
+    let currentDate = new Date();
+    
+    while (consecutiveDays < 30) { // Máximo 30 días hacia atrás
+      const dateKey = currentDate.toISOString().split('T')[0];
+      const savedData = localStorage.getItem(`nutrition_${dateKey}`);
+      
+      if (savedData) {
+        try {
+          const parsed = JSON.parse(savedData);
+          if (parsed.calories > 0 || parsed.protein > 0 || parsed.carbs > 0 || parsed.fats > 0) {
+            consecutiveDays++;
+          } else {
+            break;
+          }
+        } catch (error) {
+          break;
+        }
+      } else {
+        break;
+      }
+      
+      currentDate.setDate(currentDate.getDate() - 1);
+    }
+    
+    return consecutiveDays;
+  };
+
+  // Función para calcular metas alcanzadas
+  const calculateMetasAlcanzadas = (): number => {
+    let metasAlcanzadas = 0;
+    const userProfile = localStorage.getItem('userProfile');
+    
+    if (!userProfile) return 0;
+    
+    try {
+      const profile = JSON.parse(userProfile);
+      const targetCalories = profile.targetCalories || 2000;
+      const targetProtein = profile.targetProtein || 120;
+      const targetCarbs = profile.targetCarbs || 250;
+      const targetFats = profile.targetFats || 67;
+      
+      // Revisar últimos 30 días
+      for (let i = 0; i < 30; i++) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        const dateKey = date.toISOString().split('T')[0];
+        const savedData = localStorage.getItem(`nutrition_${dateKey}`);
+        
+        if (savedData) {
+          try {
+            const parsed = JSON.parse(savedData);
+            
+            // Verificar si alcanzó al menos 80% de sus metas
+            if (parsed.calories >= targetCalories * 0.8 && 
+                parsed.protein >= targetProtein * 0.8 && 
+                parsed.carbs >= targetCarbs * 0.8 && 
+                parsed.fats >= targetFats * 0.8) {
+              metasAlcanzadas++;
+            }
+          } catch (error) {
+            continue;
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error calculating metas alcanzadas:', error);
+    }
+    
+    return metasAlcanzadas;
   };
 
   if (!mounted) {
@@ -618,7 +712,7 @@ export default function Progress() {
                   color: '#6b7280',
                   margin: 0
                 }}>
-                  Promedio: {getAverage(progressData.weight).toFixed(1)} kg
+                  {progressData.weight.length > 0 ? `Promedio: ${getAverage(progressData.weight).toFixed(1)} kg` : 'Sin datos registrados'}
                 </p>
               </div>
             </div>
@@ -685,7 +779,7 @@ export default function Progress() {
                 color: '#6b7280',
                 margin: 0
               }}>
-                Promedio: {getAverage(progressData.calories)} cal/día
+                {progressData.calories.length > 0 ? `Promedio: ${getAverage(progressData.calories)} cal/día` : 'Sin datos registrados'}
               </p>
             </div>
           </div>
@@ -742,7 +836,7 @@ export default function Progress() {
                   color: '#6b7280',
                   margin: 0
                 }}>
-                  Promedio: {getAverage(progressData.protein)}g/día
+                  {progressData.protein.length > 0 ? `Promedio: ${getAverage(progressData.protein)}g/día` : 'Sin datos registrados'}
                 </p>
               </div>
             </div>
@@ -782,7 +876,7 @@ export default function Progress() {
                   color: '#6b7280',
                   margin: 0
                 }}>
-                  Promedio: {getAverage(progressData.carbs)}g/día
+                  {progressData.carbs.length > 0 ? `Promedio: ${getAverage(progressData.carbs)}g/día` : 'Sin datos registrados'}
                 </p>
               </div>
             </div>
@@ -822,7 +916,7 @@ export default function Progress() {
                   color: '#6b7280',
                   margin: 0
                 }}>
-                  Promedio: {getAverage(progressData.fats)}g/día
+                  {progressData.fats.length > 0 ? `Promedio: ${getAverage(progressData.fats)}g/día` : 'Sin datos registrados'}
                 </p>
               </div>
             </div>
@@ -884,7 +978,7 @@ export default function Progress() {
                 color: '#16a34a',
                 margin: 0
               }}>
-                5
+                {calculateConsecutiveDays()}
               </p>
             </div>
 
@@ -921,7 +1015,7 @@ export default function Progress() {
                 color: '#3b82f6',
                 margin: 0
               }}>
-                12
+                {calculateMetasAlcanzadas()}
               </p>
             </div>
           </div>
