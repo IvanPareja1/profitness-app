@@ -125,8 +125,30 @@ const liquidDatabase = [
   { id: '10', name: 'Leche de almendras', calories: 17, protein: 0.6, carbs: 1.5, fats: 1.1, category: 'plant-milk' }
 ];
 
+// Define types for food and liquid items
+type FoodItem = {
+  id: string;
+  name: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+  fiber: number;
+  category: string;
+};
+
+type LiquidItem = {
+  id: string;
+  name: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+  category: string;
+};
+
 // Add utility functions
-const calculateNutrition = (food: any, quantity: number) => {
+const calculateNutrition = (food: FoodItem, quantity: number) => {
   const factor = quantity / 100;
   return {
     calories: Math.round(food.calories * factor),
@@ -137,7 +159,7 @@ const calculateNutrition = (food: any, quantity: number) => {
   };
 };
 
-const calculateLiquidNutrition = (liquid: any, quantity: number) => {
+const calculateLiquidNutrition = (liquid: LiquidItem, quantity: number) => {
   const factor = quantity / 100;
   return {
     calories: Math.round(liquid.calories * factor),
@@ -198,11 +220,11 @@ const autoFillMacronutrients = (foodName: string, quantity: number) => {
 const AddFoodPage = () => {
   const [currentTab, setCurrentTab] = useState('food');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedFood, setSelectedFood] = useState(null);
-  const [selectedLiquid, setSelectedLiquid] = useState(null);
+  const [selectedFood, setSelectedFood] = useState<FoodItem | null>(null);
+  const [selectedLiquid, setSelectedLiquid] = useState<LiquidItem | null>(null);
   const [quantity, setQuantity] = useState('100');
-  const [suggestions, setSuggestions] = useState([]);
-  const [liquidSuggestions, setLiquidSuggestions] = useState([]);
+  const [suggestions, setSuggestions] = useState<FoodItem[]>([]);
+  const [liquidSuggestions, setLiquidSuggestions] = useState<LiquidItem[]>([]);
   const [showCustomFood, setShowCustomFood] = useState(false);
   const [showCustomLiquid, setShowCustomLiquid] = useState(false);
   const [customFood, setCustomFood] = useState({
@@ -228,9 +250,9 @@ const AddFoodPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [scanMode, setScanMode] = useState('vision');
   const [isScanning, setIsScanning] = useState(false);
-  const [detectedProduct, setDetectedProduct] = useState(null);
+  const [detectedProduct, setDetectedProduct] = useState<any>(null);
   const [showProductModal, setShowProductModal] = useState(false);
-  const [barcodeScanner, setBarcodeScanner] = useState(null);
+  const [barcodeScanner, setBarcodeScanner] = useState<any>(null);
   const [autoFillIndicator, setAutoFillIndicator] = useState(false);
   const router = useRouter();
 
@@ -599,7 +621,7 @@ const AddFoodPage = () => {
     }
   };
 
-  const handleBarcodeDetection = async (result: any) => {
+  const handleBarcodeDetection = async (result: BarcodeResult) => {
     if (!isValidBarcode(result.code)) return;
 
     setIsLoading(true);
@@ -638,7 +660,7 @@ const AddFoodPage = () => {
   const addDetectedProduct = () => {
     if (!detectedProduct) return;
 
-    const newFood = {
+    const newFood: FoodItem = {
       id: Date.now().toString(),
       name: detectedProduct.product_name || detectedProduct.name,
       calories: detectedProduct.nutriments?.['energy-kcal_100g'] || detectedProduct.calories || 0,
