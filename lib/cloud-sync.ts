@@ -1,5 +1,14 @@
 
 // Sistema de sincronización en la nube para preservar datos del usuario
+
+// Declarar tipos globales
+declare global {
+  interface Window {
+    google: any;
+    gapi: any;
+  }
+}
+
 export interface UserData {
   userData: any;
   userProfile: any;
@@ -27,7 +36,7 @@ export class CloudSyncService {
   private readonly FOLDER_NAME = 'ProFitness_Backup';
   private readonly FILE_NAME = 'user_data_backup.json';
   private deviceId: string;
-  private appVersion: string = '1.0.2';
+  private appVersion: string = '1.0.3';
 
   constructor() {
     if (typeof window !== 'undefined') {
@@ -83,22 +92,15 @@ export class CloudSyncService {
   // Cargar Google API dinámicamente
   private async loadGoogleAPI(): Promise<void> {
     return new Promise((resolve, reject) => {
-      if (window.google) {
+      if (typeof window !== 'undefined' && window.google) {
         resolve();
         return;
       }
 
+      // Cargar el script de Google API
       const script = document.createElement('script');
-      script.src = 'https://apis.google.com/js/api.js';
-      script.onload = () => {
-        window.gapi.load('auth2', () => {
-          const authScript = document.createElement('script');
-          authScript.src = 'https://accounts.google.com/gsi/client';
-          authScript.onload = () => resolve();
-          authScript.onerror = reject;
-          document.head.appendChild(authScript);
-        });
-      };
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.onload = () => resolve();
       script.onerror = reject;
       document.head.appendChild(script);
     });
@@ -171,7 +173,7 @@ export class CloudSyncService {
       );
 
       const searchData = await searchResponse.json();
-      
+
       if (searchData.files && searchData.files.length > 0) {
         return searchData.files[0].id;
       }
@@ -207,7 +209,7 @@ export class CloudSyncService {
 
     try {
       const folderId = await this.findOrCreateBackupFolder();
-      
+
       // Buscar archivo existente
       const searchResponse = await fetch(
         `${this.GOOGLE_DRIVE_API}/files?q=name='${this.FILE_NAME}' and parents in '${folderId}'`,
@@ -236,8 +238,8 @@ export class CloudSyncService {
       };
 
       const boundary = '-------314159265358979323846';
-      const delimiter = "\r\n--" + boundary + "\r\n";
-      const close_delim = "\r\n--" + boundary + "--";
+      const delimiter = "\\r\\n--" + boundary + "\\r\\n";
+      const close_delim = "\\r\\n--" + boundary + "--";
 
       let metadata = {
         name: this.FILE_NAME,
@@ -246,15 +248,15 @@ export class CloudSyncService {
 
       const multipartRequestBody =
         delimiter +
-        'Content-Type: application/json\r\n\r\n' +
+        'Content-Type: application/json\\r\\n\\r\\n' +
         JSON.stringify(metadata) +
         delimiter +
-        'Content-Type: application/json\r\n\r\n' +
+        'Content-Type: application/json\\r\\n\\r\\n' +
         JSON.stringify(dataToUpload) +
         close_delim;
 
       const method = fileExists ? 'PATCH' : 'POST';
-      const url = fileExists 
+      const url = fileExists
         ? `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`
         : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
 
@@ -272,7 +274,7 @@ export class CloudSyncService {
       }
 
       const result = await response.json();
-      
+
       // Guardar información de la última sincronización
       localStorage.setItem('lastCloudSync', JSON.stringify({
         time: new Date().toISOString(),
@@ -306,7 +308,7 @@ export class CloudSyncService {
 
     try {
       const folderId = await this.findOrCreateBackupFolder();
-      
+
       // Buscar archivo de backup
       const searchResponse = await fetch(
         `${this.GOOGLE_DRIVE_API}/files?q=name='${this.FILE_NAME}' and parents in '${folderId}'`,
@@ -319,7 +321,7 @@ export class CloudSyncService {
       );
 
       const searchData = await searchResponse.json();
-      
+
       if (!searchData.files || searchData.files.length === 0) {
         return {
           success: false,
@@ -328,7 +330,7 @@ export class CloudSyncService {
       }
 
       const fileId = searchData.files[0].id;
-      
+
       // Descargar contenido del archivo
       const downloadResponse = await fetch(
         `${this.GOOGLE_DRIVE_API}/files/${fileId}?alt=media`,
@@ -344,7 +346,7 @@ export class CloudSyncService {
       }
 
       const cloudData = await downloadResponse.json();
-      
+
       return {
         success: true,
         data: cloudData,
@@ -383,54 +385,54 @@ export class CloudSyncService {
   // Restaurar datos desde la nube
   async restoreFromCloud(): Promise<CloudSyncResult> {
     const downloadResult = await this.downloadFromCloud();
-    
+
     if (!downloadResult.success || !downloadResult.data) {
       return downloadResult;
     }
 
     try {
       const cloudData = downloadResult.data;
-      
+
       // Restaurar datos del usuario
       if (cloudData.userData) {
         localStorage.setItem('userData', JSON.stringify(cloudData.userData));
       }
-      
+
       if (cloudData.userProfile) {
         localStorage.setItem('userProfile', JSON.stringify(cloudData.userProfile));
       }
-      
+
       if (cloudData.userProfilePhoto) {
         localStorage.setItem('userProfilePhoto', cloudData.userProfilePhoto);
       }
-      
+
       // Restaurar datos de nutrición
       if (cloudData.nutritionData) {
         Object.entries(cloudData.nutritionData).forEach(([key, value]) => {
           localStorage.setItem(key, value);
         });
       }
-      
+
       // Restaurar datos de fitness
       if (cloudData.fitnessData) {
         Object.entries(cloudData.fitnessData).forEach(([key, value]) => {
           localStorage.setItem(key, value);
         });
       }
-      
+
       // Restaurar configuraciones
       if (cloudData.restDaySettings) {
         localStorage.setItem('restDaySettings', cloudData.restDaySettings);
       }
-      
+
       if (cloudData.hydrationReminder) {
         localStorage.setItem('hydrationReminder', cloudData.hydrationReminder);
       }
-      
+
       if (cloudData.healthData) {
         localStorage.setItem('healthData', cloudData.healthData);
       }
-      
+
       // Marcar como restaurado
       localStorage.setItem('dataRestored', JSON.stringify({
         time: new Date().toISOString(),
@@ -461,7 +463,7 @@ export class CloudSyncService {
   // Obtener información de la última sincronización
   getLastSyncInfo(): any {
     if (typeof window === 'undefined') return null;
-    
+
     const lastSync = localStorage.getItem('lastCloudSync');
     return lastSync ? JSON.parse(lastSync) : null;
   }
