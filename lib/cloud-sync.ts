@@ -292,7 +292,7 @@ export class CloudSyncService {
       console.error('Error uploading to cloud:', error);
       return {
         success: false,
-        error: `Error al sincronizar con la nube: ${error.message}`
+        error: `Error al sincronizar con la nube: ${error instanceof Error ? error.message : 'Error desconocido'}`
       };
     }
   }
@@ -357,7 +357,7 @@ export class CloudSyncService {
       console.error('Error downloading from cloud:', error);
       return {
         success: false,
-        error: `Error al descargar desde la nube: ${error.message}`
+        error: `Error al descargar desde la nube: ${error instanceof Error ? error.message : 'Error desconocido'}`
       };
     }
   }
@@ -377,7 +377,7 @@ export class CloudSyncService {
     } catch (error) {
       return {
         success: false,
-        error: `Error en sincronización automática: ${error.message}`
+        error: `Error en sincronización automática: ${error instanceof Error ? error.message : 'Error desconocido'}`
       };
     }
   }
@@ -450,7 +450,7 @@ export class CloudSyncService {
     } catch (error) {
       return {
         success: false,
-        error: `Error al restaurar datos: ${error.message}`
+        error: `Error al restaurar datos: ${error instanceof Error ? error.message : 'Error desconocido'}`
       };
     }
   }
