@@ -21,6 +21,7 @@ export interface UserData {
   lastSync: string;
   deviceId: string;
   appVersion: string;
+  syncTime?: string; 
 }
 
 export interface CloudSyncResult {
@@ -193,6 +194,7 @@ export class CloudSyncService {
 
       const createData = await createResponse.json();
       return createData.id;
+
     } catch (error) {
       throw new Error('Error al crear carpeta de backup');
     }
@@ -444,7 +446,7 @@ export class CloudSyncService {
       return {
         success: true,
         data: cloudData,
-        syncTime: cloudData.syncTime
+        syncTime: cloudData.syncTime || cloudData.lastSync || new Date().toISOString()
       };
 
     } catch (error) {
