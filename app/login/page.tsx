@@ -26,46 +26,48 @@ export default function Login() {
       return;
     }
 
-    // Cargar el script de Google
+    // Cargar automáticamente Google Sign-In
+    loadGoogleSignIn();
+  }, [router]);
+
+  const loadGoogleSignIn = () => {
     const script = document.createElement('script');
     script.src = 'https://accounts.google.com/gsi/client';
     script.async = true;
     script.defer = true;
     script.onload = initializeGoogleSignIn;
     document.head.appendChild(script);
-
-    return () => {
-      if (document.head.contains(script)) {
-        document.head.removeChild(script);
-      }
-    };
-  }, [router]);
+  };
 
   const initializeGoogleSignIn = () => {
     if (window.google) {
-      // Tu Google Client ID real configurado
       const CLIENT_ID = "234981966694-v0qeb0nj89mrscnn5nef6o0eddj2fi15.apps.googleusercontent.com";
 
-      window.google.accounts.id.initialize({
-        client_id: CLIENT_ID,
-        callback: handleGoogleSignIn,
-        auto_select: false,
-        cancel_on_tap_outside: true,
-        ux_mode: 'popup',
-      });
+      try {
+        window.google.accounts.id.initialize({
+          client_id: CLIENT_ID,
+          callback: handleGoogleSignIn,
+          auto_select: false,
+          cancel_on_tap_outside: true,
+          ux_mode: 'popup',
+        });
 
-      window.google.accounts.id.renderButton(
-        document.getElementById('google-signin-button'),
-        {
-          theme: 'outline',
-          size: 'large',
-          width: '100%',
-          text: 'signin_with',
-          shape: 'rectangular',
-          logo_alignment: 'left',
-          locale: 'es'
-        }
-      );
+        window.google.accounts.id.renderButton(
+          document.getElementById('google-signin-button'),
+          {
+            theme: 'outline',
+            size: 'large',
+            width: '100%',
+            text: 'signin_with',
+            shape: 'rectangular',
+            logo_alignment: 'left',
+            locale: 'es'
+          }
+        );
+      } catch (error) {
+        console.error('Error initializing Google Sign-In:', error);
+        setError('Error al configurar Google Sign-In. Por favor, contacta al soporte.');
+      }
     }
   };
 
@@ -240,110 +242,6 @@ export default function Login() {
     }, 3000);
   };
 
-  const handleDemoLogin = () => {
-    setIsLoading(true);
-    setError('');
-
-    // Datos de demostración
-    const demoUserData = {
-      name: 'María González',
-      email: 'maria.gonzalez@demo.com',
-      picture: '',
-      sub: 'demo_user_' + Date.now(),
-      email_verified: true
-    };
-
-    localStorage.setItem('userData', JSON.stringify(demoUserData));
-    localStorage.setItem('isAuthenticated', 'true');
-
-    // Crear perfil de demostración
-    const demoProfile = {
-      name: demoUserData.name,
-      email: demoUserData.email,
-      age: '28',
-      weight: '65',
-      height: '165',
-      activityLevel: 'moderate',
-      workActivity: 'sedentary',
-      goal: 'maintain',
-      language: 'es',
-      targetCalories: 1800,
-      targetProtein: 110,
-      targetCarbs: 220,
-      targetFats: 60,
-      targetWater: 2500,
-      targetFiber: 25,
-      syncEnabled: false,
-      lastSyncTime: null,
-      avgDailySteps: 0,
-      avgActiveMinutes: 0,
-      avgCaloriesBurned: 0
-    };
-
-    localStorage.setItem('userProfile', JSON.stringify(demoProfile));
-
-    // Crear datos de demostración para nutrición
-    const today = new Date().toISOString().split('T')[0];
-    const demoNutritionData = {
-      calories: 1200,
-      protein: 75,
-      carbs: 150,
-      fats: 45,
-      fiber: 18,
-      water: 1800,
-      targetCalories: 1800,
-      targetProtein: 110,
-      targetCarbs: 220,
-      targetFats: 60,
-      targetWater: 2500,
-      targetFiber: 25,
-      meals: [
-        {
-          id: 'demo_1',
-          name: 'Avena con frutas',
-          mealType: 'desayuno',
-          quantity: '100',
-          calories: 350,
-          protein: 12,
-          carbs: 55,
-          fats: 8,
-          fiber: 6,
-          timestamp: new Date().toISOString()
-        },
-        {
-          id: 'demo_2',
-          name: 'Ensalada de pollo',
-          mealType: 'almuerzo',
-          quantity: '200',
-          calories: 480,
-          protein: 35,
-          carbs: 25,
-          fats: 28,
-          fiber: 8,
-          timestamp: new Date().toISOString()
-        },
-        {
-          id: 'demo_3',
-          name: 'Yogur griego',
-          mealType: 'snack',
-          quantity: '150',
-          calories: 120,
-          protein: 15,
-          carbs: 8,
-          fats: 4,
-          fiber: 2,
-          timestamp: new Date().toISOString()
-        }
-      ]
-    };
-
-    localStorage.setItem(`nutrition_${today}`, JSON.stringify(demoNutritionData));
-
-    setTimeout(() => {
-      router.push('/');
-    }, 1500);
-  };
-
   if (isLoading) {
     return (
       <div style={{
@@ -423,40 +321,6 @@ export default function Login() {
           </p>
         </div>
 
-        {/* Información de autenticación */}
-        <div style={{
-          background: '#f0f9ff',
-          borderRadius: '12px',
-          padding: '16px',
-          marginBottom: '24px',
-          border: '1px solid #e0e7ff'
-        }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            marginBottom: '8px'
-          }}>
-            <i className="ri-shield-check-line" style={{ color: '#3b82f6', fontSize: '20px' }}></i>
-            <h3 style={{
-              fontSize: '14px',
-              fontWeight: '600',
-              color: '#1f2937',
-              margin: 0
-            }}>
-              Autenticación Segura
-            </h3>
-          </div>
-          <p style={{
-            fontSize: '12px',
-            color: '#6b7280',
-            margin: 0,
-            lineHeight: '1.4'
-          }}>
-            Tus datos están protegidos con Google OAuth 2.0. No guardamos tu contraseña.
-          </p>
-        </div>
-
         {/* Botón de Google Sign-In */}
         <div style={{ marginBottom: '24px' }}>
           <div
@@ -468,60 +332,6 @@ export default function Login() {
             }}
           ></div>
         </div>
-
-        {/* Separador */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          marginBottom: '24px'
-        }}>
-          <div style={{
-            flex: 1,
-            height: '1px',
-            background: '#e5e7eb'
-          }}></div>
-          <span style={{
-            padding: '0 16px',
-            fontSize: '14px',
-            color: '#6b7280'
-          }}>
-            o
-          </span>
-          <div style={{
-            flex: 1,
-            height: '1px',
-            background: '#e5e7eb'
-          }}></div>
-        </div>
-
-        {/* Botón de demostración - Solo mostrar si DEMO_MODE está activado */}
-        {process.env.NODE_ENV === 'development' && (
-          <button
-            onClick={handleDemoLogin}
-            disabled={isLoading}
-            style={{
-              width: '100%',
-              background: isLoading ? '#e5e7eb' : 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
-              color: 'white',
-              padding: '16px',
-              borderRadius: '12px',
-              border: 'none',
-              fontSize: '16px',
-              fontWeight: 'bold',
-              cursor: isLoading ? 'not-allowed' : 'pointer',
-              transition: 'all 0.2s ease',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              marginBottom: '16px'
-            }}
-            className="!rounded-button"
-          >
-            <i className="ri-play-circle-line" style={{ fontSize: '20px' }}></i>
-            Continuar con Demo
-          </button>
-        )}
 
         {/* Mensaje de error */}
         {error && (
@@ -550,9 +360,9 @@ export default function Login() {
         <div style={{
           marginTop: '24px',
           padding: '16px',
-          background: '#f8fafc',
+          background: '#f0f9ff',
           borderRadius: '12px',
-          border: '1px solid #e2e8f0'
+          border: '1px solid #e0e7ff'
         }}>
           <h4 style={{
             fontSize: '14px',
@@ -603,7 +413,7 @@ export default function Login() {
             }}>
               <i className="ri-check-line" style={{ color: '#16a34a', fontSize: '14px' }}></i>
               <span style={{ fontSize: '12px', color: '#6b7280' }}>
-                Sincronización con dispositivos
+                Sincronización en la nube
               </span>
             </div>
           </div>
