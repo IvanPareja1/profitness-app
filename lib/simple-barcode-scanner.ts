@@ -1,4 +1,3 @@
-
 'use client';
 
 export interface BarcodeResult {
@@ -20,6 +19,8 @@ class SimpleBarcodeScanner {
   private animationId: number | null = null;
   private isScanning = false;
   private barcodeDetector: any = null;
+  private lastDetection = 0;
+  private detectionCooldown = 2000; // 2 segundos entre detecciones
 
   constructor(config: BarcodeConfig) {
     this.video = config.video;
@@ -34,9 +35,9 @@ class SimpleBarcodeScanner {
         this.barcodeDetector = new (window as any).BarcodeDetector({
           formats: ['code_128', 'code_39', 'ean_13', 'ean_8', 'upc_a', 'upc_e']
         });
+        console.log('BarcodeDetector inicializado correctamente');
       } else {
-        // Fallback: usar análisis manual de imagen
-        console.warn('BarcodeDetector no disponible, usando método alternativo');
+        console.log('BarcodeDetector no disponible, usando método alternativo');
       }
     } catch (error) {
       console.error('Error inicializando detector:', error);
@@ -50,6 +51,7 @@ class SimpleBarcodeScanner {
     if (this.isScanning) return;
 
     this.isScanning = true;
+    this.lastDetection = 0;
     this.scanLoop();
   }
 
@@ -65,16 +67,28 @@ class SimpleBarcodeScanner {
     if (!this.isScanning) return;
 
     this.scanFrame().then(() => {
-      this.animationId = requestAnimationFrame(() => this.scanLoop());
+      if (this.isScanning) {
+        this.animationId = requestAnimationFrame(() => this.scanLoop());
+      }
     }).catch(error => {
-      console.error('Error en escaneo:', error);
-      // Continuar escaneando incluso si hay errores
-      this.animationId = requestAnimationFrame(() => this.scanLoop());
+      // Solo mostrar errores importantes
+      if (error.message && !error.message.includes('not enough data')) {
+        console.warn('Error en escaneo:', error.message);
+      }
+      if (this.isScanning) {
+        this.animationId = requestAnimationFrame(() => this.scanLoop());
+      }
     });
   }
 
   private async scanFrame(): Promise<void> {
     if (!this.video || this.video.readyState !== this.video.HAVE_ENOUGH_DATA) {
+      return;
+    }
+
+    // Verificar cooldown
+    const now = Date.now();
+    if (now - this.lastDetection < this.detectionCooldown) {
       return;
     }
 
@@ -85,61 +99,38 @@ class SimpleBarcodeScanner {
 
         if (barcodes.length > 0) {
           const barcode = barcodes[0];
-          this.onDetected({
-            code: barcode.rawValue,
-            format: barcode.format
-          });
+          if (this.isValidBarcodeValue(barcode.rawValue)) {
+            this.lastDetection = now;
+            this.onDetected({
+              code: barcode.rawValue,
+              format: barcode.format
+            });
+          }
         }
-      } else {
-        // Método alternativo: capturar imagen y analizar
-        await this.analyzeImageForBarcode();
       }
+      // Remover el método alternativo que generaba códigos demo
     } catch (error) {
-      // Silenciar errores menores para evitar spam en consola
-      if (error instanceof Error && !error.message.includes('not supported')) {
-        console.warn('Error menor en escaneo:', error.message);
+      // Silenciar errores menores
+      if (error instanceof Error && error.message.includes('not supported')) {
+        // Ignorar errores de soporte
+        return;
       }
+      throw error;
     }
   }
 
-  private async analyzeImageForBarcode(): Promise<void> {
-    // Crear canvas para capturar frame
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-
-    if (!ctx) return;
-
-    canvas.width = this.video.videoWidth;
-    canvas.height = this.video.videoHeight;
-
-    ctx.drawImage(this.video, 0, 0);
-
-    // Obtener datos de imagen
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
-    // Análisis simple de patrones (muy básico)
-    const possibleCode = this.analyzeImageData(imageData);
-
-    if (possibleCode) {
-      this.onDetected({
-        code: possibleCode,
-        format: 'unknown'
-      });
+  private isValidBarcodeValue(code: string): boolean {
+    // Validar que el código tenga el formato correcto
+    if (!code || code.length < 8 || code.length > 14) {
+      return false;
     }
-  }
 
-  private analyzeImageData(imageData: ImageData): string | null {
-    // Análisis muy básico - en un escenario real sería más complejo
-    // Por ahora, generar código demo para testing
-    const now = Date.now();
-    if (now % 5000 < 100) { // Simular detección cada 5 segundos
-      return this.generateDemoBarcode();
+    // Verificar que solo contenga números
+    if (!/^\d+$/.test(code)) {
+      return false;
     }
-    return null;
-  }
 
-  private generateDemoBarcode(): string {
-    // Códigos de barras demo para testing
+    // Evitar códigos demo o de prueba
     const demoCodes = [
       '7501000123456',
       '7501001234567',
@@ -148,7 +139,7 @@ class SimpleBarcodeScanner {
       '7501004567890'
     ];
 
-    return demoCodes[Math.floor(Math.random() * demoCodes.length)];
+    return !demoCodes.includes(code);
   }
 }
 
@@ -178,11 +169,18 @@ export function stopBarcodeScanner(scanner?: SimpleBarcodeScanner): void {
 
 // Función para buscar producto por código de barras
 export async function getProductByBarcode(barcode: string): Promise<any> {
+  // Validar código antes de hacer la petición
+  if (!isValidBarcode(barcode)) {
+    throw new Error('Código de barras inválido');
+  }
+
   try {
+    console.log('Buscando producto con código:', barcode);
+    
     const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
 
     if (!response.ok) {
-      throw new Error('Producto no encontrado');
+      throw new Error(`Error HTTP: ${response.status}`);
     }
 
     const data = await response.json();
@@ -190,17 +188,24 @@ export async function getProductByBarcode(barcode: string): Promise<any> {
     if (data.status === 1 && data.product) {
       const product = data.product;
 
+      // Verificar que el producto tenga información nutricional
+      if (!product.nutriments) {
+        throw new Error('Producto encontrado pero sin información nutricional');
+      }
+
+      console.log('Producto encontrado:', product.product_name);
+
       return {
         product_name: product.product_name || 'Producto desconocido',
         brands: product.brands || '',
         quantity: product.quantity || '',
-        image_url: product.image_front_url || product.image_url || 'https://readdy.ai/api/search-image?query=food%20product%20package%20realistic&width=200&height=200&seq=barcode_product&orientation=squarish',
+        image_url: product.image_front_url || product.image_url || `https://readdy.ai/api/search-image?query=food%20product%20package%20realistic&width=200&height=200&seq=barcode_${barcode}&orientation=squarish`,
         nutriments: {
-          'energy-kcal_100g': Math.round(product.nutriments?.['energy-kcal_100g'] || 0),
-          'proteins_100g': Math.round((product.nutriments?.['proteins_100g'] || 0) * 10) / 10,
-          'carbohydrates_100g': Math.round((product.nutriments?.['carbohydrates_100g'] || 0) * 10) / 10,
-          'fat_100g': Math.round((product.nutriments?.['fat_100g'] || 0) * 10) / 10,
-          'fiber_100g': Math.round((product.nutriments?.['fiber_100g'] || 0) * 10) / 10
+          'energy-kcal_100g': Math.round(product.nutriments?.['energy-kcal_100g'] || product.nutriments?.['energy-kcal'] || 0),
+          'proteins_100g': Math.round((product.nutriments?.['proteins_100g'] || product.nutriments?.['proteins'] || 0) * 10) / 10,
+          'carbohydrates_100g': Math.round((product.nutriments?.['carbohydrates_100g'] || product.nutriments?.['carbohydrates'] || 0) * 10) / 10,
+          'fat_100g': Math.round((product.nutriments?.['fat_100g'] || product.nutriments?.['fat'] || 0) * 10) / 10,
+          'fiber_100g': Math.round((product.nutriments?.['fiber_100g'] || product.nutriments?.['fiber'] || 0) * 10) / 10
         },
         categories: product.categories || '',
         ingredients_text: product.ingredients_text || ''
@@ -210,9 +215,19 @@ export async function getProductByBarcode(barcode: string): Promise<any> {
     }
   } catch (error) {
     console.error('Error fetching product:', error);
-
-    // Re-lanzar el error para que el componente lo maneje
-    throw new Error(`No se pudo obtener información del producto: ${error.message}`);
+    
+    // Crear mensaje de error más específico
+    if (error instanceof Error) {
+      if (error.message.includes('fetch')) {
+        throw new Error('Error de conexión. Verifica tu conexión a internet.');
+      } else if (error.message.includes('HTTP')) {
+        throw new Error('Error del servidor. Intenta más tarde.');
+      } else {
+        throw new Error(error.message);
+      }
+    } else {
+      throw new Error('Error desconocido al buscar el producto');
+    }
   }
 }
 
@@ -222,11 +237,20 @@ export function isValidBarcode(code: string): boolean {
     return false;
   }
 
-  if (!(/^\\d+$/.test(code))) {
+  if (!/^\d+$/.test(code)) {
     return false;
   }
 
-  return true;
+  // Evitar códigos demo
+  const demoCodes = [
+    '7501000123456',
+    '7501001234567',
+    '7501002345678',
+    '7501003456789',
+    '7501004567890'
+  ];
+
+  return !demoCodes.includes(code);
 }
 
 // Función para obtener información de formato de código

@@ -239,16 +239,51 @@ const AddFoodPage = () => {
   const startCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' }
+        video: { 
+          facingMode: 'environment',
+          width: { ideal: 1280 }, 
+          height: { ideal: 720 }
+        }
       });
+
       setCameraStream(stream);
       setShowCamera(true);
 
-      // Asegurar que el video se configure correctamente
+      // Esperar a que el componente se monte y luego configurar el video
       setTimeout(() => {
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
-          videoRef.current.play();
+          videoRef.current.muted = true;
+          videoRef.current.playsInline = true;
+          videoRef.current.autoplay = true;
+
+          // Forzar reproducción cuando el video esté listo
+          videoRef.current.onloadedmetadata = () => {
+            if (videoRef.current) {
+              videoRef.current.play()
+                .then(() => {
+                  console.log('Video playing successfully');
+                })
+                .catch(error => {
+                  console.error('Error playing video:', error);
+                  // Intentar reproducir de nuevo después de un breve delay
+                  setTimeout(() => {
+                    if (videoRef.current) {
+                      videoRef.current.play().catch(e => console.error('Second play attempt failed:', e));
+                    }
+                  }, 500);
+                });
+            }
+          };
+
+          // También intentar reproducir inmediatamente
+          videoRef.current.play()
+            .then(() => {
+              console.log('Immediate play successful');
+            })
+            .catch(error => {
+              console.log('Immediate play failed, waiting for metadata:', error);
+            });
         }
       }, 100);
     } catch (error) {
@@ -1749,12 +1784,22 @@ const AddFoodPage = () => {
               style={{
                 width: '100%',
                 height: '100%',
-                objectFit: 'cover'
+                objectFit: 'cover',
+                backgroundColor: 'black'
               }}
-              onLoadedMetadata={() => {
-                if (videoRef.current && cameraStream) {
-                  videoRef.current.srcObject = cameraStream;
-                }
+              onLoadedMetadata={(e) => {
+                console.log('Video metadata loaded');
+                const video = e.target as HTMLVideoElement;
+                video.play().catch(error => {
+                  console.error('Error in onLoadedMetadata play:', error);
+                });
+              }}
+              onCanPlay={(e) => {
+                console.log('Video can play');
+                const video = e.target as HTMLVideoElement;
+                video.play().catch(error => {
+                  console.error('Error in onCanPlay play:', error);
+                });
               }}
             />
 
