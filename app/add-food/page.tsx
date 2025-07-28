@@ -222,8 +222,8 @@ const AddFoodPage = () => {
   });
   const [selectedMealType, setSelectedMealType] = useState('desayuno');
   const [showCamera, setShowCamera] = useState(false);
-  const [cameraStream, setCameraStream] = useState(null);
-  const videoRef = useRef(null);
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const [language, setLanguage] = useState('es');
   const [isLoading, setIsLoading] = useState(false);
   const [scanMode, setScanMode] = useState('vision');
