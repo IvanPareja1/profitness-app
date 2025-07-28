@@ -160,14 +160,14 @@ const safeNumber = (value: string | number) => {
 const autoFillMacronutrients = (foodName: string, quantity: number) => {
   // Simple auto-fill logic based on food name keywords
   const name = foodName.toLowerCase();
-  
+
   // Basic estimates for common foods
   let baseCalories = 0;
   let baseProtein = 0;
   let baseCarbs = 0;
   let baseFats = 0;
   let baseFiber = 0;
-  
+
   if (name.includes('pollo') || name.includes('chicken')) {
     baseCalories = 165; baseProtein = 31; baseCarbs = 0; baseFats = 3.6;
   } else if (name.includes('arroz') || name.includes('rice')) {
@@ -184,7 +184,7 @@ const autoFillMacronutrients = (foodName: string, quantity: number) => {
     // Default values for unknown foods
     baseCalories = 100; baseProtein = 5; baseCarbs = 15; baseFats = 2; baseFiber = 1;
   }
-  
+
   const factor = quantity / 100;
   return {
     calories: Math.round(baseCalories * factor).toString(),
@@ -292,7 +292,7 @@ const AddFoodPage = () => {
     }
   };
 
-  const handleCustomFoodNameChange = (value) => {
+  const handleCustomFoodNameChange = (value: string) => {
     setCustomFood({ ...customFood, name: value });
 
     // Auto-fill if name has 3+ characters
@@ -316,7 +316,7 @@ const AddFoodPage = () => {
     }
   };
 
-  const handleCustomLiquidNameChange = (value) => {
+  const handleCustomLiquidNameChange = (value: string) => {
     setCustomLiquid({ ...customLiquid, name: value });
 
     // Auto-fill if name has 3+ characters
@@ -339,7 +339,7 @@ const AddFoodPage = () => {
     }
   };
 
-  const handleQuantityChange = (newQuantity) => {
+  const handleQuantityChange = (newQuantity: string) => {
     setQuantity(newQuantity);
 
     // Re-calculate auto-fill values when quantity changes
@@ -373,7 +373,7 @@ const AddFoodPage = () => {
     }
   };
 
-  const searchFood = (query) => {
+  const searchFood = (query: string) => {
     if (!query.trim()) {
       setSuggestions([]);
       return;
@@ -385,7 +385,7 @@ const AddFoodPage = () => {
     setSuggestions(filtered);
   };
 
-  const searchLiquid = (query) => {
+  const searchLiquid = (query: string) => {
     if (!query.trim()) {
       setLiquidSuggestions([]);
       return;
@@ -599,7 +599,7 @@ const AddFoodPage = () => {
     }
   };
 
-  const handleBarcodeDetection = async (result) => {
+  const handleBarcodeDetection = async (result: any) => {
     if (!isValidBarcode(result.code)) return;
 
     setIsLoading(true);
