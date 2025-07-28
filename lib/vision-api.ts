@@ -3,7 +3,7 @@
 export const VISION_API_KEY = "AIzaSyBhYkIRJN8BX450AX8YZEg_drHlfWYf8No";
 
 // Verificar que la configuración esté presente
-if (!VISION_API_KEY || VISION_API_KEY === "TU_API_KEY_AQUI") {
+if (!VISION_API_KEY || VISION_API_KEY.includes("TU_API_KEY")) {
   console.warn('⚠️  Google Vision API Key no está configurado. Agrega tu API Key a las variables de entorno.');
 }
 
@@ -230,11 +230,11 @@ export async function detectFoodInImage(imageFile: File): Promise<any[]> {
         }
       ]
     };
-
+    
     // Realizar solicitud a Google Vision API con timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 segundos timeout
-
+    
     const response = await fetch(
       `https://vision.googleapis.com/v1/images:annotate?key=${VISION_API_KEY}`,
       {
@@ -246,13 +246,13 @@ export async function detectFoodInImage(imageFile: File): Promise<any[]> {
         signal: controller.signal
       }
     );
-
+    
     clearTimeout(timeoutId);
     
     if (!response.ok) {
       throw new Error(`API Error: ${response.status}`);
     }
-
+    
     const data = await response.json();
     
     if (data.responses && data.responses[0]) {
