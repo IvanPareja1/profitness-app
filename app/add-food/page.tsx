@@ -598,9 +598,15 @@ export default function AddFoodPage() {
 
   const startCameraWithMode = async (mode: 'vision' | 'barcode') => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'environment' } 
-      });
+      const constraints = {
+        video: {
+          facingMode: 'environment',
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      };
+
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
       setCameraStream(stream);
       setShowCamera(true);
       setScanMode(mode);
@@ -608,28 +614,47 @@ export default function AddFoodPage() {
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
 
+        videoRef.current.onloadedmetadata = () => {
+          videoRef.current!.play().catch(error => {
+            console.error('Error playing video:', error);
+          });
+        };
+
         if (mode === 'barcode') {
           videoRef.current.addEventListener('loadedmetadata', async () => {
             try {
-              const scanner = await initializeBarcodeScanner(
-                videoRef.current!,
-                handleBarcodeDetected,
-                (error) => {
-                  console.error('Error en escáner:', error);
-                  alert('Error al inicializar el escáner');
+              setTimeout(async () => {
+                try {
+                  const scanner = await initializeBarcodeScanner(
+                    videoRef.current!,
+                    handleBarcodeDetected,
+                    (error) => {
+                      console.error('Error en escáner:', error);
+                    }
+                  );
+                  setBarcodeScanner(scanner);
+                } catch (error) {
+                  console.error('Error initializing scanner:', error);
                 }
-              );
-              setBarcodeScanner(scanner);
+              }, 500);
             } catch (error) {
-              console.error('Error inicializando escáner:', error);
-              alert('Error al inicializar el escáner de códigos');
+              console.error('Error initializing scanner:', error);
             }
           });
         }
       }
     } catch (error) {
       console.error('Error accessing camera:', error);
-      alert('No se pudo acceder a la cámara');
+
+      if (error.name === 'NotAllowedError') {
+        alert('Permiso de cámara denegado. Por favor, permite el acceso a la cámara en la configuración de tu navegador.');
+      } else if (error.name === 'NotFoundError') {
+        alert('No se encontró ninguna cámara en tu dispositivo.');
+      } else if (error.name === 'NotSupportedError') {
+        alert('Tu navegador no soporta el acceso a la cámara.');
+      } else {
+        alert('Error al acceder a la cámara: ' + error.message);
+      }
     }
   };
 
@@ -806,12 +831,54 @@ export default function AddFoodPage() {
           ref={videoRef}
           autoPlay
           playsInline
+          muted
           style={{
             width: '100%',
             height: '100%',
             objectFit: 'cover'
           }}
+          onLoadedMetadata={() => {
+            if (videoRef.current) {
+              videoRef.current.play().catch(error => {
+                console.error('Error playing video:', error);
+              });
+            }
+          }}
         />
+
+        {!cameraStream && (
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.8)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'white',
+            fontSize: '16px',
+            fontWeight: '500'
+          }}>
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '16px'
+            }}>
+              <div style={{
+                width: '32px',
+                height: '32px',
+                border: '3px solid rgba(255,255,255,0.3)',
+                borderTop: '3px solid white',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite'
+              }}></div>
+              <div>Iniciando cámara...</div>
+            </div>
+          </div>
+        )}
 
         {scanMode === 'barcode' && (
           <div style={{
