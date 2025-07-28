@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -297,6 +296,33 @@ export default function Profile() {
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new Event('profileUpdated'));
     }
+
+    // Show success message
+    const successMessage = document.createElement('div');
+    successMessage.style.cssText = `
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #dcfce7;
+      border: 1px solid #bbf7d0;
+      color: #16a34a;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      z-index: 1000;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    `;
+    successMessage.textContent = 'Objetivos calculados y guardados exitosamente';
+
+    document.body.appendChild(successMessage);
+
+    setTimeout(() => {
+      if (document.body.contains(successMessage)) {
+        document.body.removeChild(successMessage);
+      }
+    }, 3000);
   };
 
   const handleRestDayConfig = () => {
@@ -547,8 +573,7 @@ export default function Profile() {
           borderTop: '3px solid #3b82f6',
           borderRadius: '50%',
           animation: 'spin 1s linear infinite'
-        }}>
-          <style jsx>{`
+        }}><style jsx>{`
             @keyframes spin {
               0% { transform: rotate(0deg); }
               100% { transform: rotate(360deg); }
@@ -1149,22 +1174,43 @@ export default function Profile() {
             }}>
               {t.goal}
             </h3>
-            <button
-              onClick={() => setShowEditModal(true)}
-              className="!rounded-button"
-              style={{
-                padding: '6px 12px',
-                background: '#f0f9ff',
-                border: '1px solid #e0e7ff',
-                borderRadius: '8px',
-                color: '#3b82f6',
-                fontSize: '12px',
-                fontWeight: '500',
-                cursor: 'pointer'
-              }}
-            >
-              {t.edit}
-            </button>
+            <div style={{
+              display: 'flex',
+              gap: '8px'
+            }}>
+              <button
+                onClick={() => setShowEditModal(true)}
+                className="!rounded-button"
+                style={{
+                  padding: '6px 12px',
+                  background: '#f0f9ff',
+                  border: '1px solid #e0e7ff',
+                  borderRadius: '8px',
+                  color: '#3b82f6',
+                  fontSize: '12px',
+                  fontWeight: '500',
+                  cursor: 'pointer'
+                }}
+              >
+                {t.edit}
+              </button>
+              <button
+                onClick={handleCalculateNutrition}
+                className="!rounded-button"
+                style={{
+                  padding: '6px 12px',
+                  background: '#f59e0b',
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: 'white',
+                  fontSize: '12px',
+                  fontWeight: '500',
+                  cursor: 'pointer'
+                }}
+              >
+                Calcular Objetivos
+              </button>
+            </div>
           </div>
 
           <div style={{
@@ -1995,7 +2041,15 @@ export default function Profile() {
                       gridTemplateColumns: 'repeat(2, 1fr)',
                       gap: '8px'
                     }}>
-                      {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(day => (
+                      {[
+                        ['monday', t.monday],
+                        ['tuesday', t.tuesday],
+                        ['wednesday', t.wednesday],
+                        ['thursday', t.thursday],
+                        ['friday', t.friday],
+                        ['saturday', t.saturday],
+                        ['sunday', t.sunday]
+                      ].map(([day, dayText]) => (
                         <button
                           key={day}
                           onClick={() => toggleRestDay(day)}
@@ -2010,7 +2064,7 @@ export default function Profile() {
                             fontSize: '12px'
                           }}
                         >
-                          {t[day as keyof typeof t]}
+                          {dayText}
                         </button>
                       ))}
                     </div>

@@ -5,7 +5,10 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import BottomNavigation from '../../components/BottomNavigation';
-import { detectFoodInImage, captureImageFromVideo } from '../../lib/vision-api';
+import { 
+  detectFoodInImage, 
+  captureImageFromVideo 
+} from '../../lib/vision-api';
 import { 
   initializeBarcodeScanner, 
   stopBarcodeScanner, 
@@ -14,226 +17,116 @@ import {
   BarcodeResult 
 } from '../../lib/simple-barcode-scanner';
 
-interface FoodItem {
-  id: string;
-  name: string;
-  calories: number;
-  protein: number;
-  carbs: number;
-  fats: number;
-  fiber: number;
-  category: string;
-}
-
-interface LiquidItem {
-  id: string;
-  name: string;
-  calories: number;
-  protein: number;
-  carbs: number;
-  fats: number;
-  category: string;
-}
-
-interface CustomFoodState {
-  name: string;
-  calories: string;
-  protein: string;
-  carbs: string;
-  fats: string;
-  fiber: string;
-}
-
-interface CustomLiquidState {
-  name: string;
-  calories: string;
-  protein: string;
-  carbs: string;
-  fats: string;
-}
-
-interface NutritionResult {
-  calories: number;
-  protein: number;
-  carbs: number;
-  fats: number;
-  fiber: number;
-}
-
-const commonFoodsDatabase: { [key: string]: { calories: number; protein: number; carbs: number; fats: number; fiber: number } } = {
-  // Carnes y Proteínas
-  'pollo': { calories: 165, protein: 31, carbs: 0, fats: 3.6, fiber: 0 },
-  'pechuga de pollo': { calories: 165, protein: 31, carbs: 0, fats: 3.6, fiber: 0 },
-  'pollo a la plancha': { calories: 165, protein: 31, carbs: 0, fats: 3.6, fiber: 0 },
-  'carne': { calories: 250, protein: 26, carbs: 0, fats: 15, fiber: 0 },
-  'carne de res': { calories: 250, protein: 26, carbs: 0, fats: 15, fiber: 0 },
-  'ternera': { calories: 231, protein: 30, carbs: 0, fats: 11, fiber: 0 },
-  'cerdo': { calories: 242, protein: 27, carbs: 0, fats: 14, fiber: 0 },
-  'pescado': { calories: 200, protein: 25, carbs: 0, fats: 10, fiber: 0 },
-  'salmón': { calories: 208, protein: 25, carbs: 0, fats: 12, fiber: 0 },
-  'atún': { calories: 144, protein: 30, carbs: 0, fats: 1, fiber: 0 },
-  'merluza': { calories: 90, protein: 20, carbs: 0, fats: 1.3, fiber: 0 },
-  'tilapia': { calories: 128, protein: 26, carbs: 0, fats: 2.7, fiber: 0 },
-  'huevo': { calories: 155, protein: 13, carbs: 1.1, fats: 11, fiber: 0 },
-  'clara de huevo': { calories: 52, protein: 11, carbs: 0.7, fats: 0.2, fiber: 0 },
-  'pavo': { calories: 135, protein: 30, carbs: 0, fats: 1, fiber: 0 },
-
-  // Carbohidratos
-  'arroz': { calories: 130, protein: 2.7, carbs: 28, fats: 0.3, fiber: 0.4 },
-  'arroz blanco': { calories: 130, protein: 2.7, carbs: 28, fats: 0.3, fiber: 0.4 },
-  'arroz integral': { calories: 111, protein: 2.6, carbs: 23, fats: 0.9, fiber: 1.8 },
-  'pasta': { calories: 131, protein: 5, carbs: 25, fats: 1.1, fiber: 1.8 },
-  'fideos': { calories: 131, protein: 5, carbs: 25, fats: 1.1, fiber: 1.8 },
-  'pan': { calories: 265, protein: 9, carbs: 49, fats: 3.2, fiber: 2.7 },
-  'pan integral': { calories: 247, protein: 13, carbs: 41, fats: 4.2, fiber: 7 },
-  'papa': { calories: 77, protein: 2, carbs: 17, fats: 0.1, fiber: 2.2 },
-  'batata': { calories: 86, protein: 1.6, carbs: 20, fats: 0.1, fiber: 3 },
-  'camote': { calories: 86, protein: 1.6, carbs: 20, fats: 0.1, fiber: 3 },
-  'quinoa': { calories: 120, protein: 4.4, carbs: 22, fats: 1.9, fiber: 2.8 },
-  'avena': { calories: 389, protein: 16.9, carbs: 66, fats: 6.9, fiber: 10.6 },
-  'trigo': { calories: 340, protein: 13, carbs: 71, fats: 2.5, fiber: 12.2 },
-
-  // Frutas
-  'manzana': { calories: 52, protein: 0.3, carbs: 14, fats: 0.2, fiber: 2.4 },
-  'banana': { calories: 89, protein: 1.1, carbs: 23, fats: 0.3, fiber: 2.6 },
-  'plátano': { calories: 89, protein: 1.1, carbs: 23, fats: 0.3, fiber: 2.6 },
-  'naranja': { calories: 47, protein: 0.9, carbs: 12, fats: 0.1, fiber: 2.4 },
-  'fresa': { calories: 32, protein: 0.7, carbs: 8, fats: 0.3, fiber: 2 },
-  'frutilla': { calories: 32, protein: 0.7, carbs: 8, fats: 0.3, fiber: 2 },
-  'pera': { calories: 57, protein: 0.4, carbs: 15, fats: 0.1, fiber: 3.1 },
-  'durazno': { calories: 39, protein: 0.9, carbs: 10, fats: 0.3, fiber: 1.5 },
-  'uva': { calories: 62, protein: 0.6, carbs: 16, fats: 0.2, fiber: 0.9 },
-  'sandía': { calories: 30, protein: 0.6, carbs: 8, fats: 0.2, fiber: 0.4 },
-  'melón': { calories: 34, protein: 0.8, carbs: 8, fats: 0.2, fiber: 0.9 },
-  'kiwi': { calories: 61, protein: 1.1, carbs: 15, fats: 0.5, fiber: 3 },
-  'piña': { calories: 50, protein: 0.5, carbs: 13, fats: 0.1, fiber: 1.4 },
-
-  // Verduras
-  'brócoli': { calories: 34, protein: 2.8, carbs: 7, fats: 0.4, fiber: 2.6 },
-  'espinaca': { calories: 23, protein: 2.9, carbs: 3.6, fats: 0.4, fiber: 2.2 },
-  'lechuga': { calories: 15, protein: 1.4, carbs: 2.9, fats: 0.1, fiber: 1.3 },
-  'tomate': { calories: 18, protein: 0.9, carbs: 3.9, fats: 0.2, fiber: 1.2 },
-  'zanahoria': { calories: 41, protein: 0.9, carbs: 10, fats: 0.2, fiber: 2.8 },
-  'cebolla': { calories: 40, protein: 1.1, carbs: 9, fats: 0.1, fiber: 1.7 },
-  'pimiento': { calories: 31, protein: 1, carbs: 7, fats: 0.3, fiber: 2.5 },
-  'apio': { calories: 16, protein: 0.7, carbs: 3, fats: 0.2, fiber: 1.6 },
-  'pepino': { calories: 16, protein: 0.7, carbs: 4, fats: 0.1, fiber: 0.5 },
-  'calabaza': { calories: 26, protein: 1, carbs: 7, fats: 0.1, fiber: 0.5 },
-  'coliflor': { calories: 25, protein: 1.9, carbs: 5, fats: 0.3, fiber: 2 },
-  'berenjena': { calories: 25, protein: 1, carbs: 6, fats: 0.2, fiber: 3 },
-
-  // Lácteos
-  'leche': { calories: 61, protein: 3.2, carbs: 4.8, fats: 3.3, fiber: 0 },
-  'leche descremada': { calories: 34, protein: 3.4, carbs: 5, fats: 0.1, fiber: 0 },
-  'yogur': { calories: 59, protein: 10, carbs: 3.6, fats: 0.4, fiber: 0 },
-  'yogur griego': { calories: 59, protein: 10, carbs: 3.6, fats: 0.4, fiber: 0 },
-  'queso': { calories: 113, protein: 25, carbs: 4.1, fats: 0.2, fiber: 0 },
-  'queso fresco': { calories: 98, protein: 11, carbs: 4, fats: 4.3, fiber: 0 },
-  'ricota': { calories: 174, protein: 11, carbs: 3, fats: 13, fiber: 0 },
-  'mantequilla': { calories: 717, protein: 0.9, carbs: 0.1, fats: 81, fiber: 0 },
-
-  // Frutos secos y semillas
-  'almendras': { calories: 579, protein: 21, carbs: 22, fats: 50, fiber: 12 },
-  'nueces': { calories: 654, protein: 15, carbs: 14, fats: 65, fiber: 7 },
-  'maní': { calories: 567, protein: 26, carbs: 16, fats: 49, fiber: 8 },
-  'cacahuate': { calories: 567, protein: 26, carbs: 16, fats: 49, fiber: 8 },
-  'pistachos': { calories: 560, protein: 20, carbs: 28, fats: 45, fiber: 10 },
-  'avellanas': { calories: 628, protein: 15, carbs: 17, fats: 61, fiber: 10 },
-  'semillas de chía': { calories: 486, protein: 17, carbs: 42, fats: 31, fiber: 34 },
-  'semillas de girasol': { calories: 584, protein: 21, carbs: 20, fats: 51, fiber: 9 },
-
-  // Legumbres
-  'lentejas': { calories: 116, protein: 9, carbs: 20, fats: 0.4, fiber: 8 },
-  'frijoles': { calories: 127, protein: 9, carbs: 23, fats: 0.5, fiber: 9 },
-  'garbanzos': { calories: 164, protein: 8, carbs: 27, fats: 2.6, fiber: 8 },
-  'arvejas': { calories: 81, protein: 5, carbs: 14, fats: 0.4, fiber: 5 },
-  'soja': { calories: 446, protein: 36, carbs: 30, fats: 20, fiber: 9 },
-
-  // Aceites y grasas
-  'aceite de oliva': { calories: 884, protein: 0, carbs: 0, fats: 100, fiber: 0 },
-  'aceite': { calories: 884, protein: 0, carbs: 0, fats: 100, fiber: 0 },
-  'aguacate': { calories: 160, protein: 2, carbs: 9, fats: 15, fiber: 7 },
-  'palta': { calories: 160, protein: 2, carbs: 9, fats: 15, fiber: 7 },
-
-  // Otros
-  'chocolate': { calories: 546, protein: 5, carbs: 61, fats: 31, fiber: 7 },
-  'miel': { calories: 304, protein: 0.3, carbs: 82, fats: 0, fiber: 0.2 },
-  'azúcar': { calories: 387, protein: 0, carbs: 100, fats: 0, fiber: 0 }
+// Add translations object
+const translations = {
+  es: {
+    addFood: 'Agregar Comida',
+    food: 'Comida',
+    liquid: 'Líquido',
+    searchFood: 'Buscar comida...',
+    searchLiquid: 'Buscar líquido...',
+    addCustomFood: 'Agregar comida personalizada',
+    addCustomLiquid: 'Agregar líquido personalizado',
+    customFood: 'Comida Personalizada',
+    customLiquid: 'Líquido Personalizado',
+    name: 'Nombre',
+    calories: 'Calorías',
+    protein: 'Proteínas',
+    carbs: 'Carbohidratos',
+    fats: 'Grasas',
+    fiber: 'Fibra',
+    quantity: 'Cantidad',
+    grams: 'gramos',
+    ml: 'ml',
+    mealType: 'Tipo de comida',
+    breakfast: 'Desayuno',
+    lunch: 'Almuerzo',
+    dinner: 'Cena',
+    snack: 'Snack',
+    nutritionInfo: 'Información Nutricional',
+    addToLog: 'Agregar al Registro',
+    cancel: 'Cancelar',
+    enterName: 'Ingresa el nombre',
+    enterCalories: 'Ingresa las calorías',
+    enterProtein: 'Ingresa las proteínas',
+    enterCarbs: 'Ingresa los carbohidratos',
+    enterFats: 'Ingresa las grasas',
+    enterFiber: 'Ingresa la fibra',
+    enterQuantity: 'Ingresa la cantidad',
+    selectFood: 'Selecciona una comida',
+    selectLiquid: 'Selecciona un líquido',
+    addedSuccessfully: 'Agregado exitosamente'
+  },
+  en: {
+    addFood: 'Add Food',
+    food: 'Food',
+    liquid: 'Liquid',
+    searchFood: 'Search food...',
+    searchLiquid: 'Search liquid...',
+    addCustomFood: 'Add custom food',
+    addCustomLiquid: 'Add custom liquid',
+    customFood: 'Custom Food',
+    customLiquid: 'Custom Liquid',
+    name: 'Name',
+    calories: 'Calories',
+    protein: 'Protein',
+    carbs: 'Carbs',
+    fats: 'Fats',
+    fiber: 'Fiber',
+    quantity: 'Quantity',
+    grams: 'grams',
+    ml: 'ml',
+    mealType: 'Meal Type',
+    breakfast: 'Breakfast',
+    lunch: 'Lunch',
+    dinner: 'Dinner',
+    snack: 'Snack',
+    nutritionInfo: 'Nutrition Info',
+    addToLog: 'Add to Log',
+    cancel: 'Cancel',
+    enterName: 'Enter name',
+    enterCalories: 'Enter calories',
+    enterProtein: 'Enter protein',
+    enterCarbs: 'Enter carbs',
+    enterFats: 'Enter fats',
+    enterFiber: 'Enter fiber',
+    enterQuantity: 'Enter quantity',
+    selectFood: 'Select a food',
+    selectLiquid: 'Select a liquid',
+    addedSuccessfully: 'Added successfully'
+  }
 };
 
-const findFoodInDatabase = (foodName: string): { calories: number; protein: number; carbs: number; fats: number; fiber: number } | null => {
-  const normalizedInput = foodName.toLowerCase().trim();
-
-  // Buscar coincidencia exacta
-  if (commonFoodsDatabase[normalizedInput]) {
-    return commonFoodsDatabase[normalizedInput];
-  }
-
-  // Buscar coincidencia parcial
-  const partialMatch = Object.keys(commonFoodsDatabase).find(key => 
-    key.includes(normalizedInput) || normalizedInput.includes(key)
-  );
-
-  if (partialMatch) {
-    return commonFoodsDatabase[partialMatch];
-  }
-
-  return null;
-};
-
-const autoFillMacronutrients = (foodName: string, quantity: number = 100) => {
-  const foodData = findFoodInDatabase(foodName);
-
-  if (foodData) {
-    const factor = quantity / 100;
-    return {
-      calories: Math.round(foodData.calories * factor).toString(),
-      protein: (foodData.protein * factor).toFixed(1),
-      carbs: (foodData.carbs * factor).toFixed(1),
-      fats: (foodData.fats * factor).toFixed(1),
-      fiber: (foodData.fiber * factor).toFixed(1)
-    };
-  }
-
-  return null;
-};
-
-const foodDatabase: FoodItem[] = [
+// Add food database
+const foodDatabase = [
   { id: '1', name: 'Pollo a la plancha', calories: 165, protein: 31, carbs: 0, fats: 3.6, fiber: 0, category: 'protein' },
   { id: '2', name: 'Arroz blanco', calories: 130, protein: 2.7, carbs: 28, fats: 0.3, fiber: 0.4, category: 'carbs' },
   { id: '3', name: 'Brócoli', calories: 34, protein: 2.8, carbs: 7, fats: 0.4, fiber: 2.6, category: 'vegetables' },
-  { id: '4', name: 'Huevo', calories: 155, protein: 13, carbs: 1.1, fats: 11, fiber: 0, category: 'protein' },
-  { id: '5', name: 'Avena', calories: 389, protein: 16.9, carbs: 66, fats: 6.9, fiber: 10.6, category: 'carbs' },
-  { id: '6', name: 'Salmón', calories: 208, protein: 22, carbs: 0, fats: 12, fiber: 0, category: 'protein' },
-  { id: '7', name: 'Espinaca', calories: 23, protein: 2.9, carbs: 3.6, fats: 0.4, fiber: 2.2, category: 'vegetables' },
-  { id: '8', name: 'Plátano', calories: 89, protein: 1.1, carbs: 23, fats: 0.3, fiber: 2.6, category: 'fruits' },
-  { id: '9', name: 'Almendras', calories: 579, protein: 21, carbs: 22, fats: 50, fiber: 12, category: 'nuts' },
-  { id: '10', name: 'Yogur griego', calories: 59, protein: 10, carbs: 3.6, fats: 0.4, fiber: 0, category: 'dairy' }
+  { id: '4', name: 'Plátano', calories: 89, protein: 1.1, carbs: 23, fats: 0.3, fiber: 2.6, category: 'fruits' },
+  { id: '5', name: 'Huevos', calories: 155, protein: 13, carbs: 1.1, fats: 11, fiber: 0, category: 'protein' },
+  { id: '6', name: 'Avena', calories: 389, protein: 16.9, carbs: 66, fats: 6.9, fiber: 10.6, category: 'carbs' },
+  { id: '7', name: 'Salmón', calories: 208, protein: 22, carbs: 0, fats: 13, fiber: 0, category: 'protein' },
+  { id: '8', name: 'Quinoa', calories: 368, protein: 14.1, carbs: 64, fats: 6.1, fiber: 7, category: 'carbs' },
+  { id: '9', name: 'Espinacas', calories: 23, protein: 2.9, carbs: 3.6, fats: 0.4, fiber: 2.2, category: 'vegetables' },
+  { id: '10', name: 'Almendras', calories: 579, protein: 21, carbs: 22, fats: 50, fiber: 12, category: 'nuts' }
 ];
 
-const liquidDatabase: LiquidItem[] = [
+// Add liquid database
+const liquidDatabase = [
   { id: '1', name: 'Agua', calories: 0, protein: 0, carbs: 0, fats: 0, category: 'water' },
   { id: '2', name: 'Leche entera', calories: 61, protein: 3.2, carbs: 4.8, fats: 3.3, category: 'dairy' },
   { id: '3', name: 'Jugo de naranja', calories: 45, protein: 0.7, carbs: 10.4, fats: 0.2, category: 'juice' },
   { id: '4', name: 'Café negro', calories: 2, protein: 0.3, carbs: 0.5, fats: 0, category: 'coffee' },
-  { id: '5', name: 'Té verde', calories: 1, protein: 0.2, carbs: 0.2, fats: 0, category: 'tea' },
+  { id: '5', name: 'Té verde', calories: 2, protein: 0.2, carbs: 0.5, fats: 0, category: 'tea' },
   { id: '6', name: 'Coca Cola', calories: 42, protein: 0, carbs: 10.6, fats: 0, category: 'soda' },
   { id: '7', name: 'Cerveza', calories: 43, protein: 0.5, carbs: 3.6, fats: 0, category: 'alcohol' },
   { id: '8', name: 'Vino tinto', calories: 85, protein: 0.1, carbs: 2.6, fats: 0, category: 'alcohol' },
-  { id: '9', name: 'Protein Shake', calories: 103, protein: 20, carbs: 3, fats: 1.5, category: 'supplement' },
-  { id: '10', name: 'Leche de almendras', calories: 17, protein: 0.6, carbs: 1.5, fats: 1.4, category: 'plant-milk' }
+  { id: '9', name: 'Batido de proteína', calories: 120, protein: 25, carbs: 3, fats: 1.5, category: 'supplement' },
+  { id: '10', name: 'Leche de almendras', calories: 17, protein: 0.6, carbs: 1.5, fats: 1.1, category: 'plant-milk' }
 ];
 
-const safeNumber = (value: string | number, defaultValue: number = 0): number => {
-  const num = typeof value === 'string' ? parseFloat(value) : value;
-  return isNaN(num) ? defaultValue : num;
-};
-
-const formatNumber = (value: number): string => {
-  return isNaN(value) ? '0' : value.toFixed(1);
-};
-
-const calculateNutrition = (food: FoodItem, quantity: number): NutritionResult => {
+// Add utility functions
+const calculateNutrition = (food: any, quantity: number) => {
   const factor = quantity / 100;
   return {
     calories: Math.round(food.calories * factor),
@@ -244,7 +137,7 @@ const calculateNutrition = (food: FoodItem, quantity: number): NutritionResult =
   };
 };
 
-const calculateLiquidNutrition = (liquid: LiquidItem, quantity: number): NutritionResult => {
+const calculateLiquidNutrition = (liquid: any, quantity: number) => {
   const factor = quantity / 100;
   return {
     calories: Math.round(liquid.calories * factor),
@@ -255,106 +148,64 @@ const calculateLiquidNutrition = (liquid: LiquidItem, quantity: number): Nutriti
   };
 };
 
-const translations = {
-  es: {
-    addFood: 'Agregar Comida',
-    food: 'Comida',
-    liquid: 'Líquido',
-    searchFood: 'Buscar alimento...',
-    searchLiquid: 'Buscar líquido...',
-    quantity: 'Cantidad',
-    grams: 'gramos',
-    ml: 'ml',
-    mealType: 'Tipo de comida',
-    breakfast: 'Desayuno',
-    lunch: 'Almuerzo',
-    dinner: 'Cena',
-    snack: 'Snack',
-    nutritionInfo: 'Información Nutricional',
-    calories: 'Calorías',
-    protein: 'Proteínas',
-    carbs: 'Carbohidratos',
-    fats: 'Grasas',
-    fiber: 'Fibra',
-    addToLog: 'Agregar al Registro',
-    scanBarcode: 'Escanear Código',
-    addCustomFood: 'Agregar Comida Personalizada',
-    addCustomLiquid: 'Agregar Líquido Personalizado',
-    customFood: 'Comida Personalizada',
-    customLiquid: 'Líquido Personalizado',
-    name: 'Nombre',
-    save: 'Guardar',
-    cancel: 'Cancelar',
-    nutritionPer100g: 'Nutrición por 100g',
-    nutritionPer100ml: 'Nutrición por 100ml',
-    selectFood: 'Selecciona un alimento',
-    selectLiquid: 'Selecciona un líquido',
-    enterQuantity: 'Ingresa la cantidad',
-    enterName: 'Ingresa el nombre',
-    enterCalories: 'Ingresa las calorías',
-    enterProtein: 'Ingresa las proteínas',
-    enterCarbs: 'Ingresa los carbohidratos',
-    enterFats: 'Ingresa las grasas',
-    enterFiber: 'Ingresa la fibra',
-    addedSuccessfully: 'Agregado exitosamente',
-    errorAdding: 'Error al agregar'
-  },
-  en: {
-    addFood: 'Add Food',
-    food: 'Food',
-    liquid: 'Liquid',
-    searchFood: 'Search food...',
-    searchLiquid: 'Search liquid...',
-    quantity: 'Quantity',
-    grams: 'grams',
-    ml: 'ml',
-    mealType: 'Meal Type',
-    breakfast: 'Breakfast',
-    lunch: 'Lunch',
-    dinner: 'Dinner',
-    snack: 'Snack',
-    nutritionInfo: 'Nutrition Information',
-    calories: 'Calories',
-    protein: 'Protein',
-    carbs: 'Carbs',
-    fats: 'Fats',
-    fiber: 'Fiber',
-    addToLog: 'Add to Log',
-    scanBarcode: 'Scan Barcode',
-    addCustomFood: 'Add Custom Food',
-    addCustomLiquid: 'Add Custom Liquid',
-    customFood: 'Custom Food',
-    customLiquid: 'Custom Liquid',
-    name: 'Name',
-    save: 'Save',
-    cancel: 'Cancel',
-    nutritionPer100g: 'Nutrition per 100g',
-    nutritionPer100ml: 'Nutrition per 100ml',
-    selectFood: 'Select a food',
-    selectLiquid: 'Select a liquid',
-    enterQuantity: 'Enter quantity',
-    enterName: 'Enter name',
-    enterCalories: 'Enter calories',
-    enterProtein: 'Enter protein',
-    enterCarbs: 'Enter carbs',
-    enterFats: 'Enter fats',
-    enterFiber: 'Enter fiber',
-    addedSuccessfully: 'Added successfully',
-    errorAdding: 'Error adding'
-  }
+const formatNumber = (num: number) => {
+  return Math.round(num * 10) / 10;
 };
 
-export default function AddFoodPage() {
+const safeNumber = (value: string | number) => {
+  const num = typeof value === 'string' ? parseFloat(value) : value;
+  return isNaN(num) ? 0 : num;
+};
+
+const autoFillMacronutrients = (foodName: string, quantity: number) => {
+  // Simple auto-fill logic based on food name keywords
+  const name = foodName.toLowerCase();
+  
+  // Basic estimates for common foods
+  let baseCalories = 0;
+  let baseProtein = 0;
+  let baseCarbs = 0;
+  let baseFats = 0;
+  let baseFiber = 0;
+  
+  if (name.includes('pollo') || name.includes('chicken')) {
+    baseCalories = 165; baseProtein = 31; baseCarbs = 0; baseFats = 3.6;
+  } else if (name.includes('arroz') || name.includes('rice')) {
+    baseCalories = 130; baseProtein = 2.7; baseCarbs = 28; baseFats = 0.3; baseFiber = 0.4;
+  } else if (name.includes('huevo') || name.includes('egg')) {
+    baseCalories = 155; baseProtein = 13; baseCarbs = 1.1; baseFats = 11;
+  } else if (name.includes('plátano') || name.includes('banana')) {
+    baseCalories = 89; baseProtein = 1.1; baseCarbs = 23; baseFats = 0.3; baseFiber = 2.6;
+  } else if (name.includes('pan') || name.includes('bread')) {
+    baseCalories = 265; baseProtein = 9; baseCarbs = 49; baseFats = 3.2; baseFiber = 2.7;
+  } else if (name.includes('leche') || name.includes('milk')) {
+    baseCalories = 61; baseProtein = 3.2; baseCarbs = 4.8; baseFats = 3.3;
+  } else {
+    // Default values for unknown foods
+    baseCalories = 100; baseProtein = 5; baseCarbs = 15; baseFats = 2; baseFiber = 1;
+  }
+  
+  const factor = quantity / 100;
+  return {
+    calories: Math.round(baseCalories * factor).toString(),
+    protein: (Math.round(baseProtein * factor * 10) / 10).toString(),
+    carbs: (Math.round(baseCarbs * factor * 10) / 10).toString(),
+    fats: (Math.round(baseFats * factor * 10) / 10).toString(),
+    fiber: (Math.round(baseFiber * factor * 10) / 10).toString()
+  };
+};
+
+const AddFoodPage = () => {
   const [currentTab, setCurrentTab] = useState('food');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedFood, setSelectedFood] = useState<FoodItem | null>(null);
-  const [selectedLiquid, setSelectedLiquid] = useState<LiquidItem | null>(null);
+  const [selectedFood, setSelectedFood] = useState(null);
+  const [selectedLiquid, setSelectedLiquid] = useState(null);
   const [quantity, setQuantity] = useState('100');
-  const [suggestions, setSuggestions] = useState<FoodItem[]>([]);
-  const [liquidSuggestions, setLiquidSuggestions] = useState<LiquidItem[]>([]);
+  const [suggestions, setSuggestions] = useState([]);
+  const [liquidSuggestions, setLiquidSuggestions] = useState([]);
   const [showCustomFood, setShowCustomFood] = useState(false);
   const [showCustomLiquid, setShowCustomLiquid] = useState(false);
-  const [customFood, setCustomFood] = useState<CustomFoodState>({
+  const [customFood, setCustomFood] = useState({
     name: '',
     calories: '',
     protein: '',
@@ -362,7 +213,7 @@ export default function AddFoodPage() {
     fats: '',
     fiber: ''
   });
-  const [customLiquid, setCustomLiquid] = useState<CustomLiquidState>({
+  const [customLiquid, setCustomLiquid] = useState({
     name: '',
     calories: '',
     protein: '',
@@ -371,40 +222,49 @@ export default function AddFoodPage() {
   });
   const [selectedMealType, setSelectedMealType] = useState('desayuno');
   const [showCamera, setShowCamera] = useState(false);
-  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const [cameraStream, setCameraStream] = useState(null);
+  const videoRef = useRef(null);
   const [language, setLanguage] = useState('es');
   const [isLoading, setIsLoading] = useState(false);
-  const [scanMode, setScanMode] = useState<'vision' | 'barcode'>('vision');
+  const [scanMode, setScanMode] = useState('vision');
   const [isScanning, setIsScanning] = useState(false);
-  const [detectedProduct, setDetectedProduct] = useState<any>(null);
+  const [detectedProduct, setDetectedProduct] = useState(null);
   const [showProductModal, setShowProductModal] = useState(false);
-  const [barcodeScanner, setBarcodeScanner] = useState<any>(null);
+  const [barcodeScanner, setBarcodeScanner] = useState(null);
   const [autoFillIndicator, setAutoFillIndicator] = useState(false);
   const router = useRouter();
 
   const t = translations[language as keyof typeof translations] || translations.es;
 
-  useEffect(() => {
-    const userProfile = localStorage.getItem('userProfile');
-    if (userProfile) {
-      try {
-        const profile = JSON.parse(userProfile);
-        setLanguage(profile.language || 'es');
-      } catch (error) {
-        console.error('Error parsing user profile:', error);
-      }
-    }
-  }, []);
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' }
+      });
+      setCameraStream(stream);
+      setShowCamera(true);
 
-  const handleCustomFoodNameChange = (value: string) => {
+      // Asegurar que el video se configure correctamente
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play();
+        }
+      }, 100);
+    } catch (error) {
+      console.error('Error accessing camera:', error);
+      alert('No se pudo acceder a la cámara');
+    }
+  };
+
+  const handleCustomFoodNameChange = (value) => {
     setCustomFood({ ...customFood, name: value });
-    
+
     // Auto-fill if name has 3+ characters
     if (value.length >= 3) {
       const currentQuantity = parseFloat(quantity) || 100;
       const autoFilled = autoFillMacronutrients(value, currentQuantity);
-      
+
       if (autoFilled) {
         setCustomFood(prev => ({
           ...prev,
@@ -421,14 +281,14 @@ export default function AddFoodPage() {
     }
   };
 
-  const handleCustomLiquidNameChange = (value: string) => {
+  const handleCustomLiquidNameChange = (value) => {
     setCustomLiquid({ ...customLiquid, name: value });
-    
+
     // Auto-fill if name has 3+ characters
     if (value.length >= 3) {
       const currentQuantity = parseFloat(quantity) || 100;
       const autoFilled = autoFillMacronutrients(value, currentQuantity);
-      
+
       if (autoFilled) {
         setCustomLiquid(prev => ({
           ...prev,
@@ -444,12 +304,12 @@ export default function AddFoodPage() {
     }
   };
 
-  const handleQuantityChange = (newQuantity: string) => {
+  const handleQuantityChange = (newQuantity) => {
     setQuantity(newQuantity);
-    
+
     // Re-calculate auto-fill values when quantity changes
     const quantityNum = parseFloat(newQuantity) || 100;
-    
+
     if (showCustomFood && customFood.name.length >= 3) {
       const autoFilled = autoFillMacronutrients(customFood.name, quantityNum);
       if (autoFilled) {
@@ -463,7 +323,7 @@ export default function AddFoodPage() {
         }));
       }
     }
-    
+
     if (showCustomLiquid && customLiquid.name.length >= 3) {
       const autoFilled = autoFillMacronutrients(customLiquid.name, quantityNum);
       if (autoFilled) {
@@ -478,33 +338,33 @@ export default function AddFoodPage() {
     }
   };
 
-  const searchFood = (query: string) => {
+  const searchFood = (query) => {
     if (!query.trim()) {
       setSuggestions([]);
       return;
     }
-    
+
     const filtered = foodDatabase.filter(food =>
       food.name.toLowerCase().includes(query.toLowerCase())
     );
     setSuggestions(filtered);
   };
 
-  const searchLiquid = (query: string) => {
+  const searchLiquid = (query) => {
     if (!query.trim()) {
       setLiquidSuggestions([]);
       return;
     }
-    
+
     const filtered = liquidDatabase.filter(liquid =>
       liquid.name.toLowerCase().includes(query.toLowerCase())
     );
     setLiquidSuggestions(filtered);
   };
 
-  const getCurrentNutrition = (): NutritionResult => {
+  const getCurrentNutrition = () => {
     const quantityNum = parseFloat(quantity) || 100;
-    
+
     if (currentTab === 'food') {
       if (showCustomFood) {
         return {
@@ -530,7 +390,7 @@ export default function AddFoodPage() {
         return calculateLiquidNutrition(selectedLiquid, quantityNum);
       }
     }
-    
+
     return {
       calories: 0,
       protein: 0,
@@ -543,7 +403,7 @@ export default function AddFoodPage() {
   const handleAddFood = () => {
     const quantityNum = parseFloat(quantity) || 100;
     let foodName = '';
-    
+
     if (currentTab === 'food') {
       if (showCustomFood) {
         if (!customFood.name.trim()) {
@@ -571,10 +431,10 @@ export default function AddFoodPage() {
         return;
       }
     }
-    
+
     const nutrition = getCurrentNutrition();
     const today = new Date().toISOString().split('T')[0];
-    
+
     const newMeal = {
       id: Date.now().toString(),
       name: foodName,
@@ -587,7 +447,7 @@ export default function AddFoodPage() {
       fiber: nutrition.fiber,
       timestamp: new Date().toISOString()
     };
-    
+
     // Save to nutrition data
     const existingData = localStorage.getItem(`nutrition_${today}`);
     let nutritionData = existingData ? JSON.parse(existingData) : {
@@ -599,21 +459,21 @@ export default function AddFoodPage() {
       water: 0,
       meals: []
     };
-    
+
     nutritionData.meals.push(newMeal);
     nutritionData.calories += nutrition.calories;
     nutritionData.protein += nutrition.protein;
     nutritionData.carbs += nutrition.carbs;
     nutritionData.fats += nutrition.fats;
     nutritionData.fiber += nutrition.fiber;
-    
+
     localStorage.setItem(`nutrition_${today}`, JSON.stringify(nutritionData));
-    
+
     // Dispatch custom event
     window.dispatchEvent(new CustomEvent('nutritionDataUpdated', {
       detail: { date: today, data: nutritionData }
     }));
-    
+
     // Reset form
     setSelectedFood(null);
     setSelectedLiquid(null);
@@ -638,7 +498,7 @@ export default function AddFoodPage() {
     setShowCustomLiquid(false);
     setSuggestions([]);
     setLiquidSuggestions([]);
-    
+
     // Success message
     const successMessage = document.createElement('div');
     successMessage.style.cssText = `
@@ -658,29 +518,12 @@ export default function AddFoodPage() {
     `;
     successMessage.textContent = t.addedSuccessfully;
     document.body.appendChild(successMessage);
-    
+
     setTimeout(() => {
       if (document.body.contains(successMessage)) {
         document.body.removeChild(successMessage);
       }
     }, 3000);
-  };
-
-  const startCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' }
-      });
-      setCameraStream(stream);
-      setShowCamera(true);
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
-    } catch (error) {
-      console.error('Error accessing camera:', error);
-      alert('No se pudo acceder a la cámara');
-    }
   };
 
   const stopCamera = () => {
@@ -690,7 +533,7 @@ export default function AddFoodPage() {
     }
     setShowCamera(false);
     setIsScanning(false);
-    
+
     if (barcodeScanner) {
       stopBarcodeScanner(barcodeScanner);
       setBarcodeScanner(null);
@@ -699,13 +542,13 @@ export default function AddFoodPage() {
 
   const captureImage = async () => {
     if (!videoRef.current) return;
-    
+
     setIsLoading(true);
-    
+
     try {
       const imageFile = await captureImageFromVideo(videoRef.current);
       const detectedFoods = await detectFoodInImage(imageFile);
-      
+
       if (detectedFoods.length > 0) {
         const detectedFood = detectedFoods[0];
         setDetectedProduct(detectedFood);
@@ -721,11 +564,11 @@ export default function AddFoodPage() {
     }
   };
 
-  const handleBarcodeDetection = async (result: BarcodeResult) => {
+  const handleBarcodeDetection = async (result) => {
     if (!isValidBarcode(result.code)) return;
-    
+
     setIsLoading(true);
-    
+
     try {
       const product = await getProductByBarcode(result.code);
       setDetectedProduct(product);
@@ -741,9 +584,9 @@ export default function AddFoodPage() {
 
   const startBarcodeScanning = async () => {
     if (!videoRef.current) return;
-    
+
     setIsScanning(true);
-    
+
     try {
       const scanner = await initializeBarcodeScanner(
         videoRef.current,
@@ -759,8 +602,8 @@ export default function AddFoodPage() {
 
   const addDetectedProduct = () => {
     if (!detectedProduct) return;
-    
-    const newFood: FoodItem = {
+
+    const newFood = {
       id: Date.now().toString(),
       name: detectedProduct.product_name || detectedProduct.name,
       calories: detectedProduct.nutriments?.['energy-kcal_100g'] || detectedProduct.calories || 0,
@@ -770,7 +613,7 @@ export default function AddFoodPage() {
       fiber: detectedProduct.nutriments?.['fiber_100g'] || detectedProduct.fiber || 0,
       category: 'detected'
     };
-    
+
     setSelectedFood(newFood);
     setCurrentTab('food');
     setShowProductModal(false);
@@ -1902,10 +1745,16 @@ export default function AddFoodPage() {
               ref={videoRef}
               autoPlay
               playsInline
+              muted
               style={{
                 width: '100%',
                 height: '100%',
                 objectFit: 'cover'
+              }}
+              onLoadedMetadata={() => {
+                if (videoRef.current && cameraStream) {
+                  videoRef.current.srcObject = cameraStream;
+                }
               }}
             />
 
@@ -1962,10 +1811,7 @@ export default function AddFoodPage() {
                     animation: 'spin 1s linear infinite'
                   }}></div>
                 ) : (
-                  <i className={`ri-${scanMode === 'vision' ? 'camera' : 'scan'}-line`} style={{ 
-                    fontSize: '24px', 
-                    color: '#374151' 
-                  }}></i>
+                  <i className={`ri-${scanMode === 'vision' ? 'camera' : 'scan'}-line`} style={{ fontSize: '24px', color: '#374151' }}></i>
                 )}
               </button>
 
@@ -2255,4 +2101,6 @@ export default function AddFoodPage() {
       `}</style>
     </div>
   );
-}
+};
+
+export default AddFoodPage;

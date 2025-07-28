@@ -1,3 +1,4 @@
+
 'use client';
 
 export interface BarcodeResult {
@@ -47,7 +48,7 @@ class SimpleBarcodeScanner {
 
   start(): void {
     if (this.isScanning) return;
-    
+
     this.isScanning = true;
     this.scanLoop();
   }
@@ -81,7 +82,7 @@ class SimpleBarcodeScanner {
       if (this.barcodeDetector) {
         // Usar BarcodeDetector API si está disponible
         const barcodes = await this.barcodeDetector.detect(this.video);
-        
+
         if (barcodes.length > 0) {
           const barcode = barcodes[0];
           this.onDetected({
@@ -105,20 +106,20 @@ class SimpleBarcodeScanner {
     // Crear canvas para capturar frame
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
-    
+
     if (!ctx) return;
 
     canvas.width = this.video.videoWidth;
     canvas.height = this.video.videoHeight;
-    
+
     ctx.drawImage(this.video, 0, 0);
-    
+
     // Obtener datos de imagen
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    
+
     // Análisis simple de patrones (muy básico)
     const possibleCode = this.analyzeImageData(imageData);
-    
+
     if (possibleCode) {
       this.onDetected({
         code: possibleCode,
@@ -146,7 +147,7 @@ class SimpleBarcodeScanner {
       '7501003456789',
       '7501004567890'
     ];
-    
+
     return demoCodes[Math.floor(Math.random() * demoCodes.length)];
   }
 }
@@ -165,7 +166,7 @@ export async function initializeBarcodeScanner(
 
   await scanner.init();
   scanner.start();
-  
+
   return scanner;
 }
 
@@ -209,23 +210,9 @@ export async function getProductByBarcode(barcode: string): Promise<any> {
     }
   } catch (error) {
     console.error('Error fetching product:', error);
-    
-    // Producto demo para testing
-    return {
-      product_name: 'Producto Demo',
-      brands: 'Marca Demo',
-      quantity: '500g',
-      image_url: 'https://readdy.ai/api/search-image?query=food%20product%20package%20realistic%20healthy%20nutrition&width=200&height=200&seq=demo_product&orientation=squarish',
-      nutriments: {
-        'energy-kcal_100g': 250,
-        'proteins_100g': 8.0,
-        'carbohydrates_100g': 45.0,
-        'fat_100g': 5.0,
-        'fiber_100g': 3.0
-      },
-      categories: 'Alimento procesado',
-      ingredients_text: 'Ingredientes demo'
-    };
+
+    // Re-lanzar el error para que el componente lo maneje
+    throw new Error(`No se pudo obtener información del producto: ${error.message}`);
   }
 }
 
@@ -235,7 +222,7 @@ export function isValidBarcode(code: string): boolean {
     return false;
   }
 
-  if (!(/^\d+$/.test(code))) {
+  if (!(/^\\d+$/.test(code))) {
     return false;
   }
 
@@ -245,7 +232,7 @@ export function isValidBarcode(code: string): boolean {
 // Función para obtener información de formato de código
 export function getBarcodeFormat(code: string): string {
   const length = code.length;
-  
+
   switch (length) {
     case 8:
       return 'EAN-8';

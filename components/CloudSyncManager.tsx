@@ -38,7 +38,7 @@ export default function CloudSyncManager({ onSyncComplete, onDataRestored }: Clo
     if (cloudSync.hasPermissions()) {
       const hasBackup = await cloudSync.hasCloudBackup();
       setCloudBackupAvailable(hasBackup);
-      
+
       if (hasBackup) {
         const comparison = await cloudSync.compareWithCloud();
         setCompareResult(comparison);
@@ -49,10 +49,10 @@ export default function CloudSyncManager({ onSyncComplete, onDataRestored }: Clo
   const handleRequestPermissions = async () => {
     setSyncStatus('syncing');
     setSyncMessage('Solicitando permisos...');
-    
+
     try {
       const permissionGranted = await cloudSync.requestCloudPermissions();
-      
+
       if (permissionGranted) {
         setHasPermissions(true);
         setSyncStatus('success');
@@ -78,10 +78,10 @@ export default function CloudSyncManager({ onSyncComplete, onDataRestored }: Clo
   const handleSync = async () => {
     setSyncStatus('syncing');
     setSyncMessage('Sincronizando datos...');
-    
+
     try {
       const result = await cloudSync.autoSync();
-      
+
       if (result.success) {
         setSyncStatus('success');
         setSyncMessage('Datos sincronizados correctamente');
@@ -89,7 +89,7 @@ export default function CloudSyncManager({ onSyncComplete, onDataRestored }: Clo
           time: result.syncTime,
           success: true
         });
-        
+
         if (onSyncComplete) {
           onSyncComplete(result);
         }
@@ -111,19 +111,19 @@ export default function CloudSyncManager({ onSyncComplete, onDataRestored }: Clo
   const handleRestore = async () => {
     setSyncStatus('syncing');
     setSyncMessage('Restaurando datos...');
-    
+
     try {
       const result = await cloudSync.restoreFromCloud();
-      
+
       if (result.success) {
         setSyncStatus('success');
         setSyncMessage('Datos restaurados correctamente');
         setShowRestoreDialog(false);
-        
+
         if (onDataRestored) {
           onDataRestored();
         }
-        
+
         // Recargar la página para mostrar los datos restaurados
         setTimeout(() => {
           window.location.reload();
@@ -169,7 +169,7 @@ export default function CloudSyncManager({ onSyncComplete, onDataRestored }: Clo
         style={{
           position: 'fixed',
           top: '20px',
-          right: '20px',
+          left: '20px',
           width: '48px',
           height: '48px',
           background: hasPermissions ? 'linear-gradient(135deg, #10b981 0%, #16a34a 100%)' : 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',

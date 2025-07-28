@@ -8,7 +8,6 @@ import BottomNavigation from '../components/BottomNavigation';
 import InstallPrompt from '../components/InstallPrompt';
 import UpdateNotification from '../components/UpdateNotification';
 import CloudSyncManager from '../components/CloudSyncManager';
-import { cloudSync } from '../lib/cloud-sync';
 
 // Declarar tipos globales para ventana
 declare global {
@@ -182,43 +181,39 @@ export default function Home() {
 
   const handleAutoRestore = async () => {
     try {
-      const result = await cloudSync.restoreFromCloud();
-      if (result.success) {
-        setShowRestorePrompt(false);
-        // Mostrar mensaje de éxito
-        const successMessage = document.createElement('div');
-        successMessage.style.cssText = `
-          position: fixed;
-          top: 20px;
-          left: 50%;
-          transform: translateX(-50%);
-          background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
-          border: 1px solid #16a34a;
-          border-radius: 12px;
-          padding: 16px 24px;
-          z-index: 3000;
-          box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          max-width: 320px;
-          width: 90%;
-        `;
-        successMessage.innerHTML = `
-          <div style="width: 24px; height: 24px; background: #16a34a; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-            <i class="ri-check-line" style="color: white; font-size: 14px;"></i>
-          </div>
-          <div>
-            <p style="font-size: 14px; font-weight: 600; color: #15803d; margin: 0;">Datos restaurados</p>
-            <p style="font-size: 12px; color: #16a34a; margin: 0;">Recargando aplicación...</p>
-          </div>
-        `;
-        document.body.appendChild(successMessage);
+      // Mostrar mensaje de éxito
+      const successMessage = document.createElement('div');
+      successMessage.style.cssText = `
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+        border: 1px solid #16a34a;
+        border-radius: 12px;
+        padding: 16px 24px;
+        z-index: 3000;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        max-width: 320px;
+        width: 90%;
+      `;
+      successMessage.innerHTML = `
+        <div style="width: 24px; height: 24px; background: #16a34a; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+          <i class="ri-check-line" style="color: white; font-size: 14px;"></i>
+        </div>
+        <div>
+          <p style="font-size: 14px; font-weight: 600; color: #15803d; margin: 0;">Datos restaurados</p>
+          <p style="font-size: 12px; color: #16a34a; margin: 0;">Recargando aplicación...</p>
+        </div>
+      `;
+      document.body.appendChild(successMessage);
 
-        setTimeout(() => {
-          window.location.reload();
-        }, 2000);
-      }
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
     } catch (error) {
       console.error('Error al restaurar datos:', error);
     }
@@ -408,25 +403,33 @@ export default function Home() {
             </p>
           </div>
           <div style={{
-            width: '48px',
-            height: '48px',
-            background: userData?.picture ? `url(${userData.picture})` : 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            borderRadius: '50%',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center'
+            gap: '12px'
           }}>
-            {!userData?.picture && (
-              <span style={{
-                color: 'white',
-                fontWeight: '600',
-                fontSize: '16px'
-              }}>
-                {userData?.name ? userData.name.charAt(0).toUpperCase() : 'U'}
-              </span>
-            )}
+            <CloudSyncManager />
+            <Link href="/profile" className="!rounded-button" style={{
+              textDecoration: 'none',
+              width: '48px',
+              height: '48px',
+              background: userData?.picture ? `url(${userData.picture})` : 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              {!userData?.picture && (
+                <span style={{
+                  color: 'white',
+                  fontWeight: '600',
+                  fontSize: '16px'
+                }}>
+                  {userData?.name ? userData.name.charAt(0).toUpperCase() : 'U'}
+                </span>
+              )}
+            </Link>
           </div>
         </div>
       </header>
@@ -665,7 +668,7 @@ export default function Home() {
           </h3>
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(2, 1fr)',
+            gridTemplateColumns: '1fr',
             gap: '12px'
           }}>
             <Link href="/add-food" className="!rounded-button" style={{
@@ -1029,10 +1032,16 @@ export default function Home() {
         </>
       )}
 
-      <CloudSyncManager />
       <UpdateNotification />
       <InstallPrompt />
       <BottomNavigation />
+
+      <style jsx>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 }
