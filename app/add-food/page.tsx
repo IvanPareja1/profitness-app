@@ -599,6 +599,7 @@ export default function AddFoodPage() {
   const startCameraWithMode = async (mode: 'vision' | 'barcode') => {
     try {
       setIsLoading(true);
+      setScanMode(mode);
 
       const constraints = {
         video: {
@@ -610,7 +611,6 @@ export default function AddFoodPage() {
 
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       setCameraStream(stream);
-      setScanMode(mode);
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -618,44 +618,44 @@ export default function AddFoodPage() {
         videoRef.current.playsInline = true;
         videoRef.current.autoplay = true;
 
-        videoRef.current.onloadedmetadata = () => {
+        // Esperar a que el metadata se cargue
+        await new Promise<void>((resolve) => {
           if (videoRef.current) {
-            videoRef.current.play().then(() => {
-              setShowCamera(true);
-              setIsLoading(false);
-            }).catch(error => {
-              console.error('Error playing video:', error);
-              setIsLoading(false);
-            });
+            videoRef.current.onloadedmetadata = () => {
+              resolve();
+            };
           }
-        };
+        });
 
+        // Reproducir el video
+        await videoRef.current.play();
+
+        // Mostrar la cámara después de que todo esté listo
+        setShowCamera(true);
+        setIsLoading(false);
+
+        // Configurar el escáner de códigos de barras si es necesario
         if (mode === 'barcode') {
-          videoRef.current.addEventListener('loadedmetadata', async () => {
+          setTimeout(async () => {
             try {
-              setTimeout(async () => {
-                try {
-                  const scanner = await initializeBarcodeScanner(
-                    videoRef.current!,
-                    handleBarcodeDetected,
-                    (error) => {
-                      console.error('Error en escáner:', error);
-                    }
-                  );
-                  setBarcodeScanner(scanner);
-                } catch (error) {
-                  console.error('Error initializing scanner:', error);
+              const scanner = await initializeBarcodeScanner(
+                videoRef.current!,
+                handleBarcodeDetected,
+                (error) => {
+                  console.error('Error en escáner:', error);
                 }
-              }, 500);
+              );
+              setBarcodeScanner(scanner);
             } catch (error) {
               console.error('Error initializing scanner:', error);
             }
-          });
+          }, 1000);
         }
       }
     } catch (error) {
       console.error('Error accessing camera:', error);
       setIsLoading(false);
+      setShowCamera(false);
 
       if (error instanceof Error) {
         if (error.name === 'NotAllowedError') {
@@ -826,7 +826,7 @@ export default function AddFoodPage() {
         return calculateLiquidNutrition(selectedLiquid, parseFloat(quantity) || 100);
       }
     }
-    return { calories: 0, protein: 0, carbs: 0, fats: 0, fiber: 0 };
+    return { calories: 0, protein: 0, carbs: 0, fats: 0, fiber: 0 }
   };
 
   const nutrition = getCurrentNutrition();

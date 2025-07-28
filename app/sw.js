@@ -1,4 +1,5 @@
-const CACHE_NAME = 'profitness-v1.0.2';
+
+const CACHE_NAME = 'profitness-v1.0.3';
 const urlsToCache = [
   '/',
   '/login',
@@ -37,6 +38,16 @@ self.addEventListener('activate', event => {
     })
   );
   self.clients.claim();
+  
+  // Notificar a los clientes que hay una nueva versión
+  self.clients.matchAll().then(clients => {
+    clients.forEach(client => {
+      client.postMessage({
+        type: 'SW_UPDATED',
+        message: 'Service Worker actualizado'
+      });
+    });
+  });
 });
 
 // Interceptar peticiones
@@ -82,6 +93,43 @@ self.addEventListener('message', event => {
   }
 });
 
+// Manejar actualizaciones de datos después de actualización
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'CHECK_DATA_INTEGRITY') {
+    // Verificar integridad de datos después de actualización
+    self.clients.matchAll().then(clients => {
+      clients.forEach(client => {
+        client.postMessage({
+          type: 'DATA_INTEGRITY_CHECK',
+          message: 'Verificando integridad de datos'
+        });
+      });
+    });
+  }
+});
+
+// Sincronización en background
+self.addEventListener('sync', event => {
+  if (event.tag === 'background-sync') {
+    event.waitUntil(doBackgroundSync());
+  }
+});
+
+async function doBackgroundSync() {
+  try {
+    // Intentar sincronizar datos pendientes
+    const clients = await self.clients.matchAll();
+    clients.forEach(client => {
+      client.postMessage({
+        type: 'BACKGROUND_SYNC',
+        message: 'Sincronizando datos en background'
+      });
+    });
+  } catch (error) {
+    console.error('Error en sincronización background:', error);
+  }
+}
+
 // Mostrar notificación de actualización
 self.addEventListener('updatefound', () => {
   const newWorker = registration.installing;
@@ -94,7 +142,7 @@ self.addEventListener('updatefound', () => {
           clients.forEach(client => {
             client.postMessage({
               type: 'UPDATE_AVAILABLE',
-              message: 'Nueva versión disponible'
+              message: 'Nueva versión disponible - Tus datos están protegidos'
             });
           });
         });

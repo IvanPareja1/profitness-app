@@ -7,6 +7,8 @@ import { useRouter } from 'next/navigation';
 import BottomNavigation from '../components/BottomNavigation';
 import InstallPrompt from '../components/InstallPrompt';
 import UpdateNotification from '../components/UpdateNotification';
+import CloudSyncManager from '../components/CloudSyncManager';
+import { cloudSync } from '../lib/cloud-sync';
 
 interface Meal {
   id: string;
@@ -39,6 +41,7 @@ export default function Home() {
   const [currentDate, setCurrentDate] = useState('');
   const [language, setLanguage] = useState('es');
   const [userData, setUserData] = useState<any>(null);
+  const [showRestorePrompt, setShowRestorePrompt] = useState(false);
   const [nutritionData, setNutritionData] = useState<NutritionData>({
     calories: 0,
     protein: 0,
@@ -64,6 +67,11 @@ export default function Home() {
       router.push('/login');
       return;
     }
+
+    // Configurar función global para mostrar prompt de restauración
+    window.showDataRestorePrompt = () => {
+      setShowRestorePrompt(true);
+    };
 
     try {
       const userDataStored = localStorage.getItem('userData');
@@ -165,6 +173,50 @@ export default function Home() {
     };
   }, [router]);
 
+  const handleAutoRestore = async () => {
+    try {
+      const result = await cloudSync.restoreFromCloud();
+      if (result.success) {
+        setShowRestorePrompt(false);
+        // Mostrar mensaje de éxito
+        const successMessage = document.createElement('div');
+        successMessage.style.cssText = `
+          position: fixed;
+          top: 20px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+          border: 1px solid #16a34a;
+          border-radius: 12px;
+          padding: 16px 24px;
+          z-index: 3000;
+          box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          max-width: 320px;
+          width: 90%;
+        `;
+        successMessage.innerHTML = `
+          <div style="width: 24px; height: 24px; background: #16a34a; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+            <i class="ri-check-line" style="color: white; font-size: 14px;"></i>
+          </div>
+          <div>
+            <p style="font-size: 14px; font-weight: 600; color: #15803d; margin: 0;">Datos restaurados</p>
+            <p style="font-size: 12px; color: #16a34a; margin: 0;">Recargando aplicación...</p>
+          </div>
+        `;
+        document.body.appendChild(successMessage);
+
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('Error al restaurar datos:', error);
+    }
+  };
+
   const translations = {
     es: {
       dailyProgress: 'Progreso del Día',
@@ -187,7 +239,11 @@ export default function Home() {
       breakfast: 'Desayuno',
       lunch: 'Almuerzo',
       dinner: 'Cena',
-      snack: 'Snack'
+      snack: 'Snack',
+      dataRestoreTitle: 'Datos Disponibles en la Nube',
+      dataRestoreMessage: 'Hemos detectado que tienes datos guardados en la nube. ¿Quieres restaurarlos?',
+      restore: 'Restaurar',
+      continueWithoutRestore: 'Continuar sin restaurar'
     },
     en: {
       dailyProgress: 'Daily Progress',
@@ -210,7 +266,11 @@ export default function Home() {
       breakfast: 'Breakfast',
       lunch: 'Lunch',
       dinner: 'Dinner',
-      snack: 'Snack'
+      snack: 'Snack',
+      dataRestoreTitle: 'Cloud Data Available',
+      dataRestoreMessage: 'We detected that you have data saved in the cloud. Do you want to restore it?',
+      restore: 'Restore',
+      continueWithoutRestore: 'Continue without restoring'
     }
   };
 
@@ -350,7 +410,7 @@ export default function Home() {
             alignItems: 'center',
             justifyContent: 'center'
           }}>
-            {! userData?.picture && (
+            {!userData?.picture && (
               <span style={{
                 color: 'white',
                 fontWeight: '600',
@@ -855,6 +915,113 @@ export default function Home() {
         </div>
       </main>
 
+      {/* Prompt de Restauración de Datos */}
+      {showRestorePrompt && (
+        <>
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.6)',
+            zIndex: 2000
+          }} />
+          <div style={{
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            background: 'white',
+            borderRadius: '20px',
+            padding: '24px',
+            width: '90%',
+            maxWidth: '340px',
+            zIndex: 2001,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.2)'
+          }}>
+            <div style={{
+              textAlign: 'center',
+              marginBottom: '20px'
+            }}>
+              <div style={{
+                width: '64px',
+                height: '64px',
+                background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 16px auto'
+              }}>
+                <i className="ri-cloud-line" style={{ color: 'white', fontSize: '28px' }}></i>
+              </div>
+              <h3 style={{
+                fontSize: '18px',
+                fontWeight: '600',
+                color: '#1f2937',
+                margin: '0 0 8px 0'
+              }}>
+                {t.dataRestoreTitle}
+              </h3>
+              <p style={{
+                fontSize: '14px',
+                color: '#6b7280',
+                margin: 0
+              }}>
+                {t.dataRestoreMessage}
+              </p>
+            </div>
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px'
+            }}>
+              <button
+                onClick={handleAutoRestore}
+                className="!rounded-button"
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  background: 'linear-gradient(135deg, #16a34a 0%, #10b981 100%)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '12px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
+                }}
+              >
+                <i className="ri-download-cloud-line"></i>
+                {t.restore}
+              </button>
+              <button
+                onClick={() => setShowRestorePrompt(false)}
+                className="!rounded-button"
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  background: '#f8fafc',
+                  color: '#6b7280',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '12px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer'
+                }}
+              >
+                {t.continueWithoutRestore}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      <CloudSyncManager />
       <UpdateNotification />
       <InstallPrompt />
       <BottomNavigation />
