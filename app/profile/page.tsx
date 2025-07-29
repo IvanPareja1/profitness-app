@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -17,7 +18,7 @@ export default function Profile() {
   const [showCalculatorModal, setShowCalculatorModal] = useState(false);
   const [showRestDayModal, setShowRestDayModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [editProfile, setEditProfile] = useState<any>({});
+  const [editProfile, setEditProfile] = useState<any>();
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
   const [syncMessage, setSyncMessage] = useState('');
   const [fitnessData, setFitnessData] = useState<FitnessData | null>(null);
@@ -28,6 +29,10 @@ export default function Profile() {
     reducedCalories: false,
     calorieReduction: 200
   });
+  const [showDonateModal, setShowDonateModal] = useState(false);
+  const [donateAmount, setDonateAmount] = useState(5);
+  const [donateMessage, setDonateMessage] = useState('');
+  const [donateStatus, setDonateStatus] = useState<'idle' | 'processing' | 'success' | 'error'>('idle');
   const router = useRouter();
 
   useEffect(() => {
@@ -140,7 +145,21 @@ export default function Profile() {
       calorieReduction: 'Reducción de calorías',
       applied: 'Aplicado',
       syncWithDevice: 'Sincronizar con dispositivo',
-      permissionsNeeded: 'Se requieren permisos para sincronizar'
+      permissionsNeeded: 'Se requieren permisos para sincronizar',
+      donate: 'Donar',
+      supportApp: 'Apoyar la aplicación',
+      donateTitle: 'Apoya ProFitness',
+      donateDescription: 'Tu apoyo nos ayuda a mantener la aplicación gratuita y mejorar constantemente',
+      donateAmount: 'Selecciona el monto',
+      donateMessage: 'Mensaje opcional',
+      donateSuccess: 'Donación realizada exitosamente',
+      donateError: 'Error al procesar la donación',
+      thankYou: 'Gracias por tu apoyo',
+      donate5: '$5 - Café',
+      donate10: '$10 - Almuerzo',
+      donate20: '$20 - Cena',
+      donateCustom: 'Monto personalizado',
+      processing: 'Procesando...'
     },
     en: {
       profile: 'Profile',
@@ -208,7 +227,21 @@ export default function Profile() {
       calorieReduction: 'Calorie reduction',
       applied: 'Applied',
       syncWithDevice: 'Sync with device',
-      permissionsNeeded: 'Permissions needed to sync'
+      permissionsNeeded: 'Permissions needed to sync',
+      donate: 'Donate',
+      supportApp: 'Support the app',
+      donateTitle: 'Support ProFitness',
+      donateDescription: 'Your support helps us keep the app free and constantly improving',
+      donateAmount: 'Select amount',
+      donateMessage: 'Optional message',
+      donateSuccess: 'Donation completed successfully',
+      donateError: 'Error processing donation',
+      thankYou: 'Thank you for your support',
+      donate5: '$5 - Coffee',
+      donate10: '$10 - Lunch',
+      donate20: '$20 - Dinner',
+      donateCustom: 'Custom amount',
+      processing: 'Processing...'
     }
   };
 
@@ -459,43 +492,6 @@ export default function Profile() {
         };
 
         localStorage.setItem(userKey, JSON.stringify(userBackup));
-
-        const logoutMessage = document.createElement('div');
-        logoutMessage.style.cssText = `
-          position: fixed;
-          top: 20px;
-          left: 50%;
-          transform: translateX(-50%);
-          background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-          border: 1px solid #93c5fd;
-          border-radius: 12px;
-          padding: 16px 24px;
-          z-index: 3000;
-          box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          max-width: 320px;
-          width: 90%;
-        `;
-
-        logoutMessage.innerHTML = `
-          <div style="width: 24px; height: 24px; background: #3b82f6; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-            <i class="ri-save-line" style="color: white; font-size: 14px;"></i>
-          </div>
-          <div>
-            <p style="font-size: 14px; font-weight: 600; color: #1e40af; margin: 0;">Datos guardados</p>
-            <p style="font-size: 12px; color: #1d4ed8; margin: 0;">Tus datos están seguros</p>
-          </div>
-        `;
-
-        document.body.appendChild(logoutMessage);
-
-        setTimeout(() => {
-          if (document.body.contains(logoutMessage)) {
-            document.body.removeChild(logoutMessage);
-          }
-        }, 2000);
       }
     } catch (error) {
       console.error('Error al guardar datos antes del logout:', error);
@@ -555,6 +551,155 @@ export default function Profile() {
       default:
         return '#3b82f6';
     }
+  };
+
+  const calculateBMI = (weight: number, height: number) => {
+    if (!weight || !height) return 0;
+    const heightInMeters = height / 100;
+    return weight / (heightInMeters * heightInMeters);
+  };
+
+  const getBMICategory = (bmi: number) => {
+    if (bmi < 18.5) return { category: 'Bajo peso', color: '#3b82f6' };
+    if (bmi < 25) return { category: 'Normal', color: '#10b981' };
+    if (bmi < 30) return { category: 'Sobrepeso', color: '#f59e0b' };
+    return { category: 'Obesidad', color: '#ef4444' };
+  };
+
+  const getBMIRecommendations = (bmi: number) => {
+    if (bmi < 18.5) {
+      return [
+        'Considera aumentar la ingesta calórica',
+        'Incluye ejercicios de fuerza',
+        'Consulta con un nutricionista',
+        'Monitorea tu progreso regularmente'
+      ];
+    }
+    if (bmi < 25) {
+      return [
+        'Mantén tus hábitos actuales',
+        'Continúa con ejercicio regular',
+        'Mantén una dieta equilibrada',
+        'Revisa tus objetivos periódicamente'
+      ];
+    }
+    if (bmi < 30) {
+      return [
+        'Considera crear un déficit calórico',
+        'Aumenta la actividad física',
+        'Reduce porciones gradualmente',
+        'Incluye más verduras y proteínas'
+      ];
+    }
+    return [
+      'Consulta con un profesional de salud',
+      'Crea un plan de pérdida de peso',
+      'Prioriza ejercicio cardiovascular',
+      'Considera apoyo nutricional especializado'
+    ];
+  };
+
+  const handleDonate = async () => {
+    setDonateStatus('processing');
+
+    try {
+      // Simulamos proceso de donación
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Aquí integrarías con tu pasarela de pagos preferida
+      // Por ejemplo: PayPal, Stripe, Mercado Pago, etc.
+
+      setDonateStatus('success');
+
+      // Mostrar mensaje de agradecimiento
+      const successMessage = document.createElement('div');
+      successMessage.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+        border: 2px solid #16a34a;
+        border-radius: 16px;
+        padding: 24px;
+        z-index: 3000;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+        text-align: center;
+        max-width: 300px;
+        width: 90%;
+      `;
+      successMessage.innerHTML = `
+        <div style="width: 64px; height: 64px; background: #16a34a; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+          <i class="ri-heart-fill" style="color: white; font-size: 28px;"></i>
+        </div>
+        <h3 style="font-size: 18px; font-weight: 600; color: #15803d; margin: 0 0 8px 0;">${t.thankYou}</h3>
+        <p style="font-size: 14px; color: #16a34a; margin: 0;">Tu apoyo significa mucho para nosotros</p>
+      `;
+
+      document.body.appendChild(successMessage);
+
+      setTimeout(() => {
+        if (document.body.contains(successMessage)) {
+          document.body.removeChild(successMessage);
+        }
+        setShowDonateModal(false);
+        setDonateStatus('idle');
+        setDonateAmount(5);
+        setDonateMessage('');
+      }, 3000);
+
+    } catch (error) {
+      setDonateStatus('error');
+      setTimeout(() => {
+        setDonateStatus('idle');
+      }, 3000);
+    }
+  };
+
+  const handlePatreonDonate = () => {
+    // Redirigir a tu página de Patreon
+    const patreonUrl = 'https://www.patreon.com/IvanPareja'; // Reemplaza con tu URL de Patreon
+    window.open(patreonUrl, '_blank', 'noopener,noreferrer');
+
+    // Cerrar el modal de donación
+    setShowDonateModal(false);
+
+    // Mostrar mensaje de agradecimiento
+    const thankYouMessage = document.createElement('div');
+    thankYouMessage.style.cssText = `
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+      border: 1px solid #f59e0b;
+      border-radius: 12px;
+      padding: 16px 24px;
+      z-index: 3000;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      max-width: 320px;
+      width: 90%;
+    `;
+    thankYouMessage.innerHTML = `
+      <div style="width: 24px; height: 24px; background: #f59e0b; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+        <i class="ri-external-link-line" style="color: white; font-size: 14px;"></i>
+      </div>
+      <div>
+        <p style="font-size: 14px; font-weight: 600; color: #92400e; margin: 0;">Redirigiendo a Patreon</p>
+        <p style="font-size: 12px; color: #f59e0b; margin: 0;">¡Gracias por considerar apoyarnos!</p>
+      </div>
+    `;
+
+    document.body.appendChild(thankYouMessage);
+
+    setTimeout(() => {
+      if (document.body.contains(thankYouMessage)) {
+        document.body.removeChild(thankYouMessage);
+      }
+    }, 4000);
   };
 
   if (!mounted) {
@@ -1057,6 +1202,63 @@ export default function Profile() {
                 </p>
               </div>
             </button>
+
+            <button
+              onClick={() => setShowDonateModal(true)}
+              className="!rounded-button"
+              style={{
+                padding: '12px',
+                background: 'linear-gradient(135deg, #f59e0b 0%, #f97316 100%)',
+                border: 'none',
+                borderRadius: '12px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                minHeight: '65px',
+                width: '100%'
+              }}
+            >
+              <div style={{
+                width: '40px',
+                height: '40px',
+                background: 'rgba(255,255,255,0.2)',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                <i className="ri-heart-fill" style={{ color: 'white', fontSize: '18px' }}></i>
+              </div>
+              <div style={{
+                textAlign: 'left',
+                flex: 1,
+                minWidth: 0
+              }}>
+                <p style={{
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: 'white',
+                  margin: '0 0 2px 0',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}>
+                  {t.donate}
+                </p>
+                <p style={{
+                  fontSize: '12px',
+                  color: 'rgba(255,255,255,0.8)',
+                  margin: 0,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}>
+                  {t.supportApp}
+                </p>
+              </div>
+            </button>
           </div>
         </div>
 
@@ -1151,6 +1353,210 @@ export default function Profile() {
             </div>
           </div>
         </div>
+
+        {/* IMC Section */}
+        {userProfile.weight && userProfile.height && (
+          <div style={{
+            background: 'white',
+            borderRadius: '20px',
+            padding: '24px',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.07)',
+            marginBottom: '24px'
+          }}>
+            <h3 style={{
+              fontSize: '18px',
+              fontWeight: '600',
+              color: '#1f2937',
+              margin: '0 0 16px 0'
+            }}>
+              Índice de Masa Corporal (IMC)
+            </h3>
+
+            {(() => {
+              const weight = parseFloat(userProfile.weight);
+              const height = parseFloat(userProfile.height);
+              const bmi = calculateBMI(weight, height);
+              const bmiCategory = getBMICategory(bmi);
+              const recommendations = getBMIRecommendations(bmi);
+
+              return (
+                <div>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: '20px'
+                  }}>
+                    <div style={{
+                      width: '120px',
+                      height: '120px',
+                      borderRadius: '50%',
+                      background: `conic-gradient(${bmiCategory.color} ${Math.min(bmi / 40 * 360, 360)}deg, #f3f4f6 0deg)`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      position: 'relative'
+                    }}>
+                      <div style={{
+                        width: '90px',
+                        height: '90px',
+                        borderRadius: '50%',
+                        background: 'white',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        <span style={{
+                          fontSize: '24px',
+                          fontWeight: '700',
+                          color: '#1f2937'
+                        }}>
+                          {bmi.toFixed(1)}
+                        </span>
+                        <span style={{
+                          fontSize: '12px',
+                          color: '#6b7280'
+                        }}>
+                          kg/m²
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '12px',
+                    marginBottom: '20px'
+                  }}>
+                    <div style={{
+                      width: '12px',
+                      height: '12px',
+                      borderRadius: '50%',
+                      background: bmiCategory.color
+                    }}></div>
+                    <span style={{
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      color: bmiCategory.color
+                    }}>
+                      {bmiCategory.category}
+                    </span>
+                  </div>
+
+                  <div style={{
+                    background: '#f8fafc',
+                    borderRadius: '12px',
+                    padding: '16px',
+                    marginBottom: '16px'
+                  }}>
+                    <h4 style={{
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#1f2937',
+                      margin: '0 0 8px 0'
+                    }}>
+                      Rangos de IMC:
+                    </h4>
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(2, 1fr)',
+                      gap: '8px',
+                      fontSize: '12px'
+                    }}>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}>
+                        <div style={{
+                          width: '8px',
+                          height: '8px',
+                          borderRadius: '50%',
+                          background: '#3b82f6'
+                        }}></div>
+                        <span>Bajo peso: &lt;18.5</span>
+                      </div>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}>
+                        <div style={{
+                          width: '8px',
+                          height: '8px',
+                          borderRadius: '50%',
+                          background: '#10b981'
+                        }}></div>
+                        <span>Normal: 18.5-24.9</span>
+                      </div>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}>
+                        <div style={{
+                          width: '8px',
+                          height: '8px',
+                          borderRadius: '50%',
+                          background: '#f59e0b'
+                        }}></div>
+                        <span>Sobrepeso: 25-29.9</span>
+                      </div>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}>
+                        <div style={{
+                          width: '8px',
+                          height: '8px',
+                          borderRadius: '50%',
+                          background: '#ef4444'
+                        }}></div>
+                        <span>Obesidad: ≥30</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{
+                    background: '#f0f9ff',
+                    borderRadius: '12px',
+                    padding: '16px',
+                    border: '1px solid #e0e7ff'
+                  }}>
+                    <h4 style={{
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#1f2937',
+                      margin: '0 0 8px 0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}>
+                      <i className="ri-lightbulb-line" style={{ color: '#3b82f6' }}></i>
+                      Recomendaciones:
+                    </h4>
+                    <ul style={{
+                      margin: 0,
+                      paddingLeft: '16px',
+                      fontSize: '12px',
+                      color: '#374151'
+                    }}>
+                      {recommendations.map((recommendation, index) => (
+                        <li key={index} style={{ marginBottom: '4px' }}>
+                          {recommendation}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+       )}
 
         {/* Goal Section */}
         <div style={{
@@ -1778,6 +2184,7 @@ export default function Profile() {
             }}>
               {t.syncDescription}
             </p>
+
             <div style={{
               display: 'flex',
               gap: '12px'
@@ -2171,6 +2578,210 @@ export default function Profile() {
                 }}
               >
                 {t.configure}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Donate Modal */}
+      {showDonateModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '20px',
+            padding: '24px',
+            width: '90%',
+            maxWidth: '400px',
+            maxHeight: '80vh',
+            overflowY: 'auto'
+          }}>
+            <div style={{
+              textAlign: 'center',
+              marginBottom: '24px'
+            }}>
+              <div style={{
+                width: '64px',
+                height: '64px',
+                background: 'linear-gradient(135deg, #ff424d 0%, #ff6154 100%)',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 16px auto'
+              }}>
+                <i className="ri-heart-fill" style={{ color: 'white', fontSize: '28px' }}></i>
+              </div>
+              <h3 style={{
+                fontSize: '20px',
+                fontWeight: '600',
+                color: '#1f2937',
+                margin: '0 0 8px 0'
+              }}>
+                {t.donateTitle}
+              </h3>
+              <p style={{
+                fontSize: '14px',
+                color: '#6b7280',
+                margin: 0,
+                lineHeight: '1.5'
+              }}>
+                {t.donateDescription}
+              </p>
+            </div>
+
+            {/* Solo Patreon Option */}
+            <div style={{
+              marginBottom: '24px'
+            }}>
+              <div style={{
+                padding: '20px',
+                background: 'linear-gradient(135deg, #ff424d 0%, #ff6154 100%)',
+                borderRadius: '16px',
+                border: '3px solid #ff424d',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                boxShadow: '0 6px 20px rgba(255, 66, 77, 0.3)'
+              }}
+              onClick={handlePatreonDonate}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 8px 25px rgba(255, 66, 77, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0px)';
+                e.currentTarget.style.boxShadow = '0 6px 20px rgba(255, 66, 77, 0.3)';
+              }}
+              >
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '16px',
+                  marginBottom: '12px'
+                }}>
+                  <div style={{
+                    width: '56px',
+                    height: '56px',
+                    background: 'rgba(255,255,255,0.2)',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+                  }}>
+                    <i className="ri-heart-3-fill" style={{ color: 'white', fontSize: '28px' }}></i>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <h4 style={{
+                      fontSize: '18px',
+                      fontWeight: '700',
+                      color: 'white',
+                      margin: '0 0 4px 0'
+                    }}>
+                      Apóyanos en Patreon
+                    </h4>
+                    <p style={{
+                      fontSize: '14px',
+                      color: 'rgba(255,255,255,0.9)',
+                      margin: 0
+                    }}>
+                      Suscríbete para apoyo continuo
+                    </p>
+                  </div>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    color: 'white'
+                  }}>
+                    <i className="ri-external-link-line" style={{ fontSize: '18px' }}></i>
+                  </div>
+                </div>
+                
+                <div style={{
+                  background: 'rgba(255,255,255,0.15)',
+                  borderRadius: '12px',
+                  padding: '12px 16px'
+                }}>
+                  <h5 style={{
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: 'white',
+                    margin: '0 0 8px 0'
+                  }}>
+                    ✨ Beneficios exclusivos:
+                  </h5>
+                  <ul style={{
+                    fontSize: '13px',
+                    color: 'rgba(255,255,255,0.95)',
+                    margin: 0,
+                    paddingLeft: '16px',
+                    lineHeight: '1.4'
+                  }}>
+                    <li>Acceso anticipado a nuevas funciones</li>
+                    <li>Contenido exclusivo y tips de fitness</li>
+                    <li>Soporte prioritario</li>
+                    <li>Comunidad privada de miembros</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div style={{
+                textAlign: 'center',
+                marginTop: '16px',
+                padding: '12px',
+                background: '#f8fafc',
+                borderRadius: '12px',
+                border: '1px solid #e2e8f0'
+              }}>
+                <p style={{
+                  fontSize: '13px',
+                  color: '#6b7280',
+                  margin: '0 0 4px 0'
+                }}>
+                  💝 Tu apoyo nos ayuda a:
+                </p>
+                <p style={{
+                  fontSize: '12px',
+                  color: '#374151',
+                  margin: 0,
+                  lineHeight: '1.4'
+                }}>
+                  Mantener la app gratuita • Agregar nuevas funciones • Mejorar la experiencia
+                </p>
+              </div>
+            </div>
+
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center'
+            }}>
+              <button
+                onClick={() => setShowDonateModal(false)}
+                className="!rounded-button"
+                style={{
+                  padding: '12px 24px',
+                  background: '#f8fafc',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '12px',
+                  color: '#6b7280',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}
+              >
+                Cerrar
               </button>
             </div>
           </div>
