@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -6,34 +5,18 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import BottomNavigation from '../../components/BottomNavigation';
 import { deviceTime } from '../../lib/device-time-utils';
-import { 
-  initializeBarcodeScanner, 
-  stopBarcodeScanner, 
-  getProductByBarcode, 
-  BarcodeResult 
-} from '../../lib/simple-barcode-scanner';
-import { detectFoodInImage, captureImageFromVideo } from '../../lib/vision-api';
 
+// Interfaces para TypeScript
 interface FoodItem {
   id: string;
   name: string;
   brand: string;
-  barcode?: string;
   calories_per_100g: number;
   protein_per_100g: number;
   carbs_per_100g: number;
   fats_per_100g: number;
-  fiber_per_100g?: number;
-  sugar_per_100g?: number;
-  sodium_per_100g?: number;
-}
-
-interface NutritionInfo {
-  calories: number;
-  protein: number;
-  carbs: number;
-  fats: number;
-  fiber: number;
+  fiber_per_100g: number;
+  barcode?: string;
 }
 
 interface DetectedFoodItem {
@@ -45,20 +28,61 @@ interface DetectedFoodItem {
   fiber: number;
   confidence: number;
   detected: boolean;
-  source: string;
+}
+
+interface ManualFoodData {
+  name: string;
+  brand: string;
+  calories: string;
+  protein: string;
+  carbs: string;
+  fats: string;
+  fiber: string;
+  quantity: string;
+  mealType: string;
+}
+
+interface CalculatedNutrition {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+  fiber: number;
 }
 
 export default function AddFood() {
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [language, setLanguage] = useState('es');
+
+  // Estados para escáner de códigos de barras
+  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
+  const [scannerError, setScannerError] = useState<string>('');
+  const [lastScannedCode, setLastScannedCode] = useState<string>('');
+  const [isLoadingProduct, setIsLoadingProduct] = useState(false);
+
+  // Estados para cámara de comida
+  const [showFoodCamera, setShowFoodCamera] = useState(false);
+  const [showFoodResults, setShowFoodResults] = useState(false);
+  const [capturedImage, setCapturedImage] = useState('');
+  const [analysisError, setAnalysisError] = useState('');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isTakingPhoto, setIsTakingPhoto] = useState(false);
+  const [detectedFoods, setDetectedFoods] = useState<DetectedFoodItem[]>([]);
+
+  // Estados para búsqueda
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<FoodItem[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [popularFoods, setPopularFoods] = useState<FoodItem[]>([]);
+
+  // Estados para modal de nutrición
   const [selectedFood, setSelectedFood] = useState<FoodItem | null>(null);
-  const [quantity, setQuantity] = useState('100');
-  const [mealType, setMealType] = useState('desayuno');
   const [showNutritionModal, setShowNutritionModal] = useState(false);
-  const [calculatedNutrition, setCalculatedNutrition] = useState<NutritionInfo>({
+  const [quantity, setQuantity] = useState(100);
+  const [mealType, setMealType] = useState('almuerzo');
+  const [calculatedNutrition, setCalculatedNutrition] = useState<CalculatedNutrition>({
     calories: 0,
     protein: 0,
     carbs: 0,
@@ -66,1166 +90,562 @@ export default function AddFood() {
     fiber: 0
   });
 
-  // Estados para escáner de códigos
-  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
-  const [isScanning, setIsScanning] = useState(false);
-  const [scannerError, setScannerError] = useState<string>('');
-  const [lastScannedCode, setLastScannedCode] = useState<string>('');
-  const [isLoadingProduct, setIsLoadingProduct] = useState(false);
-
-  // NUEVOS Estados para cámara de fotos de comida
-  const [showFoodCamera, setShowFoodCamera] = useState(false);
-  const [isTakingPhoto, setIsTakingPhoto] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [detectedFoods, setDetectedFoods] = useState<DetectedFoodItem[]>([]);
-  const [showFoodResults, setShowFoodResults] = useState(false);
-  const [analysisError, setAnalysisError] = useState<string>('');
-  const [capturedImage, setCapturedImage] = useState<string>('');
-
-  // NUEVO estado para formulario manual
+  // Estados para formulario manual
   const [showManualForm, setShowManualForm] = useState(false);
-  const [manualFood, setManualFood] = useState({
+  const [manualFood, setManualFood] = useState<ManualFoodData>({
     name: '',
     brand: '',
     calories: '',
     protein: '',
     carbs: '',
     fats: '',
-    fiber: ''
+    fiber: '',
+    quantity: '100',
+    mealType: 'almuerzo'
   });
 
-  // Referencias para escáner y cámara
+  // Referencias de video
   const videoRef = useRef<HTMLVideoElement>(null);
-  const scannerRef = useRef<any>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-
-  // NUEVA referencia para cámara de comida
   const foodVideoRef = useRef<HTMLVideoElement>(null);
-  const foodStreamRef = useRef<MediaStream | null>(null);
 
-  const router = useRouter();
-
-  useEffect(() => {
-    setMounted(true);
-
-    // Verificar autenticación
-    const isAuthenticated = localStorage.getItem('isAuthenticated');
-    if (!isAuthenticated || isAuthenticated !== 'true') {
-      router.push('/login');
-      return;
-    }
-
-    // Obtener idioma del perfil
-    try {
-      const userProfile = localStorage.getItem('userProfile');
-      if (userProfile) {
-        const profile = JSON.parse(userProfile);
-        setLanguage(profile.language || 'es');
-      }
-    } catch (error) {
-      console.error('Error loading user profile:', error);
-    }
-
-    // Inicializar mealType basado en la hora actual del dispositivo
-    try {
-      const currentTime = deviceTime.getCurrentTime({ use24Hour: true });
-      const hour = parseInt(currentTime.split(':')[0]);
-
-      // Sugerir tipo de comida basado en la hora del dispositivo
-      if (hour >= 6 && hour < 12) {
-        setMealType('desayuno');
-      } else if (hour >= 12 && hour < 17) {
-        setMealType('almuerzo');
-      } else if (hour >= 17 && hour < 22) {
-        setMealType('cena');
-      } else {
-        setMealType('snack');
-      }
-    } catch (error) {
-      console.warn('Error detectando hora del dispositivo para meal type:', error);
-    }
-
-    // Limpiar recursos al desmontar el componente
-    return () => {
-      if (scannerRef.current) {
-        stopBarcodeScanner(scannerRef.current);
-      }
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-      }
-      if (foodStreamRef.current) {
-        foodStreamRef.current.getTracks().forEach(track => track.stop());
-      }
-    };
-  }, [router]);
-
+  // Traducciones
   const translations = {
     es: {
       addFood: 'Agregar Comida',
-      searchFood: 'Buscar alimento',
-      searchPlaceholder: 'Escribe el nombre del alimento...',
-      scanBarcode: 'Escanear código',
-      takePhoto: 'Fotografiar comida',
-      photoFood: 'Foto del plato',
+      searchFood: 'Buscar Alimento',
+      searchPlaceholder: 'Buscar alimentos...',
+      scanBarcode: 'Escanear',
+      takePhoto: 'Fotografiar',
+      addManual: 'Manual',
+      searching: 'Buscando...',
+      noResults: 'Sin resultados',
+      popular: 'Alimentos Populares',
+      per100g: 'por 100g',
+      nutrition: 'Información Nutricional',
       quantity: 'Cantidad',
       grams: 'gramos',
-      mealType: 'Tipo de comida',
+      mealType: 'Tipo de Comida',
       breakfast: 'Desayuno',
       lunch: 'Almuerzo',
       dinner: 'Cena',
       snack: 'Snack',
-      addToLog: 'Agregar al registro',
-      nutrition: 'Información nutricional',
       calories: 'Calorías',
       protein: 'Proteínas',
       carbs: 'Carbohidratos',
       fats: 'Grasas',
       fiber: 'Fibra',
-      per100g: 'por 100g',
-      noResults: 'No se encontraron resultados',
-      searchSomething: 'Busca un alimento para comenzar',
       cancel: 'Cancelar',
-      save: 'Guardar',
-      close: 'Cerrar',
-      searching: 'Buscando...',
-      scanning: 'Escaneando...',
-      scanInstructions: 'Apunta la cámara hacia el código de barras',
-      foodAdded: 'Alimento agregado correctamente',
-      errorAdding: 'Error al agregar alimento',
-      popular: 'Alimentos populares',
-      recent: 'Agregados recientemente',
-      // Nuevas traducciones para análisis de fotos
-      takingPhoto: 'Tomando foto...',
-      analyzingFood: 'Analizando alimentos...',
-      foodDetected: 'Alimentos detectados',
-      noFoodDetected: 'No se detectaron alimentos',
+      addToLog: 'Agregar al Registro',
+      manualFood: 'Alimento Manual',
+      foodName: 'Nombre del Alimento',
+      brandName: 'Marca',
+      nutritionPer100g: 'Información Nutricional por 100g',
+      createFood: 'Crear Alimento',
+      customQuantity: 'Cantidad a Consumir',
+      scanInstructions: 'Mantén el código de barras centrado en el área marcada',
+      photoInstructions: 'Centra tu plato de comida en el área marcada',
+      photoTips: 'Asegúrate de tener buena iluminación para mejores resultados',
+      analyzingFood: 'Analizando comida...',
+      takingPhoto: 'Capturando imagen...',
       retryPhoto: 'Tomar otra foto',
-      capturePhoto: 'Capturar foto',
-      startCamera: 'Iniciar cámara',
-      stopCamera: 'Detener cámara',
-      photoInstructions: 'Apunta la cámara hacia tu plato de comida',
-      photoTips: 'Asegúrate de tener buena iluminación y que los alimentos sean visibles',
-      analysisError: 'Error al analizar la imagen',
-      selectFood: 'Seleccionar alimento',
-      confidence: 'Confianza',
+      foodDetected: 'Alimentos Detectados',
       detected: 'Detectado',
       suggested: 'Sugerido',
-      addSelected: 'Agregar seleccionados',
-      selectAll: 'Seleccionar todos',
-      deselectAll: 'Deseleccionar todos',
-      cameraError: 'Error al acceder a la cámara',
-      allowCameraFood: 'Por favor permite el acceso a la cámara para fotografiar comida',
-      // NUEVAS traducciones para formulario manual
-      addManual: 'Agregar manual',
-      manualFood: 'Alimento personalizado',
-      foodName: 'Nombre del alimento',
-      brandName: 'Marca (opcional)',
-      nutritionPer100g: 'Información nutricional por 100g',
-      caloriesPlaceholder: 'Calorías (ej: 250)',
-      proteinPlaceholder: 'Proteínas en gramos (ej: 12.5)',
-      carbsPlaceholder: 'Carbohidratos en gramos (ej: 30)',
-      fatsPlaceholder: 'Grasas en gramos (ej: 8.2)',
-      fiberPlaceholder: 'Fibra en gramos (opcional)',
-      createFood: 'Crear alimento',
-      fillRequired: 'Por favor completa los campos requeridos',
-      invalidNumbers: 'Por favor ingresa números válidos',
+      selectFood: 'Seleccionar'
     },
     en: {
       addFood: 'Add Food',
-      searchFood: 'Search food',
-      searchPlaceholder: 'Type food name...',
-      scanBarcode: 'Scan barcode',
-      takePhoto: 'Take food photo',
-      photoFood: 'Photo dish',
+      searchFood: 'Search Food',
+      searchPlaceholder: 'Search foods...',
+      scanBarcode: 'Scan',
+      takePhoto: 'Photo',
+      addManual: 'Manual',
+      searching: 'Searching...',
+      noResults: 'No results',
+      popular: 'Popular Foods',
+      per100g: 'per 100g',
+      nutrition: 'Nutrition Information',
       quantity: 'Quantity',
       grams: 'grams',
-      mealType: 'Meal type',
+      mealType: 'Meal Type',
       breakfast: 'Breakfast',
       lunch: 'Lunch',
       dinner: 'Dinner',
       snack: 'Snack',
-      addToLog: 'Add to log',
-      nutrition: 'Nutrition information',
       calories: 'Calories',
       protein: 'Protein',
       carbs: 'Carbs',
       fats: 'Fats',
       fiber: 'Fiber',
-      per100g: 'per 100g',
-      noResults: 'No results found',
-      searchSomething: 'Search for a food to get started',
       cancel: 'Cancel',
-      save: 'Save',
-      close: 'Close',
-      searching: 'Searching...',
-      scanning: 'Scanning...',
-      scanInstructions: 'Point the camera at the barcode',
-      foodAdded: 'Food added successfully',
-      errorAdding: 'Error adding food',
-      popular: 'Popular foods',
-      recent: 'Recently added',
-      // New translations for photo analysis
-      takingPhoto: 'Taking photo...',
+      addToLog: 'Add to Log',
+      manualFood: 'Manual Food',
+      foodName: 'Food Name',
+      brandName: 'Brand',
+      nutritionPer100g: 'Nutrition per 100g',
+      createFood: 'Create Food',
+      customQuantity: 'Quantity to Consume',
+      scanInstructions: 'Keep the barcode centered in the marked area',
+      photoInstructions: 'Center your food plate in the marked area',
+      photoTips: 'Make sure you have good lighting for better results',
       analyzingFood: 'Analyzing food...',
-      foodDetected: 'Food detected',
-      noFoodDetected: 'No food detected',
-      retryPhoto: 'Take another photo',
-      capturePhoto: 'Capture photo',
-      startCamera: 'Start camera',
-      stopCamera: 'Stop camera',
-      photoInstructions: 'Point the camera at your food plate',
-      photoTips: 'Make sure you have good lighting and food is clearly visible',
-      analysisError: 'Error analyzing image',
-      selectFood: 'Select food',
-      confidence: 'Confidence',
+      takingPhoto: 'Capturing image...',
+      retryPhoto: 'Retry Photo',
+      foodDetected: 'Detected Foods',
       detected: 'Detected',
       suggested: 'Suggested',
-      addSelected: 'Add selected',
-      selectAll: 'Select all',
-      deselectAll: 'Deselect all',
-      cameraError: 'Error accessing camera',
-      allowCameraFood: 'Please allow camera access to take food photos',
-      // NEW translations for manual form
-      addManual: 'Add manual',
-      manualFood: 'Custom food',
-      foodName: 'Food name',
-      brandName: 'Brand (optional)',
-      nutritionPer100g: 'Nutrition information per 100g',
-      caloriesPlaceholder: 'Calories (e.g: 250)',
-      proteinPlaceholder: 'Protein in grams (e.g: 12.5)',
-      carbsPlaceholder: 'Carbs in grams (e.g: 30)',
-      fatsPlaceholder: 'Fats in grams (e.g: 8.2)',
-      fiberPlaceholder: 'Fiber in grams (optional)',
-      createFood: 'Create food',
-      fillRequired: 'Please fill required fields',
-      invalidNumbers: 'Please enter valid numbers',
+      selectFood: 'Select Food'
     }
   };
 
-  const t = translations[language as keyof typeof translations] || translations.es;
+  useEffect(() => {
+    setMounted(true);
 
-  // NUEVA función para iniciar cámara de comida - CORREGIDA
-  const startFoodCamera = async () => {
-    if (!foodVideoRef.current) return;
-
-    try {
-      setIsTakingPhoto(false);
-      setAnalysisError('');
-      setCapturedImage('');
-
-      // Configuración de cámara compatible con TypeScript
-      const constraints: MediaStreamConstraints = {
-        video: {
-          facingMode: 'environment',
-          width: { ideal: 1920, min: 1280 },
-          height: { ideal: 1080, min: 720 },
-          frameRate: { ideal: 30, min: 15 }
-        }
-      };
-
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      foodStreamRef.current = stream;
-      foodVideoRef.current.srcObject = stream;
-
-      await new Promise<void>((resolve) => {
-        if (foodVideoRef.current) {
-          foodVideoRef.current.onloadedmetadata = () => resolve();
-        }
-      });
-
-      await foodVideoRef.current.play();
-
-      console.log('Cámara de comida iniciada correctamente');
-    } catch (error) {
-      console.error('Error starting food camera:', error);
-
-      if (error instanceof Error) {
-        if (error.name === 'NotAllowedError') {
-          setAnalysisError(t.allowCameraFood);
-        } else if (error.name === 'NotFoundError') {
-          setAnalysisError('No se encontró cámara disponible');
-        } else {
-          setAnalysisError(t.cameraError);
-        }
-      }
-    }
-  };
-
-  // NUEVA función para detener cámara de comida
-  const stopFoodCamera = () => {
-    if (foodStreamRef.current) {
-      foodStreamRef.current.getTracks().forEach(track => track.stop());
-      foodStreamRef.current = null;
-    }
-    if (foodVideoRef.current) {
-      foodVideoRef.current.srcObject = null;
-    }
-  };
-
-  // NUEVA función para capturar y analizar foto de comida
-  const captureAndAnalyzeFood = async () => {
-    if (!foodVideoRef.current || !foodStreamRef.current) return;
-
-    try {
-      setIsTakingPhoto(true);
-      setAnalysisError('');
-
-      // Capturar imagen desde el video
-      const imageFile = await captureImageFromVideo(foodVideoRef.current);
-
-      // Crear URL para vista previa
-      const imageUrl = URL.createObjectURL(imageFile);
-      setCapturedImage(imageUrl);
-
-      setIsTakingPhoto(false);
-      setIsAnalyzing(true);
-
-      // Analizar la imagen con Google Vision API
-      console.log('Analizando imagen de comida...');
-      const detectedFoodItems = await detectFoodInImage(imageFile);
-
-      if (detectedFoodItems && detectedFoodItems.length > 0) {
-        // Convertir a formato DetectedFoodItem
-        const foodItems: DetectedFoodItem[] = detectedFoodItems.map(item => ({
-          name: item.name || 'Alimento detectado',
-          calories: item.calories || 0,
-          protein: item.protein || 0,
-          carbs: item.carbs || 0,
-          fats: item.fats || 0,
-          fiber: item.fiber || 0,
-          confidence: item.confidence || 0.5,
-          detected: item.detected !== false,
-          source: item.source || 'vision_api'
-        }));
-
-        setDetectedFoods(foodItems);
-        setShowFoodResults(true);
-
-        console.log(`Se detectaron ${foodItems.length} alimentos:`, foodItems);
-      } else {
-        setAnalysisError(t.noFoodDetected);
-        setDetectedFoods([]);
+    // Verificar autenticación
+    if (typeof window !== 'undefined') {
+      const isAuthenticated = localStorage.getItem('isAuthenticated');
+      if (!isAuthenticated || isAuthenticated !== 'true') {
+        router.push('/login');
+        return;
       }
 
-      setIsAnalyzing(false);
-    } catch (error) {
-      console.error('Error capturing and analyzing food:', error);
-      setAnalysisError(t.analysisError);
-      setIsTakingPhoto(false);
-      setIsAnalyzing(false);
-    }
-  };
-
-  // NUEVA función para agregar alimentos detectados
-  const addDetectedFoodToLog = async (foodItem: DetectedFoodItem, customQuantity: number = 100) => {
-    try {
-      const today = deviceTime.getCurrentDate();
-      const nutritionKey = `nutrition_${today}`;
-
-      const existingData = localStorage.getItem(nutritionKey);
-      let dayData = existingData ? JSON.parse(existingData) : {
-        calories: 0,
-        protein: 0,
-        carbs: 0,
-        fats: 0,
-        fiber: 0,
-        water: 0,
-        meals: []
-      };
-
-      // Calcular nutrición basada en cantidad
-      const factor = customQuantity / 100;
-      const calculatedCalories = Math.round(foodItem.calories * factor);
-      const calculatedProtein = Math.round(foodItem.protein * factor * 10) / 10;
-      const calculatedCarbs = Math.round(foodItem.carbs * factor * 10) / 10;
-      const calculatedFats = Math.round(foodItem.fats * factor * 10) / 10;
-      const calculatedFiber = Math.round((foodItem.fiber || 0) * factor * 10) / 10;
-
-      const newMeal = {
-        id: Date.now().toString(),
-        name: foodItem.name,
-        brand: `Detectado (${Math.round(foodItem.confidence * 100)}% confianza)`,
-        mealType: mealType,
-        quantity: customQuantity,
-        calories: calculatedCalories,
-        protein: calculatedProtein,
-        carbs: calculatedCarbs,
-        fats: calculatedFats,
-        fiber: calculatedFiber,
-        source: 'food_photo_analysis',
-        confidence: foodItem.confidence,
-        timestamp: deviceTime.createTimestamp()
-      };
-
-      dayData.calories += calculatedCalories;
-      dayData.protein += calculatedProtein;
-      dayData.carbs += calculatedCarbs;
-      dayData.fats += calculatedFats;
-      dayData.fiber += calculatedFiber;
-      dayData.meals.push(newMeal);
-
-      localStorage.setItem(nutritionKey, JSON.stringify(dayData));
-
-      window.dispatchEvent(new CustomEvent('nutritionDataUpdated', {
-        detail: { date: today, data: dayData }
-      }));
-
-      return true;
-    } catch (error) {
-      console.error('Error adding detected food:', error);
-      return false;
-    }
-  };
-
-  // Función para manejar errores del escáner - MEJORADA
-  const handleScannerError = (error: Error) => {
-    console.error('Error del escáner:', error);
-    setScannerError(error.message || t.cameraError);
-    setIsScanning(false);
-  };
-
-  // Función para detener el escáner - MEJORADA
-  const stopScanning = () => {
-    setIsScanning(false);
-    if (scannerRef.current) {
-      stopBarcodeScanner(scannerRef.current);
-      scannerRef.current = null;
-    }
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
-  };
-
-  // Función mejorada para iniciar el escáner de códigos - CORREGIDA
-  const startBarcodeScanner = async () => {
-    if (!videoRef.current) return;
-
-    try {
-      setIsScanning(true);
-      setScannerError('');
-      setLastScannedCode('');
-
-      // Configuración de cámara compatible con TypeScript
-      const constraints: MediaStreamConstraints = {
-        video: {
-          facingMode: 'environment',
-          width: { ideal: 1920, min: 640 },
-          height: { ideal: 1080, min: 480 },
-          frameRate: { ideal: 30, min: 15 }
+      // Cargar idioma
+      try {
+        const userProfile = localStorage.getItem('userProfile');
+        if (userProfile) {
+          const profile = JSON.parse(userProfile);
+          setLanguage(profile.language || 'es');
         }
-      };
-
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      streamRef.current = stream;
-      videoRef.current.srcObject = stream;
-
-      await new Promise<void>((resolve) => {
-        if (videoRef.current) {
-          videoRef.current.onloadedmetadata = () => resolve();
-        }
-      });
-
-      await videoRef.current.play();
-
-      // Inicializar el escáner de códigos con configuración avanzada
-      scannerRef.current = await initializeBarcodeScanner(
-        videoRef.current,
-        handleBarcodeDetected,
-        handleScannerError,
-        {
-          continuous: true,
-          formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'qr_code'],
-          scanArea: {
-            x: 0.1,  // 10% desde el borde izquierdo
-            y: 0.3,  // 30% desde arriba
-            width: 0.8,  // 80% del ancho
-            height: 0.4  // 40% del alto (área optimizada para códigos)
-          }
-        }
-      );
-
-      console.log('Escáner de códigos Ultra Pro iniciado correctamente');
-    } catch (error) {
-      console.error('Error starting barcode scanner:', error);
-      setScannerError(t.cameraError);
-      setIsScanning(false);
-
-      if (error instanceof Error) {
-        if (error.name === 'NotAllowedError') {
-          setScannerError('Por favor permite el acceso a la cámara para escanear códigos');
-        } else if (error.name === 'NotSupportedError') {
-          setScannerError('Escáner no soportado en este dispositivo');
-        } else if (error.name === 'NotFoundError') {
-          setScannerError('No se encontró cámara disponible');
-        } else if (error.name === 'NotReadableError') {
-          setScannerError('Error al acceder a la cámara. Verifica que no esté en uso por otra aplicación.');
-        }
-      }
-    }
-  };
-
-  // Manejar código detectado - MEJORADO
-  const handleBarcodeDetected = async (result: BarcodeResult) => {
-    console.log('Código detectado:', result);
-    setLastScannedCode(result.code);
-    setIsLoadingProduct(true);
-
-    try {
-      // Buscar producto por código de barras con API mejorada
-      const product = await getProductByBarcode(result.code);
-
-      if (product && product.product_name) {
-        // Convertir producto encontrado al formato FoodItem
-        const foodItem: FoodItem = {
-          id: result.code,
-          name: product.product_name,
-          brand: product.brands || 'Desconocido',
-          barcode: result.code,
-          calories_per_100g: Math.max(0, product.nutriments?.['energy-kcal_100g'] || 0),
-          protein_per_100g: Math.max(0, product.nutriments?.['proteins_100g'] || 0),
-          carbs_per_100g: Math.max(0, product.nutriments?.['carbohydrates_100g'] || 0),
-          fats_per_100g: Math.max(0, product.nutriments?.['fat_100g'] || 0),
-          fiber_per_100g: Math.max(0, product.nutriments?.['fiber_100g'] || 0),
-          sugar_per_100g: Math.max(0, product.nutriments?.['sugars_100g'] || 0),
-          sodium_per_100g: Math.max(0, (product.nutriments?.['salt_100g'] || 0) * 400) // Convertir sal a sodio
-        };
-
-        // Mostrar información adicional del producto si está disponible
-        let successMessage = `Producto encontrado: ${foodItem.name}`;
-        if (product.brands) {
-          successMessage += ` - ${product.brands}`;
-        }
-        if (product.source) {
-          console.log(`Fuente de datos: ${product.source}`);
-        }
-
-        // Cerrar escáner y abrir modal de nutrición
-        setShowBarcodeScanner(false);
-        stopScanning();
-
-        // Seleccionar el producto encontrado
-        handleFoodSelect(foodItem);
-      }
-    } catch (error) {
-      console.error('Error fetching product:', error);
-      let errorMessage = `Producto no encontrado: ${result.code}`;
-
-      if (error instanceof Error) {
-        if (error.message.includes('inválido')) {
-          errorMessage = `Código de barras inválido: ${result.code}`;
-        } else if (error.message.includes('límite')) {
-          errorMessage = 'Límite de consultas alcanzado. Intenta más tarde.';
-        }
+      } catch (error) {
+        console.error('Error loading language:', error);
       }
 
-      // No cerrar el escáner para permitir reintentar
-    } finally {
-      setIsLoadingProduct(false);
+      // Cargar alimentos populares
+      loadPopularFoods();
     }
+  }, [router]);
+
+  // Cargar alimentos populares
+  const loadPopularFoods = () => {
+    const foods: FoodItem[] = [
+      {
+        id: '1',
+        name: 'Arroz blanco cocido',
+        brand: 'Genérico',
+        calories_per_100g: 130,
+        protein_per_100g: 2.7,
+        carbs_per_100g: 28.2,
+        fats_per_100g: 0.3,
+        fiber_per_100g: 0.4
+      },
+      {
+        id: '2',
+        name: 'Pechuga de pollo',
+        brand: 'Genérico',
+        calories_per_100g: 165,
+        protein_per_100g: 31,
+        carbs_per_100g: 0,
+        fats_per_100g: 3.6,
+        fiber_per_100g: 0
+      },
+      {
+        id: '3',
+        name: 'Huevo entero',
+        brand: 'Genérico',
+        calories_per_100g: 155,
+        protein_per_100g: 13,
+        carbs_per_100g: 1.1,
+        fats_per_100g: 11,
+        fiber_per_100g: 0
+      },
+      {
+        id: '4',
+        name: 'Pan integral',
+        brand: 'Genérico',
+        calories_per_100g: 247,
+        protein_per_100g: 13,
+        carbs_per_100g: 41,
+        fats_per_100g: 4.2,
+        fiber_per_100g: 7
+      },
+      {
+        id: '5',
+        name: 'Banana',
+        brand: 'Genérico',
+        calories_per_100g: 89,
+        protein_per_100g: 1.1,
+        carbs_per_100g: 23,
+        fats_per_100g: 0.3,
+        fiber_per_100g: 2.6
+      },
+      {
+        id: '6',
+        name: 'Leche entera',
+        brand: 'Genérico',
+        calories_per_100g: 61,
+        protein_per_100g: 3.2,
+        carbs_per_100g: 4.8,
+        fats_per_100g: 3.3,
+        fiber_per_100g: 0
+      }
+    ];
+    setPopularFoods(foods);
   };
 
-  const popularFoods: FoodItem[] = [
-    {
-      id: '1',
-      name: 'Arroz blanco cocido',
-      brand: 'Genérico',
-      calories_per_100g: 130,
-      protein_per_100g: 2.7,
-      carbs_per_100g: 28,
-      fats_per_100g: 0.3,
-      fiber_per_100g: 0.4
-    },
-    {
-      id: '2',
-      name: 'Pechuga de pollo cocida',
-      brand: 'Genérico',
-      calories_per_100g: 165,
-      protein_per_100g: 31,
-      carbs_per_100g: 0,
-      fats_per_100g: 3.6,
-      fiber_per_100g: 0
-    },
-    {
-      id: '3',
-      name: 'Huevo entero',
-      brand: 'Genérico',
-      calories_per_100g: 155,
-      protein_per_100g: 13,
-      carbs_per_100g: 1.1,
-      fats_per_100g: 11,
-      fiber_per_100g: 0
-    },
-    {
-      id: '4',
-      name: 'Banana',
-      brand: 'Genérico',
-      calories_per_100g: 89,
-      protein_per_100g: 1.1,
-      carbs_per_100g: 23,
-      fats_per_100g: 0.3,
-      fiber_per_100g: 2.6
-    },
-    {
-      id: '5',
-      name: 'Avena',
-      brand: 'Genérico',
-      calories_per_100g: 389,
-      protein_per_100g: 16.9,
-      carbs_per_100g: 66,
-      fats_per_100g: 6.9,
-      fiber_per_100g: 10.6
-    },
-    {
-      id: '6',
-      name: 'Leche entera',
-      brand: 'Genérico',
-      calories_per_100g: 61,
-      protein_per_100g: 3.2,
-      carbs_per_100g: 4.8,
-      fats_per_100g: 3.3,
-      fiber_per_100g: 0
-    }
-  ];
+  // Manejar cambio de búsqueda
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const query = e.target.value;
+    setSearchQuery(query);
 
-  // Base de datos expandida de alimentos para búsqueda manual
-  const extendedFoodDatabase: FoodItem[] = [
-    ...popularFoods,
-    // Frutas
-    {
-      id: '7',
-      name: 'Manzana',
-      brand: 'Genérico',
-      calories_per_100g: 52,
-      protein_per_100g: 0.3,
-      carbs_per_100g: 14,
-      fats_per_100g: 0.2,
-      fiber_per_100g: 2.4
-    },
-    {
-      id: '8',
-      name: 'Naranja',
-      brand: 'Genérico',
-      calories_per_100g: 47,
-      protein_per_100g: 0.9,
-      carbs_per_100g: 12,
-      fats_per_100g: 0.1,
-      fiber_per_100g: 2.4
-    },
-    {
-      id: '9',
-      name: 'Fresa',
-      brand: 'Genérico',
-      calories_per_100g: 32,
-      protein_per_100g: 0.7,
-      carbs_per_100g: 8,
-      fats_per_100g: 0.3,
-      fiber_per_100g: 2
-    },
-    {
-      id: '10',
-      name: 'Piña',
-      brand: 'Genérico',
-      calories_per_100g: 50,
-      protein_per_100g: 0.5,
-      carbs_per_100g: 13,
-      fats_per_100g: 0.1,
-      fiber_per_100g: 1.4
-    },
-    {
-      id: '11',
-      name: 'Sandía',
-      brand: 'Genérico',
-      calories_per_100g: 30,
-      protein_per_100g: 0.6,
-      carbs_per_100g: 8,
-      fats_per_100g: 0.2,
-      fiber_per_100g: 0.4
-    },
-    {
-      id: '12',
-      name: 'Uvas',
-      brand: 'Genérico',
-      calories_per_100g: 69,
-      protein_per_100g: 0.7,
-      carbs_per_100g: 18,
-      fats_per_100g: 0.2,
-      fiber_per_100g: 0.9
-    },
-    // Verduras
-    {
-      id: '13',
-      name: 'Brócoli',
-      brand: 'Genérico',
-      calories_per_100g: 34,
-      protein_per_100g: 2.8,
-      carbs_per_100g: 7,
-      fats_per_100g: 0.4,
-      fiber_per_100g: 2.6
-    },
-    {
-      id: '14',
-      name: 'Zanahoria',
-      brand: 'Genérico',
-      calories_per_100g: 41,
-      protein_per_100g: 0.9,
-      carbs_per_100g: 10,
-      fats_per_100g: 0.2,
-      fiber_per_100g: 2.8
-    },
-    {
-      id: '15',
-      name: 'Espinaca',
-      brand: 'Genérico',
-      calories_per_100g: 23,
-      protein_per_100g: 2.9,
-      carbs_per_100g: 4,
-      fats_per_100g: 0.4,
-      fiber_per_100g: 2.2
-    },
-    {
-      id: '16',
-      name: 'Tomate',
-      brand: 'Genérico',
-      calories_per_100g: 18,
-      protein_per_100g: 0.9,
-      carbs_per_100g: 4,
-      fats_per_100g: 0.2,
-      fiber_per_100g: 1.2
-    },
-    {
-      id: '17',
-      name: 'Lechuga',
-      brand: 'Genérico',
-      calories_per_100g: 15,
-      protein_per_100g: 1.4,
-      carbs_per_100g: 3,
-      fats_per_100g: 0.2,
-      fiber_per_100g: 1.3
-    },
-    {
-      id: '18',
-      name: 'Pepino',
-      brand: 'Genérico',
-      calories_per_100g: 16,
-      protein_per_100g: 0.7,
-      carbs_per_100g: 4,
-      fats_per_100g: 0.1,
-      fiber_per_100g: 0.5
-    },
-    // Proteínas
-    {
-      id: '19',
-      name: 'Salmón',
-      brand: 'Genérico',
-      calories_per_100g: 208,
-      protein_per_100g: 25,
-      carbs_per_100g: 0,
-      fats_per_100g: 12,
-      fiber_per_100g: 0
-    },
-    {
-      id: '20',
-      name: 'Atún',
-      brand: 'Genérico',
-      calories_per_100g: 144,
-      protein_per_100g: 30,
-      carbs_per_100g: 0,
-      fats_per_100g: 1,
-      fiber_per_100g: 0
-    },
-    {
-      id: '21',
-      name: 'Carne de res',
-      brand: 'Genérico',
-      calories_per_100g: 250,
-      protein_per_100g: 26,
-      carbs_per_100g: 0,
-      fats_per_100g: 15,
-      fiber_per_100g: 0
-    },
-    {
-      id: '22',
-      name: 'Cerdo',
-      brand: 'Genérico',
-      calories_per_100g: 242,
-      protein_per_100g: 27,
-      carbs_per_100g: 0,
-      fats_per_100g: 14,
-      fiber_per_100g: 0
-    },
-    // Carbohidratos
-    {
-      id: '23',
-      name: 'Papa',
-      brand: 'Genérico',
-      calories_per_100g: 77,
-      protein_per_100g: 2,
-      carbs_per_100g: 17,
-      fats_per_100g: 0.1,
-      fiber_per_100g: 2.2
-    },
-    {
-      id: '24',
-      name: 'Pasta',
-      brand: 'Genérico',
-      calories_per_100g: 131,
-      protein_per_100g: 5,
-      carbs_per_100g: 25,
-      fats_per_100g: 1.1,
-      fiber_per_100g: 1.8
-    },
-    {
-      id: '25',
-      name: 'Pan integral',
-      brand: 'Genérico',
-      calories_per_100g: 247,
-      protein_per_100g: 13,
-      carbs_per_100g: 41,
-      fats_per_100g: 4.2,
-      fiber_per_100g: 7
-    },
-    {
-      id: '26',
-      name: 'Quinoa',
-      brand: 'Genérico',
-      calories_per_100g: 120,
-      protein_per_100g: 4.4,
-      carbs_per_100g: 22,
-      fats_per_100g: 1.9,
-      fiber_per_100g: 2.8
-    },
-    // Lácteos
-    {
-      id: '27',
-      name: 'Queso',
-      brand: 'Genérico',
-      calories_per_100g: 113,
-      protein_per_100g: 7,
-      carbs_per_100g: 1,
-      fats_per_100g: 9,
-      fiber_per_100g: 0
-    },
-    {
-      id: '28',
-      name: 'Yogur natural',
-      brand: 'Genérico',
-      calories_per_100g: 61,
-      protein_per_100g: 3.5,
-      carbs_per_100g: 4.7,
-      fats_per_100g: 3.3,
-      fiber_per_100g: 0
-    },
-    {
-      id: '29',
-      name: 'Mantequilla',
-      brand: 'Genérico',
-      calories_per_100g: 717,
-      protein_per_100g: 0.9,
-      carbs_per_100g: 0.1,
-      fats_per_100g: 81,
-      fiber_per_100g: 0
-    },
-    // Frutos secos
-    {
-      id: '30',
-      name: 'Almendras',
-      brand: 'Genérico',
-      calories_per_100g: 579,
-      protein_per_100g: 21,
-      carbs_per_100g: 22,
-      fats_per_100g: 50,
-      fiber_per_100g: 12
-    },
-    {
-      id: '31',
-      name: 'Nueces',
-      brand: 'Genérico',
-      calories_per_100g: 654,
-      protein_per_100g: 15,
-      carbs_per_100g: 14,
-      fats_per_100g: 65,
-      fiber_per_100g: 7
-    },
-    {
-      id: '32',
-      name: 'Cacahuates',
-      brand: 'Genérico',
-      calories_per_100g: 567,
-      protein_per_100g: 26,
-      carbs_per_100g: 16,
-      fats_per_100g: 49,
-      fiber_per_100g: 8.5
-    },
-    // Legumbres
-    {
-      id: '33',
-      name: 'Frijoles negros',
-      brand: 'Genérico',
-      calories_per_100g: 132,
-      protein_per_100g: 8.9,
-      carbs_per_100g: 23,
-      fats_per_100g: 0.5,
-      fiber_per_100g: 8.7
-    },
-    {
-      id: '34',
-      name: 'Lentejas',
-      brand: 'Genérico',
-      calories_per_100g: 116,
-      protein_per_100g: 9,
-      carbs_per_100g: 20,
-      fats_per_100g: 0.4,
-      fiber_per_100g: 7.9
-    },
-    {
-      id: '35',
-      name: 'Garbanzos',
-      brand: 'Genérico',
-      calories_per_100g: 164,
-      protein_per_100g: 8.9,
-      carbs_per_100g: 27,
-      fats_per_100g: 2.6,
-      fiber_per_100g: 8
-    }
-  ];
-
-  const searchFood = async (query: string) => {
-    if (!query.trim()) {
+    if (query.length >= 2) {
+      setIsSearching(true);
+      // Simular búsqueda con delay
+      setTimeout(() => {
+        const filtered = popularFoods.filter(food =>
+          food.name.toLowerCase().includes(query.toLowerCase()) ||
+          food.brand.toLowerCase().includes(query.toLowerCase())
+        );
+        setSearchResults(filtered);
+        setIsSearching(false);
+      }, 500);
+    } else {
       setSearchResults([]);
-      return;
-    }
-
-    setIsSearching(true);
-
-    try {
-      // Simular delay de búsqueda para mejor UX
-      await new Promise(resolve => setTimeout(resolve, 300));
-
-      const queryLower = query.toLowerCase().trim();
-
-      // Buscar en la base de datos expandida
-      const filteredFoods = extendedFoodDatabase.filter(food =>
-        food.name.toLowerCase().includes(queryLower) ||
-        food.brand.toLowerCase().includes(queryLower) ||
-        // Búsqueda parcial por palabras
-        queryLower.split(' ').some(word =>
-          food.name.toLowerCase().includes(word) && word.length > 2
-        )
-      );
-
-      // Ordenar por relevancia
-      const sortedResults = filteredFoods.sort((a, b) => {
-        const aNameMatch = a.name.toLowerCase().indexOf(queryLower);
-        const bNameMatch = b.name.toLowerCase().indexOf(queryLower);
-
-        // Priorizar coincidencias exactas al inicio
-        if (aNameMatch === 0 && bNameMatch !== 0) return -1;
-        if (bNameMatch === 0 && aNameMatch !== 0) return 1;
-
-        // Luego por longitud de nombre (más específico primero)
-        if (aNameMatch !== -1 && bNameMatch !== -1) {
-          return a.name.length - b.name.length;
-        }
-
-        return aNameMatch === -1 ? 1 : -1;
-      });
-
-      // Limitar resultados para mejor rendimiento
-      setSearchResults(sortedResults.slice(0, 15));
-
-      if (sortedResults.length === 0) {
-        // Si no hay resultados, sugerir alimento personalizable
-        const customFood: FoodItem = {
-          id: 'custom',
-          name: `"${query}" - Personalizar`,
-          brand: 'Alimento personalizado',
-          calories_per_100g: 100,
-          protein_per_100g: 5,
-          carbs_per_100g: 15,
-          fats_per_100g: 3,
-          fiber_per_100g: 2
-        };
-        setSearchResults([customFood]);
-      }
-
-    } catch (error) {
-      console.error('Error searching food:', error);
-      setSearchResults([]);
-    } finally {
       setIsSearching(false);
     }
   };
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setSearchQuery(value);
-    searchFood(value);
+  // Manejar selección de alimento
+  const handleFoodSelect = (food: FoodItem) => {
+    setSelectedFood(food);
+    setQuantity(100);
+    calculateNutrition(food, 100);
+    setShowNutritionModal(true);
   };
 
-  const calculateNutrition = (food: FoodItem, quantity: number) => {
-    const factor = quantity / 100;
-    return {
+  // Calcular nutrición basada en cantidad
+  const calculateNutrition = (food: FoodItem, qty: number) => {
+    const factor = qty / 100;
+    setCalculatedNutrition({
       calories: Math.round(food.calories_per_100g * factor),
       protein: Math.round(food.protein_per_100g * factor * 10) / 10,
       carbs: Math.round(food.carbs_per_100g * factor * 10) / 10,
       fats: Math.round(food.fats_per_100g * factor * 10) / 10,
-      fiber: Math.round((food.fiber_per_100g || 0) * factor * 10) / 10
-    };
+      fiber: Math.round(food.fiber_per_100g * factor * 10) / 10
+    });
   };
 
-  const handleFoodSelect = (food: FoodItem) => {
-    setSelectedFood(food);
-    const nutrition = calculateNutrition(food, parseFloat(quantity) || 100);
-    setCalculatedNutrition(nutrition);
-    setShowNutritionModal(true);
-  };
-
+  // Manejar cambio de cantidad
   const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setQuantity(value);
-
+    const qty = parseInt(e.target.value) || 0;
+    setQuantity(qty);
     if (selectedFood) {
-      const nutrition = calculateNutrition(selectedFood, parseFloat(value) || 100);
-      setCalculatedNutrition(nutrition);
+      calculateNutrition(selectedFood, qty);
     }
   };
 
-  const addFoodToLog = () => {
+  // Iniciar escáner de código de barras
+  const startBarcodeScanner = async () => {
+    try {
+      setScannerError('');
+      setIsScanning(true);
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' }
+      });
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+    } catch (error) {
+      setScannerError('No se pudo acceder a la cámara');
+      setIsScanning(false);
+      console.error('Error accessing camera:', error);
+    }
+  };
+
+  // Detener escaneado
+  const stopScanning = () => {
+    setIsScanning(false);
+    if (videoRef.current?.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach(track => track.stop());
+      videoRef.current.srcObject = null;
+    }
+  };
+
+  // Iniciar cámara de comida
+  const startFoodCamera = async () => {
+    try {
+      setAnalysisError('');
+      setIsTakingPhoto(false);
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' }
+      });
+
+      if (foodVideoRef.current) {
+        foodVideoRef.current.srcObject = stream;
+      }
+    } catch (error) {
+      setAnalysisError('No se pudo acceder a la cámara');
+      console.error('Error accessing food camera:', error);
+    }
+  };
+
+  // Detener cámara de comida
+  const stopFoodCamera = () => {
+    if (foodVideoRef.current?.srcObject) {
+      const stream = foodVideoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach(track => track.stop());
+      foodVideoRef.current.srcObject = null;
+    }
+  };
+
+  // Capturar y analizar comida
+  const captureAndAnalyzeFood = async () => {
+    if (!foodVideoRef.current) return;
+
+    try {
+      setIsTakingPhoto(true);
+      
+      // Crear canvas para capturar imagen
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      
+      if (context) {
+        canvas.width = foodVideoRef.current.videoWidth;
+        canvas.height = foodVideoRef.current.videoHeight;
+        context.drawImage(foodVideoRef.current, 0, 0);
+        
+        const imageDataUrl = canvas.toDataURL('image/jpeg');
+        setCapturedImage(imageDataUrl);
+        setIsTakingPhoto(false);
+        
+        // Simular análisis de IA
+        setIsAnalyzing(true);
+        setTimeout(() => {
+          const mockDetectedFoods: DetectedFoodItem[] = [
+            {
+              name: 'Ensalada mixta',
+              calories: 150,
+              protein: 8,
+              carbs: 12,
+              fats: 5,
+              fiber: 4,
+              confidence: 0.85,
+              detected: true
+            },
+            {
+              name: 'Pollo a la plancha',
+              calories: 200,
+              protein: 25,
+              carbs: 2,
+              fats: 8,
+              fiber: 0,
+              confidence: 0.75,
+              detected: true
+            }
+          ];
+          
+          setDetectedFoods(mockDetectedFoods);
+          setIsAnalyzing(false);
+          setShowFoodResults(true);
+        }, 2000);
+      }
+    } catch (error) {
+      setAnalysisError('Error al capturar la imagen');
+      setIsTakingPhoto(false);
+      setIsAnalyzing(false);
+    }
+  };
+
+  // Agregar comida al registro
+  const addFoodToLog = async () => {
     if (!selectedFood) return;
 
     try {
       const today = deviceTime.getCurrentDate();
-      const nutritionKey = `nutrition_${today}`;
-
-      const existingData = localStorage.getItem(nutritionKey);
-      let dayData = existingData ? JSON.parse(existingData) : {
+      const savedData = localStorage.getItem(`nutrition_${today}`);
+      const currentData = savedData ? JSON.parse(savedData) : {
         calories: 0,
         protein: 0,
         carbs: 0,
         fats: 0,
         fiber: 0,
-        water: 0,
         meals: []
       };
 
+      // Crear nuevo meal
       const newMeal = {
         id: Date.now().toString(),
         name: selectedFood.name,
         brand: selectedFood.brand,
-        mealType: mealType,
-        quantity: parseFloat(quantity),
+        quantity: quantity,
         calories: calculatedNutrition.calories,
         protein: calculatedNutrition.protein,
         carbs: calculatedNutrition.carbs,
         fats: calculatedNutrition.fats,
         fiber: calculatedNutrition.fiber,
-        barcode: selectedFood.barcode, // Guardar código de barras si existe
+        mealType: mealType,
         timestamp: deviceTime.createTimestamp()
       };
 
-      dayData.calories += calculatedNutrition.calories;
-      dayData.protein += calculatedNutrition.protein;
-      dayData.carbs += calculatedNutrition.carbs;
-      dayData.fats += calculatedNutrition.fats;
-      dayData.fiber += calculatedNutrition.fiber;
-      dayData.meals.push(newMeal);
+      // Actualizar totales
+      const updatedData = {
+        ...currentData,
+        calories: currentData.calories + calculatedNutrition.calories,
+        protein: currentData.protein + calculatedNutrition.protein,
+        carbs: currentData.carbs + calculatedNutrition.carbs,
+        fats: currentData.fats + calculatedNutrition.fats,
+        fiber: currentData.fiber + calculatedNutrition.fiber,
+        meals: [...currentData.meals, newMeal]
+      };
 
-      localStorage.setItem(nutritionKey, JSON.stringify(dayData));
+      // Guardar datos
+      localStorage.setItem(`nutrition_${today}`, JSON.stringify(updatedData));
 
-      window.dispatchEvent(new CustomEvent('nutritionDataUpdated', {
-        detail: { date: today, data: dayData }
-      }));
+      // Disparar evento para actualizar otras páginas
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('nutritionDataUpdated', {
+          detail: { date: today, data: updatedData }
+        }));
+      }
 
+      // Cerrar modal y mostrar éxito
       setShowNutritionModal(false);
       setSelectedFood(null);
-      setQuantity('100');
-      setSearchQuery('');
-      setSearchResults([]);
-
+      
       // Mostrar mensaje de éxito
-      showSuccessMessage();
+      setTimeout(() => {
+        alert(`¡${selectedFood.name} agregado exitosamente!\n${calculatedNutrition.calories} calorías registradas.`);
+      }, 100);
+
     } catch (error) {
-      console.error('Error adding food:', error);
-      showErrorMessage();
+      console.error('Error adding food to log:', error);
+      alert('Error al agregar el alimento');
     }
   };
 
-  const showSuccessMessage = (message?: string) => {
-    const msgDiv = document.createElement('div');
-    msgDiv.style.cssText = `
-      position: fixed;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
-      border: 1px solid #16a34a;
-      border-radius: 12px;
-      padding: 16px 24px;
-      z-index: 3000;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      max-width: 320px;
-      width: 90%;
-    `;
-    msgDiv.innerHTML = `
-      <div style="width: 24px; height: 24px; background: #16a34a; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-        <i class="ri-check-line" style="color: white; font-size: 14px;"></i>
-      </div>
-      <div>
-        <p style="font-size: 14px; font-weight: 600; color: #15803d; margin: 0;">${message || t.foodAdded}</p>
-      </div>
-    `;
-    document.body.appendChild(msgDiv);
+  // Manejar cambios en formulario manual
+  const handleManualFoodChange = (field: keyof ManualFoodData, value: string) => {
+    setManualFood(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
 
-    setTimeout(() => {
-      if (document.body.contains(msgDiv)) {
-        document.body.removeChild(msgDiv);
+  // Crear alimento manual
+  const createManualFood = async () => {
+    // Validaciones
+    if (!manualFood.name.trim()) {
+      alert('El nombre del alimento es obligatorio');
+      return;
+    }
+
+    if (!manualFood.calories || !manualFood.protein || !manualFood.carbs || !manualFood.fats || !manualFood.quantity) {
+      alert('Por favor completa todos los campos obligatorios');
+      return;
+    }
+
+    const calories = parseFloat(manualFood.calories);
+    const protein = parseFloat(manualFood.protein);
+    const carbs = parseFloat(manualFood.carbs);
+    const fats = parseFloat(manualFood.fats);
+    const quantity = parseFloat(manualFood.quantity);
+    const fiber = parseFloat(manualFood.fiber) || 0;
+
+    if (isNaN(calories) || isNaN(protein) || isNaN(carbs) || isNaN(fats) || isNaN(quantity)) {
+      alert('Por favor ingresa valores numéricos válidos');
+      return;
+    }
+
+    try {
+      const today = deviceTime.getCurrentDate();
+      const savedData = localStorage.getItem(`nutrition_${today}`);
+      const currentData = savedData ? JSON.parse(savedData) : {
+        calories: 0,
+        protein: 0,
+        carbs: 0,
+        fats: 0,
+        fiber: 0,
+        meals: []
+      };
+
+      // Calcular nutrición según la cantidad
+      const factor = quantity / 100;
+      const calculatedCalories = Math.round(calories * factor);
+      const calculatedProtein = Math.round(protein * factor * 10) / 10;
+      const calculatedCarbs = Math.round(carbs * factor * 10) / 10;
+      const calculatedFats = Math.round(fats * factor * 10) / 10;
+      const calculatedFiber = Math.round(fiber * factor * 10) / 10;
+
+      // Crear nuevo meal
+      const newMeal = {
+        id: Date.now().toString(),
+        name: manualFood.name,
+        brand: manualFood.brand || 'Personalizado',
+        quantity: quantity,
+        calories: calculatedCalories,
+        protein: calculatedProtein,
+        carbs: calculatedCarbs,
+        fats: calculatedFats,
+        fiber: calculatedFiber,
+        mealType: manualFood.mealType,
+        timestamp: deviceTime.createTimestamp()
+      };
+
+      // Actualizar totales
+      const updatedData = {
+        ...currentData,
+        calories: currentData.calories + calculatedCalories,
+        protein: currentData.protein + calculatedProtein,
+        carbs: currentData.carbs + calculatedCarbs,
+        fats: currentData.fats + calculatedFats,
+        fiber: currentData.fiber + calculatedFiber,
+        meals: [...currentData.meals, newMeal]
+      };
+
+      // Guardar datos
+      localStorage.setItem(`nutrition_${today}`, JSON.stringify(updatedData));
+
+      // Disparar evento para actualizar otras páginas
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('nutritionDataUpdated', {
+          detail: { date: today, data: updatedData }
+        }));
       }
-    }, 3000);
+
+      // Limpiar formulario y cerrar modal
+      setManualFood({
+        name: '',
+        brand: '',
+        calories: '',
+        protein: '',
+        carbs: '',
+        fats: '',
+        fiber: '',
+        quantity: '100',
+        mealType: 'almuerzo'
+      });
+      setShowManualForm(false);
+
+      // Mostrar mensaje de éxito
+      setTimeout(() => {
+        alert(`¡${manualFood.name} creado y agregado exitosamente!\n${calculatedCalories} calorías registradas.`);
+      }, 100);
+
+    } catch (error) {
+      console.error('Error creating manual food:', error);
+      alert('Error al crear el alimento personalizado');
+    }
   };
 
-  const showErrorMessage = (message?: string) => {
-    const msgDiv = document.createElement('div');
-    msgDiv.style.cssText = `
-      position: fixed;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: linear-gradient(135deg, #fef2f2 0%, #fecaca 100%);
-      border: 1px solid #ef4444;
-      border-radius: 12px;
-      padding: 16px 24px;
-      z-index: 3000;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      max-width: 320px;
-      width: 90%;
-    `;
-    msgDiv.innerHTML = `
-      <div style="width: 24px; height: 24px; background: #ef4444; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-        <i class="ri-close-line" style="color: white; font-size: 14px;"></i>
-      </div>
-      <div>
-        <p style="font-size: 14px; font-weight: 600; color: #dc2626; margin: 0;">${message || t.errorAdding}</p>
-      </div>
-    `;
-    document.body.appendChild(msgDiv);
-
-    setTimeout(() => {
-      if (document.body.contains(msgDiv)) {
-        document.body.removeChild(msgDiv);
-      }
-    }, 3000);
+  // Formatear números
+  const formatNumber = (num: number): string => {
+    return Math.round(num * 10) / 10;
   };
 
-  const formatNumber = (value: number): string => {
-    return value % 1 === 0 ? value.toString() : value.toFixed(1);
-  };
+  const t = translations[language as keyof typeof translations] || translations.es;
 
   if (!mounted) {
     return (
@@ -1244,71 +664,9 @@ export default function AddFood() {
           borderRadius: '50%',
           animation: 'spin 1s linear infinite'
         }}></div>
-        <style jsx>{`
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        `}</style>
       </div>
     );
   }
-
-  const handleManualFoodChange = (field: string, value: string) => {
-    setManualFood(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const createManualFood = () => {
-    // Validar campos requeridos
-    if (!manualFood.name.trim() || !manualFood.calories || !manualFood.protein || !manualFood.carbs || !manualFood.fats) {
-      showErrorMessage(t.fillRequired);
-      return;
-    }
-
-    // Validar que los números sean válidos
-    const calories = parseFloat(manualFood.calories);
-    const protein = parseFloat(manualFood.protein);
-    const carbs = parseFloat(manualFood.carbs);
-    const fats = parseFloat(manualFood.fats);
-    const fiber = parseFloat(manualFood.fiber || '0');
-
-    if (isNaN(calories) || isNaN(protein) || isNaN(carbs) || isNaN(fats) || (manualFood.fiber && isNaN(fiber))) {
-      showErrorMessage(t.invalidNumbers);
-      return;
-    }
-
-    // Crear el objeto FoodItem
-    const customFoodItem: FoodItem = {
-      id: `manual_${Date.now()}`,
-      name: manualFood.name.trim(),
-      brand: manualFood.brand.trim() || 'Personalizado',
-      calories_per_100g: Math.max(0, calories),
-      protein_per_100g: Math.max(0, protein),
-      carbs_per_100g: Math.max(0, carbs),
-      fats_per_100g: Math.max(0, fats),
-      fiber_per_100g: Math.max(0, fiber)
-    };
-
-    // Cerrar formulario manual
-    setShowManualForm(false);
-
-    // Limpiar formulario
-    setManualFood({
-      name: '',
-      brand: '',
-      calories: '',
-      protein: '',
-      carbs: '',
-      fats: '',
-      fiber: ''
-    });
-
-    // Abrir modal de nutrición con el alimento creado
-    handleFoodSelect(customFoodItem);
-  };
 
   return (
     <div style={{
@@ -1433,7 +791,7 @@ export default function AddFood() {
             )}
           </div>
 
-          {/* Action Buttons - MEJORADO con botón de foto */}
+          {/* Action Buttons */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: '1fr 1fr 1fr',
@@ -1466,7 +824,6 @@ export default function AddFood() {
               {t.scanBarcode}
             </button>
 
-            {/* NUEVO: Botón para tomar foto de comida */}
             <button
               onClick={() => {
                 setShowFoodCamera(true);
@@ -1495,7 +852,6 @@ export default function AddFood() {
               {t.takePhoto}
             </button>
 
-            {/* NUEVO: Botón para agregar manual */}
             <button
               onClick={() => setShowManualForm(true)}
               className="!rounded-button"
@@ -1726,7 +1082,7 @@ export default function AddFood() {
         )}
       </main>
 
-      {/* NUEVO: Food Camera Modal */}
+      {/* Food Camera Modal */}
       {showFoodCamera && (
         <>
           <div
@@ -1850,7 +1206,6 @@ export default function AddFood() {
                 zIndex: 2002,
                 pointerEvents: 'none'
               }}>
-                {/* Área de enfoque para comida */}
                 <div style={{
                   width: '100%',
                   height: '100%',
@@ -1893,7 +1248,6 @@ export default function AddFood() {
                       }}
                     />
                   ))}
-                  {/* Indicador para comida */}
                   <div style={{
                     position: 'absolute',
                     bottom: '-50px',
@@ -2183,10 +1537,9 @@ export default function AddFood() {
             </div>
           </div>
         </>
-
       )}
 
-      {/* NUEVO: Food Results Modal */}
+      {/* Food Results Modal */}
       {showFoodResults && (
         <>
           <div
@@ -2345,7 +1698,6 @@ export default function AddFood() {
 
                   <button
                     onClick={() => {
-                      // Convertir DetectedFoodItem a FoodItem
                       const foodItem: FoodItem = {
                         id: `detected_${index}`,
                         name: food.name,
@@ -2441,7 +1793,6 @@ export default function AddFood() {
             </div>
           </div>
         </>
-
       )}
 
       {/* Barcode Scanner Modal */}
@@ -2546,7 +1897,6 @@ export default function AddFood() {
               zIndex: 2002,
               pointerEvents: 'none'
             }}>
-              {/* Área de enfoque principal */}
               <div style={{
                 width: '100%',
                 height: '100%',
@@ -2556,7 +1906,6 @@ export default function AddFood() {
                 background: 'rgba(59, 130, 246, 0.1)',
                 backdropFilter: 'blur(1px)'
               }}>
-                {/* Línea de escaneo animada */}
                 <div style={{
                   position: 'absolute',
                   top: 0,
@@ -2567,7 +1916,6 @@ export default function AddFood() {
                   animation: 'scan-line 2s infinite',
                   borderRadius: '1px'
                 }} />
-                {/* Esquinas de enfoque */}
                 {[{
                   top: '-3px',
                   left: '-3px',
@@ -2600,7 +1948,6 @@ export default function AddFood() {
                     }}
                   />
                 ))}
-                {/* Indicador de área óptima */}
                 <div style={{
                   position: 'absolute',
                   bottom: '-40px',
@@ -2904,7 +2251,6 @@ export default function AddFood() {
             </div>
           </div>
         </>
-
       )}
 
       {/* Nutrition Modal */}
@@ -3222,10 +2568,9 @@ export default function AddFood() {
             </div>
           </div>
         </>
-
       )}
 
-      {/* NUEVO: Manual Food Form Modal */}
+      {/* Manual Food Form Modal */}
       {showManualForm && (
         <>
           <div
@@ -3514,6 +2859,80 @@ export default function AddFood() {
               />
             </div>
 
+            {/* Cantidad personalizada */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '500',
+                color: '#374151',
+                marginBottom: '8px'
+              }}>
+                {t.customQuantity} *
+              </label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="number"
+                  value={manualFood.quantity}
+                  onChange={(e) => handleManualFoodChange('quantity', e.target.value)}
+                  placeholder="150"
+                  min="1"
+                  step="1"
+                  style={{
+                    width: '100%',
+                    padding: '12px 60px 12px 16px',
+                    borderRadius: '12px',
+                    border: '1px solid #e5e7eb',
+                    fontSize: '16px',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                />
+                <span style={{
+                  position: 'absolute',
+                  right: '16px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  fontSize: '14px',
+                  color: '#6b7280'
+                }}>
+                  {t.grams}
+                </span>
+              </div>
+            </div>
+
+            {/* Tipo de comida */}
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '500',
+                color: '#374151',
+                marginBottom: '8px'
+              }}>
+                {t.mealType}
+              </label>
+              <select
+                value={manualFood.mealType}
+                onChange={(e) => handleManualFoodChange('mealType', e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  borderRadius: '12px',
+                  border: '1px solid #e5e7eb',
+                  fontSize: '16px',
+                  outline: 'none',
+                  backgroundColor: 'white',
+                  boxSizing: 'border-box'
+                }}
+              >
+                <option value="desayuno">{t.breakfast}</option>
+                <option value="almuerzo">{t.lunch}</option>
+                <option value="cena">{t.dinner}</option>
+                <option value="snack">{t.snack}</option>
+              </select>
+            </div>
+
             {/* Nota informativa */}
             <div style={{
               background: '#f0f9ff',
@@ -3545,7 +2964,7 @@ export default function AddFood() {
                     color: '#1f2937',
                     margin: '0 0 4px 0'
                   }}>
-                    Información nutricional
+                    Creación de alimento personalizado
                   </p>
                   <p style={{
                     fontSize: '12px',
@@ -3553,7 +2972,7 @@ export default function AddFood() {
                     margin: 0,
                     lineHeight: '1.4'
                   }}>
-                    Ingresa los valores nutricionales por cada 100 gramos del alimento. Los campos marcados con * son obligatorios.
+                    Ingresa los valores nutricionales por cada 100g y especifica la cantidad que vas a consumir. El alimento se agregará directamente a tu registro diario.
                   </p>
                 </div>
               </div>
@@ -3603,12 +3022,11 @@ export default function AddFood() {
             </div>
           </div>
         </>
-
       )}
 
       <BottomNavigation />
 
-      {/* Agregar estilos CSS mejorados */}
+      {/* Estilos CSS */}
       <style jsx>{`
         @keyframes scan-line {
           0% { transform: translateY(0); opacity: 1; }
