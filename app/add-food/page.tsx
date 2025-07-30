@@ -214,6 +214,26 @@ export default function AddFood() {
 
   const t = translations[language as keyof typeof translations] || translations.es;
 
+  // Función para manejar errores del escáner - AGREGAR
+  const handleScannerError = (error: Error) => {
+    console.error('❌ Error del escáner:', error);
+    setScannerError(error.message || t.cameraError);
+    setIsScanning(false);
+  };
+
+  // Función para detener el escáner - AGREGAR
+  const stopScanning = () => {
+    setIsScanning(false);
+    if (scannerRef.current) {
+      stopBarcodeScanner(scannerRef.current);
+      scannerRef.current = null;
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+  };
+
   // Función mejorada para iniciar el escáner de códigos
   const startBarcodeScanner = async () => {
     if (!videoRef.current) return;
@@ -1133,7 +1153,6 @@ export default function AddFood() {
                   animation: 'scan-line 2s infinite',
                   borderRadius: '1px'
                 }} />
-                
                 {/* Esquinas de enfoque */}
                 {[
                   { top: '-3px', left: '-3px', borderTop: '6px solid #3b82f6', borderLeft: '6px solid #3b82f6' },
@@ -1152,7 +1171,6 @@ export default function AddFood() {
                     }}
                   />
                 ))}
-                
                 {/* Indicador de área óptima */}
                 <div style={{
                   position: 'absolute',
@@ -1337,7 +1355,7 @@ export default function AddFood() {
                       {t.scannerInstructions}
                     </p>
                   </div>
-                  
+
                   <button
                     onClick={stopScanning}
                     className="!rounded-button"
@@ -1397,7 +1415,7 @@ export default function AddFood() {
                     <i className="ri-camera-line" style={{ fontSize: '24px' }}></i>
                     {t.startCamera}
                   </button>
-                  
+
                   <div style={{
                     marginTop: '16px',
                     padding: '12px 16px',
@@ -1417,7 +1435,6 @@ export default function AddFood() {
                   </div>
                 </div>
               )}
-
               {lastScannedCode && (
                 <div style={{
                   background: 'rgba(255,255,255,0.1)',
@@ -1814,12 +1831,12 @@ export default function AddFood() {
           50% { transform: translateY(100px); opacity: 0.8; }
           100% { transform: translateY(200px); opacity: 0; }
         }
-        
+
         @keyframes pulse {
           0%, 100% { opacity: 1; transform: scale(1); }
           50% { opacity: 0.7; transform: scale(1.1); }
         }
-        
+
         @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
