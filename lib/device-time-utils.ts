@@ -38,7 +38,7 @@ export class DeviceTimeManager {
   constructor() {
     // Verificar si estamos en el cliente de forma más robusta
     this.isClient = typeof window !== 'undefined' && typeof document !== 'undefined';
-    
+
     // Solo inicializar si estamos en el cliente y hay usuarios existentes
     if (this.isClient) {
       // Inicializar de forma segura para no interrumpir usuarios existentes
@@ -58,9 +58,7 @@ export class DeviceTimeManager {
   private safeInitialize(): void {
     try {
       // Verificar si el usuario ya tiene datos para evitar interrupciones
-      const hasUserData = localStorage.getItem('userData') || 
-                          localStorage.getItem('isAuthenticated') ||
-                          Object.keys(localStorage).some(key => key.startsWith('nutrition_'));
+      const hasUserData = localStorage.getItem('userData') || localStorage.getItem('isAuthenticated') || Object.keys(localStorage).some(key => key.startsWith('nutrition_'));
 
       if (hasUserData) {
         // Usuario existente - inicializar gradualmente sin afectar funcionalidad
@@ -98,7 +96,7 @@ export class DeviceTimeManager {
     try {
       this.updateTimeInfo();
       this.isInitialized = true;
-      
+
       // Actualizar cada minuto para nuevos usuarios
       this.updateInterval = setInterval(() => {
         this.updateTimeInfo();
@@ -131,7 +129,7 @@ export class DeviceTimeManager {
   private updateTimeInfo(): void {
     try {
       const now = new Date();
-      
+
       this.cachedTimeInfo = {
         currentDate: this.getDateString(now),
         currentTime: this.getTimeString(now),
@@ -151,7 +149,7 @@ export class DeviceTimeManager {
   // Crear información de tiempo fallback ultra segura
   private createFallbackTimeInfo(): void {
     const now = new Date();
-    
+
     this.cachedTimeInfo = {
       currentDate: now.toISOString().split('T')[0],
       currentTime: now.toTimeString().split(' ')[0].substring(0, 5),
@@ -181,26 +179,31 @@ export class DeviceTimeManager {
   // Obtener hora en formato HH:MM con máxima compatibilidad
   private getTimeString(date: Date, options: TimeFormatOptions = {}): string {
     try {
-      // Intentar usar Intl.DateTimeFormat si está disponible
-      if (typeof Intl !== 'undefined' && Intl.DateTimeFormat) {
-        const timeOptions: Intl.DateTimeFormatOptions = {
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: !options.use24Hour
-        };
+      // Intentar usar Intl.DateTimeFormat si está disponible y es funcional
+      if (typeof Intl !== 'undefined' && typeof Intl.DateTimeFormat === 'function') {
+        try {
+          const timeOptions: Intl.DateTimeFormatOptions = {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: !options.use24Hour
+          };
 
-        if (options.includeSeconds) {
-          timeOptions.second = '2-digit';
+          if (options.includeSeconds) {
+            timeOptions.second = '2-digit';
+          }
+
+          const locale = options.locale || this.getDeviceLocale();
+          return date.toLocaleTimeString(locale, timeOptions);
+        } catch (intlError) {
+          // Fallback si Intl falla
+          console.warn('Intl.DateTimeFormat falló:', intlError);
         }
-
-        const locale = options.locale || this.getDeviceLocale();
-        return date.toLocaleTimeString(locale, timeOptions);
-      } else {
-        // Fallback manual
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        return `${hours}:${minutes}`;
       }
+
+      // Fallback manual
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      return `${hours}:${minutes}`;
     } catch (error) {
       console.warn('Error obteniendo string de hora:', error);
       const hours = String(date.getHours()).padStart(2, '0');
@@ -212,14 +215,18 @@ export class DeviceTimeManager {
   // Obtener zona horaria del dispositivo con fallbacks seguros
   private getTimezone(): string {
     try {
-      if (this.isClient && typeof Intl !== 'undefined' && Intl.DateTimeFormat) {
-        const resolvedOptions = Intl.DateTimeFormat().resolvedOptions();
-        return resolvedOptions.timeZone || 'UTC';
+      if (this.isClient && typeof Intl !== 'undefined' && typeof Intl.DateTimeFormat === 'function') {
+        try {
+          const resolvedOptions = Intl.DateTimeFormat().resolvedOptions();
+          return resolvedOptions.timeZone || 'UTC';
+        } catch (intlError) {
+          console.warn('Error obteniendo timezone con Intl:', intlError);
+        }
       }
     } catch (error) {
       console.warn('Error obteniendo zona horaria:', error);
     }
-    
+
     // Intentar obtener offset como fallback
     try {
       const offset = new Date().getTimezoneOffset();
@@ -239,7 +246,7 @@ export class DeviceTimeManager {
         // Verificar diferentes propiedades de navigator de forma segura
         const navigatorLanguage = navigator.language;
         if (navigatorLanguage) return navigatorLanguage;
-        
+
         const navigatorLanguages = (navigator as any).languages;
         if (navigatorLanguages && navigatorLanguages.length > 0) {
           return navigatorLanguages[0];
@@ -254,28 +261,32 @@ export class DeviceTimeManager {
   // Formatear fecha según opciones con máxima compatibilidad
   private formatDate(date: Date, options: DateFormatOptions = {}): string {
     try {
-      if (typeof Intl !== 'undefined' && Intl.DateTimeFormat) {
-        const locale = options.locale || this.getDeviceLocale();
-        
-        const dateOptions: Intl.DateTimeFormatOptions = {};
-        
-        if (options.includeWeekday) {
-          dateOptions.weekday = 'long';
-        }
-        
-        if (options.includeYear !== false) {
-          dateOptions.year = 'numeric';
-        }
-        
-        dateOptions.month = options.format === 'short' ? 'short' : 'long';
-        dateOptions.day = 'numeric';
+      if (typeof Intl !== 'undefined' && typeof Intl.DateTimeFormat === 'function') {
+        try {
+          const locale = options.locale || this.getDeviceLocale();
 
-        return date.toLocaleDateString(locale, dateOptions);
+          const dateOptions: Intl.DateTimeFormatOptions = {};
+
+          if (options.includeWeekday) {
+            dateOptions.weekday = 'long';
+          }
+
+          if (options.includeYear !== false) {
+            dateOptions.year = 'numeric';
+          }
+
+          dateOptions.month = options.format === 'short' ? 'short' : 'long';
+          dateOptions.day = 'numeric';
+
+          return date.toLocaleDateString(locale, dateOptions);
+        } catch (intlError) {
+          console.warn('Intl.DateTimeFormat falló en formatDate:', intlError);
+        }
       }
     } catch (error) {
       console.warn('Error formateando fecha:', error);
     }
-    
+
     // Fallback ultra seguro
     return date.toDateString();
   }
@@ -416,13 +427,13 @@ export class DeviceTimeManager {
   } = {}): string {
     try {
       const date = typeof timestamp === 'string' ? new Date(timestamp) : new Date(timestamp);
-      
+
       if (isNaN(date.getTime())) {
         return 'Fecha inválida';
       }
 
       const parts = [];
-      
+
       if (options.includeDate !== false) {
         try {
           parts.push(this.formatDate(date, options.dateOptions));
@@ -430,7 +441,7 @@ export class DeviceTimeManager {
           parts.push(date.toDateString());
         }
       }
-      
+
       if (options.includeTime !== false) {
         try {
           parts.push(this.formatTime(date, options.timeOptions));
@@ -440,7 +451,7 @@ export class DeviceTimeManager {
           parts.push(`${hours}:${minutes}`);
         }
       }
-      
+
       return parts.join(' - ');
     } catch (error) {
       console.warn('Error formateando timestamp:', error);
@@ -508,7 +519,7 @@ export function useDeviceTime() {
   React.useEffect(() => {
     try {
       const timeManager = DeviceTimeManager.getInstance();
-      
+
       // Obtener información inicial de forma segura
       const initialInfo = timeManager.getTimeInfo();
       setTimeInfo(initialInfo);
@@ -617,7 +628,7 @@ export const deviceTime = {
       };
     }
   },
-  
+
   // Métodos rápidos con fallbacks ultra seguros
   getCurrentDate: () => {
     try {
@@ -626,7 +637,7 @@ export const deviceTime = {
       return new Date().toISOString().split('T')[0];
     }
   },
-  
+
   getCurrentTime: (options?: TimeFormatOptions) => {
     try {
       return DeviceTimeManager.getInstance().getCurrentTime(options);
@@ -634,7 +645,7 @@ export const deviceTime = {
       return new Date().toTimeString().split(' ')[0].substring(0, 5);
     }
   },
-  
+
   getFormattedDate: (options?: DateFormatOptions) => {
     try {
       return DeviceTimeManager.getInstance().getFormattedDate(options);
@@ -642,7 +653,7 @@ export const deviceTime = {
       return new Date().toDateString();
     }
   },
-  
+
   getTimezone: () => {
     try {
       return DeviceTimeManager.getInstance().getDeviceTimezone();
@@ -650,7 +661,7 @@ export const deviceTime = {
       return 'UTC';
     }
   },
-  
+
   getLocale: () => {
     try {
       return DeviceTimeManager.getInstance().getLocale();
@@ -658,7 +669,7 @@ export const deviceTime = {
       return 'es-ES';
     }
   },
-  
+
   isToday: (date: string) => {
     try {
       return DeviceTimeManager.getInstance().isToday(date);
@@ -666,7 +677,7 @@ export const deviceTime = {
       return false;
     }
   },
-  
+
   formatTimestamp: (timestamp: string | number, options?: any) => {
     try {
       return DeviceTimeManager.getInstance().formatTimestamp(timestamp, options);
@@ -674,7 +685,7 @@ export const deviceTime = {
       return 'Error en fecha';
     }
   },
-  
+
   createTimestamp: () => {
     try {
       return DeviceTimeManager.getInstance().createTimestamp();
@@ -682,7 +693,7 @@ export const deviceTime = {
       return new Date().toISOString();
     }
   },
-  
+
   synchronize: () => {
     try {
       return DeviceTimeManager.getInstance().synchronizeTimezone();
