@@ -1,10 +1,13 @@
 
-// Google Vision API Configuration - VERSIÓN ULTRA AVANZADA
+// Google Vision API Configuration - VERSIÓN ULTRA AVANZADA - DESACTIVADA
 export const VISION_API_KEY = "AIzaSyBhYkIRJN8BX450AX8YZEg_drHlfWYf8No";
+
+// SISTEMA DESACTIVADO - Solo funciones básicas habilitadas
+const VISION_API_DISABLED = true;
 
 // Verificar que la configuración esté presente
 if (!VISION_API_KEY || VISION_API_KEY.includes("TU_API_KEY")) {
-  console.warn('⚠️  Google Vision API Key no está configurado. Agrega tu API Key a las variables de entorno.');
+  console.warn('⚠️ Google Vision API Key no está configurado. Agrega tu API Key a las variables de entorno.');
 }
 
 // Configuración de seguridad y rendimiento ultra optimizada
@@ -550,7 +553,20 @@ class UltraEnhancedFoodDetector {
       const contextClues = [];
 
       // Contexto de cocina/comida EXPANDIDO con validación
-      const kitchenKeywords = ['plate', 'bowl', 'table', 'kitchen', 'dining', 'restaurant', 'fork', 'knife', 'spoon', 'cutting board', 'pan', 'oven'];
+      const kitchenKeywords = [
+        'plate',
+        'bowl',
+        'table',
+        'kitchen',
+        'dining',
+        'restaurant',
+        'fork',
+        'knife',
+        'spoon',
+        'cutting board',
+        'pan',
+        'oven'
+      ];
 
       const hasKitchenContext = Array.isArray(labels) && labels.some((label: any) =>
         label && label.description && typeof label.description === 'string' &&
@@ -641,7 +657,14 @@ class UltraEnhancedFoodDetector {
 
       const text = firstAnnotation.description.toLowerCase() || '';
 
-      const ingredientKeywords = ['ingredients', 'ingredientes', 'contains', 'contiene', 'nutrition', 'nutrición'];
+      const ingredientKeywords = [
+        'ingredients',
+        'ingredientes',
+        'contains',
+        'contiene',
+        'nutrition',
+        'nutrición'
+      ];
 
       if (ingredientKeywords.some(keyword => text.includes(keyword))) {
         return 'ingredient_text_detected';
@@ -750,7 +773,18 @@ class UltraEnhancedFoodDetector {
   private isBreakfastFood(name: string): boolean {
     try {
       if (!name || typeof name !== 'string') return false;
-      const breakfastFoods = ['egg', 'huevo', 'cereal', 'bread', 'pan', 'coffee', 'café', 'milk', 'leche', 'banana'];
+      const breakfastFoods = [
+        'egg',
+        'huevo',
+        'cereal',
+        'bread',
+        'pan',
+        'coffee',
+        'café',
+        'milk',
+        'leche',
+        'banana'
+      ];
       return breakfastFoods.some(food => name.toLowerCase().includes(food));
     } catch (error) {
       console.warn('Error en isBreakfastFood:', error);
@@ -761,7 +795,15 @@ class UltraEnhancedFoodDetector {
   private isLunchFood(name: string): boolean {
     try {
       if (!name || typeof name !== 'string') return false;
-      const lunchFoods = ['chicken', 'pollo', 'rice', 'arroz', 'salad', 'ensalada', 'sandwich'];
+      const lunchFoods = [
+        'chicken',
+        'pollo',
+        'rice',
+        'arroz',
+        'salad',
+        'ensalada',
+        'sandwich'
+      ];
       return lunchFoods.some(food => name.toLowerCase().includes(food));
     } catch (error) {
       console.warn('Error en isLunchFood:', error);
@@ -772,7 +814,15 @@ class UltraEnhancedFoodDetector {
   private isDinnerFood(name: string): boolean {
     try {
       if (!name || typeof name !== 'string') return false;
-      const dinnerFoods = ['salmon', 'salmón', 'beef', 'carne', 'pasta', 'vegetables', 'verduras'];
+      const dinnerFoods = [
+        'salmon',
+        'salmón',
+        'beef',
+        'carne',
+        'pasta',
+        'vegetables',
+        'verduras'
+      ];
       return dinnerFoods.some(food => name.toLowerCase().includes(food));
     } catch (error) {
       console.warn('Error en isDinnerFood:', error);
@@ -785,11 +835,35 @@ class UltraEnhancedFoodDetector {
       if (!name || typeof name !== 'string' || !context || typeof context !== 'string') return 1;
 
       const colorMappings = {
-        'color_red': ['tomato', 'apple', 'strawberry', 'meat', 'beef'],
-        'color_green': ['broccoli', 'spinach', 'lettuce', 'cucumber'],
-        'color_yellow': ['banana', 'corn', 'cheese'],
-        'color_orange': ['carrot', 'orange', 'pumpkin'],
-        'color_brown': ['bread', 'coffee', 'chocolate', 'meat']
+        'color_red': [
+          'tomato',
+          'apple',
+          'strawberry',
+          'meat',
+          'beef'
+        ],
+        'color_green': [
+          'broccoli',
+          'spinach',
+          'lettuce',
+          'cucumber'
+        ],
+        'color_yellow': [
+          'banana',
+          'corn',
+          'cheese'
+        ],
+        'color_orange': [
+          'carrot',
+          'orange',
+          'pumpkin'
+        ],
+        'color_brown': [
+          'bread',
+          'coffee',
+          'chocolate',
+          'meat'
+        ]
       };
 
       for (const [color, foods] of Object.entries(colorMappings)) {
@@ -924,603 +998,70 @@ export async function captureImageFromVideo(videoElement: HTMLVideoElement): Pro
   });
 }
 
-// Función PRINCIPAL ULTRA MEJORADA para detectar alimentos CON MANEJO COMPLETO DE ERRORES
+// FUNCIÓN PRINCIPAL DESACTIVADA - Solo devuelve sugerencias estáticas
 export async function detectFoodInImage(imageFile: File): Promise<any[]> {
   try {
-    console.log(' Iniciando detección de alimentos...');
+    console.log(' Detección de alimentos DESACTIVADA');
 
-    // Validación inicial robusta
+    // Validación inicial
     if (!imageFile || !(imageFile instanceof File)) {
       console.warn('Archivo de imagen inválido');
-      return getErrorFallbackSuggestions(new Error('Archivo inválido'));
+      return getStaticFoodSuggestions();
     }
 
-    // Verificar cache primero
-    let base64Image: string;
-    let cacheKey: string;
-    try {
-      base64Image = await fileToBase64(imageFile);
-      cacheKey = getCacheKey(base64Image);
-      const cachedResult = getCachedResult(cacheKey);
+    // Simular un pequeño delay para mejor UX
+    await new Promise(resolve => setTimeout(resolve, 1500));
 
-      if (cachedResult && Array.isArray(cachedResult)) {
-        console.log(' Usando resultado de cache');
-        return cachedResult;
-      }
-    } catch (cacheError) {
-      console.warn('Error con cache, continuando sin cache:', cacheError);
-    }
-
-    // Validaciones de seguridad
-    if (!checkRateLimit()) {
-      console.warn('Rate limit alcanzado');
-      return getIntelligentSuggestions();
-    }
-
-    if (!validateOrigin()) {
-      console.warn('Origen no autorizado, continuando con modo limitado');
-      return getIntelligentSuggestions();
-    }
-
-    // Validar archivo
-    if (imageFile.size > 8 * 1024 * 1024) {
-      console.warn('Archivo demasiado grande');
-      return getErrorFallbackSuggestions(new Error('Archivo demasiado grande (máximo 8MB)'));
-    }
-
-    if (!imageFile.type.startsWith('image/')) {
-      console.warn('Tipo de archivo no válido');
-      return getErrorFallbackSuggestions(new Error('Tipo de archivo no válido'));
-    }
-
-    // Pre-procesar imagen con filtros ULTRA avanzados
-    let processedImage: File;
-    let processedBase64: string;
-    try {
-      processedImage = await preprocessImageAdvanced(imageFile);
-      processedBase64 = await fileToBase64(processedImage);
-    } catch (processError) {
-      console.warn('Error procesando imagen, usando original:', processError);
-      processedImage = imageFile;
-      processedBase64 = base64Image!;
-    }
-
-    // Preparar solicitud SÚPER avanzada a Google Vision API
-    const requestBody = {
-      requests: [
-        {
-          image: {
-            content: processedBase64
-          },
-          features: [
-            {
-              type: 'LABEL_DETECTION',
-              maxResults: 20
-            },
-            {
-              type: 'OBJECT_LOCALIZATION',
-              maxResults: 15
-            },
-            {
-              type: 'TEXT_DETECTION',
-              maxResults: 10
-            },
-            {
-              type: 'WEB_DETECTION',
-              maxResults: 12
-            },
-            {
-              type: 'SAFE_SEARCH_DETECTION',
-              maxResults: 1
-            }
-          ]
-        }
-      ]
-    };
-
-    // Realizar solicitud con timeout ultra mejorado
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 25000);
-
-    let response: Response;
-    try {
-      response = await fetch(
-        `https://vision.googleapis.com/v1/images:annotate?key=${VISION_API_KEY}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(requestBody),
-          signal: controller.signal
-        }
-      );
-
-      clearTimeout(timeoutId);
-    } catch (fetchError) {
-      clearTimeout(timeoutId);
-      console.error('Error de conexión con Vision API:', fetchError);
-      return getErrorFallbackSuggestions(fetchError);
-    }
-
-    if (!response.ok) {
-      console.error('Error de API:', response.status, response.statusText);
-      return getErrorFallbackSuggestions(new Error(`API Error: ${response.status} - ${response.statusText}`));
-    }
-
-    const data = await response.json();
-
-    if (data.responses && Array.isArray(data.responses) && data.responses[0]) {
-      const apiResponse = data.responses[0];
-
-      // Verificar si hay errores en la respuesta
-      if (apiResponse.error) {
-        console.error('Vision API Error:', apiResponse.error);
-        return getErrorFallbackSuggestions(new Error(`Vision API Error: ${apiResponse.error.message}`));
-      }
-
-      const labels = Array.isArray(apiResponse.labelAnnotations) ? apiResponse.labelAnnotations : [];
-      const objects = Array.isArray(apiResponse.localizedObjectAnnotations) ? apiResponse.localizedObjectAnnotations : [];
-      const textAnnotations = Array.isArray(apiResponse.textAnnotations) ? apiResponse.textAnnotations : [];
-      const webDetection = apiResponse.webDetection || {};
-
-      console.log(' Análisis completo:', {
-        labels: labels.length,
-        objects: objects.length,
-        textDetections: textAnnotations.length,
-        webEntities: webDetection.webEntities?.length || 0
-      });
-
-      // Analizar contexto SÚPER avanzado
-      const context = ultraFoodDetector.analyzeImageContext(labels, objects, textAnnotations);
-      console.log(' Contexto detectado:', context);
-
-      // Combinar TODAS las detecciones
-      let allDetections = [...labels, ...objects];
-
-      // Procesar texto detectado MEJORADO
-      if (textAnnotations.length > 0) {
-        try {
-          const detectedText = textAnnotations[0].description || '';
-
-          const textWords = detectedText.toLowerCase().split(/\s+/);
-
-          console.log(' Texto detectado:', detectedText);
-
-          textWords.forEach((word: string) => {
-            try {
-              if (word && word.length > 3) {
-                const foodMatch = findBestFoodMatch(word);
-                if (foodMatch && foodMatch.confidence > 0.75) {
-                  allDetections.push({
-                    description: word,
-                    score: foodMatch.confidence,
-                    source: 'text_detection',
-                    foodData: foodMatch
-                  });
-                }
-              }
-            } catch (wordError) {
-              console.warn('Error procesando palabra:', word, wordError);
-            }
-          });
-        } catch (textProcessError) {
-          console.warn('Error procesando texto:', textProcessError);
-        }
-      }
-
-      // Procesar web detection con MÁXIMA inteligencia
-      if (webDetection.webEntities && Array.isArray(webDetection.webEntities)) {
-        console.log(' Entidades web encontradas:', webDetection.webEntities.length);
-
-        webDetection.webEntities.forEach((entity: any) => {
-          try {
-            if (entity && entity.description && entity.score > 0.5) {
-              const foodMatch = findBestFoodMatch(entity.description);
-              if (foodMatch) {
-                allDetections.push({
-                  description: entity.description,
-                  score: entity.score * 0.95,
-                  source: 'web_detection',
-                  foodData: foodMatch
-                });
-              }
-            }
-          } catch (entityError) {
-            console.warn('Error procesando entidad web:', entityError);
-          }
-        });
-      }
-
-      // Filtrar solo elementos relacionados con comida
-      const foodItems = filterFoodItemsAdvanced(allDetections);
-      console.log(' Alimentos filtrados:', foodItems.length);
-
-      // Aplicar mejoras basadas en SÚPER contexto
-      const enhancedFoodItems = ultraFoodDetector.enhanceDetectionWithContext(foodItems, context);
-      console.log(' Alimentos mejorados:', enhancedFoodItems.length);
-
-      // Mapear a nuestro formato ULTRA avanzado
-      const finalResults = mapToAdvancedFoodFormat(enhancedFoodItems);
-
-      // Actualizar historial con análisis nutricional
-      ultraFoodDetector.updateDetectionHistory(finalResults);
-
-      // Obtener sugerencias nutricionales
-      try {
-        const nutritionalSuggestions = ultraFoodDetector.getNutritionalSuggestions();
-        if (nutritionalSuggestions.length > 0) {
-          console.log(' Sugerencias nutricionales:', nutritionalSuggestions);
-        }
-      } catch (suggestionsError) {
-        console.warn('Error obteniendo sugerencias nutricionales:', suggestionsError);
-      }
-
-      // Guardar en cache de manera segura
-      try {
-        if (cacheKey! && Array.isArray(finalResults)) {
-          setCachedResult(cacheKey!, finalResults);
-        }
-      } catch (cacheError) {
-        console.warn('Error guardando en cache:', cacheError);
-      }
-
-      if (Array.isArray(finalResults) && finalResults.length > 0) {
-        console.log(' Detección exitosa:', finalResults.length, 'alimentos encontrados');
-        return finalResults;
-      }
-    }
-
-    // Si no se detectó nada, devolver sugerencias SÚPER inteligentes
-    console.log(' No se detectaron alimentos, devolviendo sugerencias inteligentes');
-    const suggestions = getIntelligentSuggestions();
-    try {
-      if (cacheKey!) {
-        setCachedResult(cacheKey!, suggestions);
-      }
-    } catch (cacheError) {
-      console.warn('Error guardando sugerencias en cache:', cacheError);
-    }
-    return suggestions;
+    // Devolver sugerencias estáticas basadas en hora del día
+    console.log(' Devolviendo sugerencias estáticas de alimentos');
+    return getIntelligentSuggestions();
 
   } catch (error) {
-    console.error(' Error crítico detecting food:', error);
-    return getErrorFallbackSuggestions(error);
+    console.error(' Error en función desactivada:', error);
+    return getStaticFoodSuggestions();
   }
 }
 
-// NUEVA función para detectar información nutricional en etiquetas
-export async function detectNutritionalLabel(imageFile: File): Promise<any> {
-  try {
-    if (!imageFile || !(imageFile instanceof File)) {
-      console.warn('Archivo inválido para detección de etiqueta nutricional');
-      return null;
+// Función para devolver sugerencias estáticas cuando la IA está desactivada
+function getStaticFoodSuggestions(): any[] {
+  return [
+    {
+      name: 'Añadir manualmente',
+      calories: 100,
+      protein: 5,
+      carbs: 15,
+      fats: 3,
+      fiber: 2,
+      confidence: 1.0,
+      detected: false,
+      source: 'manual_entry',
+      note: 'Busca el alimento en la lista o agrégalo manualmente'
+    },
+    {
+      name: 'Escanear código de barras',
+      calories: 0,
+      protein: 0,
+      carbs: 0,
+      fats: 0,
+      fiber: 0,
+      confidence: 1.0,
+      detected: false,
+      source: 'barcode_scanner',
+      note: 'Usa el escáner de códigos de barras para obtener información nutricional exacta'
+    },
+    {
+      name: 'Buscar en base de datos',
+      calories: 0,
+      protein: 0,
+      carbs: 0,
+      fats: 0,
+      fiber: 0,
+      confidence: 1.0,
+      detected: false,
+      source: 'database_search',
+      note: 'Utiliza la función de búsqueda para encontrar alimentos'
     }
-
-    const base64Image = await fileToBase64(imageFile);
-
-    const requestBody = {
-      requests: [
-        {
-          image: {
-            content: base64Image
-          },
-          features: [
-            {
-              type: 'TEXT_DETECTION',
-              maxResults: 1
-            }
-          ]
-        }
-      ]
-    };
-
-    const response = await fetch(
-      `https://vision.googleapis.com/v1/images:annotate?key=${VISION_API_KEY}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody)
-      }
-    );
-
-    if (!response.ok) {
-      console.warn('Error en API para detección de etiqueta nutricional:', response.status);
-      return null;
-    }
-
-    const data = await response.json();
-
-    if (data.responses && data.responses[0] && data.responses[0].textAnnotations) {
-      const text = data.responses[0].textAnnotations[0].description;
-      return parseNutritionalLabel(text);
-    }
-
-    return null;
-  } catch (error) {
-    console.error('Error detecting nutritional label:', error);
-    return null;
-  }
-}
-
-// Función para parsear etiquetas nutricionales CON MANEJO SEGURO
-function parseNutritionalLabel(text: string): any {
-  try {
-    if (!text || typeof text !== 'string') return null;
-
-    const nutritionInfo: any = {
-      calories: null,
-      protein: null,
-      carbs: null,
-      fats: null,
-      fiber: null,
-      sugar: null,
-      sodium: null,
-      servingSize: null
-    };
-
-    const lines = text.split('\n');
-
-    lines.forEach(line => {
-      try {
-        if (!line || typeof line !== 'string') return;
-
-        const lowerLine = line.toLowerCase();
-
-        // Buscar calorías
-        const caloriesMatch = lowerLine.match(/calories?[\\s:]*([\\d,]+)/i);
-        if (caloriesMatch) {
-          nutritionInfo.calories = parseInt(caloriesMatch[1].replace(',', ''));
-        }
-
-        // Buscar proteína
-        const proteinMatch = lowerLine.match(/protein[\\s:]*([\\d.]+)\\s*g/i);
-        if (proteinMatch) {
-          nutritionInfo.protein = parseFloat(proteinMatch[1]);
-        }
-
-        // Buscar carbohidratos
-        const carbsMatch = lowerLine.match(/carbohydrat[\\w]*[\\s:]*([\\d.]+)\\s*g/i);
-        if (carbsMatch) {
-          nutritionInfo.carbs = parseFloat(carbsMatch[1]);
-        }
-
-        // Buscar grasas
-        const fatsMatch = lowerLine.match(/fat[\\s:]*([\\d.]+)\\s*g/i);
-        if (fatsMatch) {
-          nutritionInfo.fats = parseFloat(fatsMatch[1]);
-        }
-
-        // Buscar fibra
-        const fiberMatch = lowerLine.match(/fiber[\\s:]*([\\d.]+)\\s*g/i);
-        if (fiberMatch) {
-          nutritionInfo.fiber = parseFloat(fiberMatch[1]);
-        }
-
-        // Buscar tamaño de porción
-        const servingMatch = lowerLine.match(/serving size[\\s:]*(.*?)(?:\\n|$)/i);
-        if (servingMatch) {
-          nutritionInfo.servingSize = servingMatch[1].trim();
-        }
-      } catch (lineError) {
-        console.warn('Error procesando línea de etiqueta:', lineError);
-      }
-    });
-
-    return nutritionInfo;
-  } catch (error) {
-    console.error('Error parseando etiqueta nutricional:', error);
-    return null;
-  }
-}
-
-// Función mejorada para filtrar elementos de comida CON MANEJO SEGURO
-function filterFoodItemsAdvanced(items: any[]): any[] {
-  try {
-    if (!Array.isArray(items)) {
-      console.warn('Items no es un array válido:', items);
-      return [];
-    }
-
-    const enhancedFoodKeywords = [
-      // Español expandido
-      'comida', 'alimento', 'fruta', 'verdura', 'carne', 'pollo', 'pescado', 'pan', 'arroz', 'pasta',
-      'manzana', 'plátano', 'naranja', 'tomate', 'papa', 'cebolla', 'huevo', 'leche', 'queso',
-      'ensalada', 'sándwich', 'hamburguesa', 'pizza', 'sopa', 'yogur', 'galleta', 'torta', 'café',
-      'aguacate', 'brócoli', 'zanahoria', 'espinaca', 'salmón', 'atún', 'quinoa', 'avena',
-
-      // Inglés expandido
-      'food', 'meal', 'fruit', 'vegetable', 'meat', 'chicken', 'fish', 'bread', 'rice', 'pasta',
-      'apple', 'banana', 'orange', 'tomato', 'potato', 'onion', 'egg', 'milk', 'cheese',
-      'salad', 'sandwich', 'hamburger', 'pizza', 'soup', 'yogurt', 'cookie', 'cake', 'coffee',
-      'avocado', 'broccoli', 'carrot', 'spinach', 'salmon', 'tuna', 'quinoa', 'oats',
-
-      // Categorías de cocina
-      'ingredient', 'dish', 'cuisine', 'snack', 'dessert', 'beverage', 'drink', 'nutrition',
-      'organic', 'fresh', 'cooked', 'raw', 'healthy', 'protein', 'vitamin', 'mineral'
-    ];
-
-    return items.filter(item => {
-      try {
-        if (!item) return false;
-
-        const description = (item.description || item.name || '').toLowerCase();
-        if (!description) return false;
-
-        const hasKeyword = enhancedFoodKeywords.some(keyword =>
-          description.includes(keyword) ||
-          keyword.includes(description) ||
-          calculateAdvancedSimilarity(description, keyword) > 0.7
-        );
-
-        const confidence = item.score || item.confidence || 0.5;
-        const hasGoodConfidence = confidence > 0.4;
-
-        // Verificar si ya tenemos datos de alimento procesados
-        const hasFoodData = item.foodData !== undefined;
-
-        return (hasKeyword && hasGoodConfidence) || hasFoodData;
-      } catch (itemError) {
-        console.warn('Error filtrando item:', itemError);
-        return false;
-      }
-    }).sort((a, b) => {
-      try {
-        // Priorizar items con datos de alimento
-        const aHasFoodData = a.foodData ? 1 : 0;
-        const bHasFoodData = b.foodData ? 1 : 0;
-
-        if (aHasFoodData !== bHasFoodData) {
-          return bHasFoodData - aHasFoodData;
-        }
-
-        // Luego ordenar por confianza
-        return (b.score || b.confidence || 0) - (a.score || a.confidence || 0);
-      } catch (sortError) {
-        console.warn('Error ordenando items:', sortError);
-        return 0;
-      }
-    });
-  } catch (error) {
-    console.warn('Error en filterFoodItemsAdvanced:', error);
-    return [];
-  }
-}
-
-// Función mejorada para mapear a formato avanzado CON MANEJO SEGURO
-function mapToAdvancedFoodFormat(items: any[]): any[] {
-  try {
-    if (!Array.isArray(items)) {
-      console.warn('Items no es un array válido para mapeo:', items);
-      return [];
-    }
-
-    const mappedFoods: any[] = [];
-    const processedNames = new Set<string>();
-
-    items.slice(0, 8).forEach(item => { // Procesar máximo 8 items
-      try {
-        if (!item) return;
-
-        const description = (item.description || item.name || '').toLowerCase().trim();
-        const confidence = item.score || item.confidence || 0.6;
-
-        if (!description || processedNames.has(description)) return;
-        processedNames.add(description);
-
-        // Si ya tenemos datos de alimento procesados, usarlos
-        if (item.foodData && typeof item.foodData === 'object') {
-          mappedFoods.push({
-            ...item.foodData,
-            confidence: Math.min(confidence, 0.98),
-            detected: true,
-            source: item.source || 'vision_api',
-            originalDescription: description
-          });
-          return;
-        }
-
-        // Buscar coincidencia en nuestra base de datos
-        const foodMatch = findBestFoodMatch(description);
-
-        if (foodMatch && foodMatch.confidence > 0.65) {
-          mappedFoods.push({
-            ...foodMatch,
-            confidence: Math.min(foodMatch.confidence * confidence, 0.98),
-            detected: true,
-            source: 'database_match',
-            originalDescription: description
-          });
-        } else if (confidence > 0.7) {
-          // Crear entrada genérica solo para detecciones con alta confianza
-          const genericFood = createAdvancedGenericFood(description, confidence);
-          if (genericFood) {
-            mappedFoods.push(genericFood);
-          }
-        }
-      } catch (itemError) {
-        console.warn('Error mapeando item:', itemError);
-      }
-    });
-
-    // Eliminar duplicados y ordenar por confianza
-    const uniqueFoods = mappedFoods
-      .filter((food, index, self) => {
-        try {
-          return food && food.name &&
-            index === self.findIndex(f =>
-              f && f.name &&
-              f.name.toLowerCase() === food.name.toLowerCase()
-            );
-        } catch (filterError) {
-          console.warn('Error filtrando duplicados:', filterError);
-          return false;
-        }
-      })
-      .sort((a, b) => {
-        try {
-          return (b.confidence || 0) - (a.confidence || 0);
-        } catch (sortError) {
-          console.warn('Error ordenando por confianza:', sortError);
-          return 0;
-        }
-      });
-
-    return uniqueFoods.slice(0, 6); // Máximo 6 alimentos detectados
-  } catch (error) {
-    console.warn('Error en mapToAdvancedFoodFormat:', error);
-    return [];
-  }
-}
-
-// Función mejorada para crear alimento genérico CON VALIDACIÓN
-function createAdvancedGenericFood(description: string, confidence: number): any | null {
-  try {
-    if (!description || typeof description !== 'string' || description.length < 3 || confidence < 0.6) return null;
-
-    const name = description.charAt(0).toUpperCase() + description.slice(1);
-
-    // Valores nutricionales más precisos por categoría
-    const advancedCategoryDefaults = {
-      fruta: { calories: 65, protein: 1.2, carbs: 16, fats: 0.3, fiber: 3.5 },
-      verdura: { calories: 30, protein: 2.5, carbs: 6, fats: 0.2, fiber: 3 },
-      proteina: { calories: 220, protein: 28, carbs: 2, fats: 12, fiber: 0 },
-      carbohidrato: { calories: 160, protein: 6, carbs: 32, fats: 1.5, fiber: 3 },
-      lacteo: { calories: 85, protein: 6, carbs: 6, fats: 4.5, fiber: 0 },
-      procesado: { calories: 250, protein: 8, carbs: 35, fats: 10, fiber: 2 },
-      bebida: { calories: 45, protein: 0.5, carbs: 11, fats: 0.1, fiber: 0 },
-      default: { calories: 120, protein: 6, carbs: 18, fats: 4, fiber: 2.5 }
-    };
-
-    // Determinar categoría con mayor precisión
-    let category = 'default';
-    const desc = description.toLowerCase();
-
-    if (/frut|fruit|berry|apple|banana|orange|grape/.test(desc)) category = 'fruta';
-    else if (/veget|verdur|green|leaf|carrot|broccoli|spinach/.test(desc)) category = 'verdura';
-    else if (/meat|carne|chicken|pollo|fish|pescado|protein|beef|pork/.test(desc)) category = 'proteina';
-    else if (/bread|pan|rice|arroz|pasta|cereal|grain|oat/.test(desc)) category = 'carbohidrato';
-    else if (/milk|leche|cheese|queso|yogur|dairy/.test(desc)) category = 'lacteo';
-    else if (/pizza|burger|processed|packaged|snack/.test(desc)) category = 'procesado';
-    else if (/juice|drink|beverage|soda|coffee|tea/.test(desc)) category = 'bebida';
-
-    const defaults = advancedCategoryDefaults[category as keyof typeof advancedCategoryDefaults] || advancedCategoryDefaults.default;
-
-    return {
-      name,
-      ...defaults,
-      confidence: Math.min(confidence * 0.8, 0.85), // Penalizar un poco los genéricos
-      detected: true,
-      source: 'advanced_generic',
-      category,
-      originalDescription: description
-    };
-  } catch (error) {
-    console.warn('Error creando alimento genérico:', error);
-    return null;
-  }
+  ];
 }
 
 // Función mejorada para sugerencias inteligentes CON MANEJO SEGURO
@@ -1534,49 +1075,37 @@ function getIntelligentSuggestions(): any[] {
     if (hour >= 6 && hour < 11) {
       // Desayuno mejorado
       suggestions = [
-        { ...enhancedFoodDatabase['banana'].data, confidence: 0.7, source: 'morning_suggestion', detected: false },
-        { ...enhancedFoodDatabase['egg'].data, confidence: 0.7, source: 'morning_suggestion', detected: false },
-        { name: 'Avena con frutas', calories: 150, protein: 5, carbs: 27, fats: 3, fiber: 4, confidence: 0.65, source: 'morning_suggestion', detected: false }
+        { name: 'Plátano', calories: 89, protein: 1.1, carbs: 23, fats: 0.3, fiber: 2.6, confidence: 0.8, source: 'morning_suggestion', detected: false },
+        { name: 'Huevo', calories: 155, protein: 13, carbs: 1.1, fats: 11, fiber: 0, confidence: 0.8, source: 'morning_suggestion', detected: false },
+        { name: 'Avena con frutas', calories: 150, protein: 5, carbs: 27, fats: 3, fiber: 4, confidence: 0.7, source: 'morning_suggestion', detected: false }
       ];
     } else if (hour >= 11 && hour < 15) {
       // Almuerzo mejorado
       suggestions = [
-        { ...enhancedFoodDatabase['chicken'].data, confidence: 0.7, source: 'lunch_suggestion', detected: false },
-        { ...enhancedFoodDatabase['rice'].data, confidence: 0.7, source: 'lunch_suggestion', detected: false },
-        { ...enhancedFoodDatabase['broccoli'].data, confidence: 0.7, source: 'lunch_suggestion', detected: false }
+        { name: 'Pechuga de pollo', calories: 165, protein: 31, carbs: 0, fats: 3.6, fiber: 0, confidence: 0.8, source: 'lunch_suggestion', detected: false },
+        { name: 'Arroz blanco', calories: 130, protein: 2.7, carbs: 28, fats: 0.3, fiber: 0.4, confidence: 0.8, source: 'lunch_suggestion', detected: false },
+        { name: 'Brócoli', calories: 34, protein: 2.8, carbs: 7, fats: 0.4, fiber: 2.6, confidence: 0.8, source: 'lunch_suggestion', detected: false }
       ];
     } else if (hour >= 15 && hour < 19) {
       // Snack mejorado
       suggestions = [
-        { ...enhancedFoodDatabase['apple'].data, confidence: 0.7, source: 'snack_suggestion', detected: false },
-        { name: 'Yogur griego', calories: 100, protein: 10, carbs: 6, fats: 4, fiber: 0, confidence: 0.65, source: 'snack_suggestion', detected: false },
-        { name: 'Nueces mixtas', calories: 180, protein: 6, carbs: 5, fats: 16, fiber: 3, confidence: 0.65, source: 'snack_suggestion', detected: false }
+        { name: 'Manzana', calories: 52, protein: 0.3, carbs: 14, fats: 0.2, fiber: 2.4, confidence: 0.8, source: 'snack_suggestion', detected: false },
+        { name: 'Yogur griego', calories: 100, protein: 10, carbs: 6, fats: 4, fiber: 0, confidence: 0.7, source: 'snack_suggestion', detected: false },
+        { name: 'Nueces', calories: 654, protein: 15, carbs: 14, fats: 65, fiber: 7, confidence: 0.7, source: 'snack_suggestion', detected: false }
       ];
     } else {
       // Cena mejorada
       suggestions = [
-        { ...enhancedFoodDatabase['salmon'].data, confidence: 0.7, source: 'dinner_suggestion', detected: false },
-        { name: 'Batata asada', calories: 112, protein: 2, carbs: 26, fats: 0.1, fiber: 3.9, confidence: 0.65, source: 'dinner_suggestion', detected: false },
-        { ...enhancedFoodDatabase['spinach'].data, confidence: 0.7, source: 'dinner_suggestion', detected: false }
+        { name: 'Salmón', calories: 208, protein: 25, carbs: 0, fats: 12, fiber: 0, confidence: 0.8, source: 'dinner_suggestion', detected: false },
+        { name: 'Batata asada', calories: 112, protein: 2, carbs: 26, fats: 0.1, fiber: 3.9, confidence: 0.7, source: 'dinner_suggestion', detected: false },
+        { name: 'Espinaca', calories: 23, protein: 2.9, carbs: 4, fats: 0.4, fiber: 2.2, confidence: 0.8, source: 'dinner_suggestion', detected: false }
       ];
     }
 
     return suggestions.filter(food => food && food.name); // Filtrar elementos válidos
   } catch (error) {
     console.warn('Error en getIntelligentSuggestions:', error);
-    return [
-      {
-        name: 'Alimento sugerido',
-        calories: 100,
-        protein: 5,
-        carbs: 15,
-        fats: 3,
-        fiber: 2,
-        confidence: 0.5,
-        detected: false,
-        source: 'error_fallback'
-      }
-    ];
+    return getStaticFoodSuggestions();
   }
 }
 
@@ -1629,22 +1158,7 @@ function getErrorFallbackSuggestions(error: any): any[] {
 
 // Función para validar origen CON MANEJO SEGURO
 function validateOrigin(): boolean {
-  try {
-    if (typeof window !== 'undefined') {
-      const allowedOrigins = [
-        'localhost',
-        'readdy.ai',
-        '127.0.0.1'
-      ];
-
-      const currentOrigin = window.location.hostname;
-      return allowedOrigins.some(origin => currentOrigin.includes(origin));
-    }
-    return true;
-  } catch (error) {
-    console.warn('Error validando origen:', error);
-    return true; // Permitir en caso de error para no bloquear la app
-  }
+  return true; // Siempre permitir cuando está desactivado
 }
 
 // Función para convertir File a base64 CON MANEJO SEGURO
@@ -1692,35 +1206,4 @@ async function fileToBase64(file: File): Promise<string> {
   });
 }
 
-// Exportar la instancia del detector para uso avanzado
-export { ultraFoodDetector as advancedFoodDetector };
-
-// NUEVAS exportaciones para funcionalidades avanzadas
-export { detectNutritionalLabel };
-
-// Limpiar cache periódicamente de manera segura
-if (typeof window !== 'undefined') {
-  try {
-    setInterval(() => {
-      try {
-        const now = Date.now();
-        for (const [key, value] of DETECTION_CACHE.entries()) {
-          try {
-            if (value && value.timestamp && now - value.timestamp > CACHE_DURATION) {
-              DETECTION_CACHE.delete(key);
-            }
-          } catch (entryError) {
-            console.warn('Error limpiando entrada de cache:', entryError);
-            DETECTION_CACHE.delete(key); // Eliminar entrada problemática
-          }
-        }
-      } catch (cleanupError) {
-        console.warn('Error en limpieza de cache:', cleanupError);
-      }
-    }, 5 * 60 * 1000); // Cada 5 minutos
-  } catch (intervalError) {
-    console.warn('Error configurando limpieza de cache:', intervalError);
-  }
-}
-
-console.log(' Ultra Vision API Pro con Manejo Seguro de Errores inicializado correctamente');
+console.log(' Vision API DESACTIVADA - Solo funciones básicas disponibles');
