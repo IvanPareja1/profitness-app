@@ -4,6 +4,7 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import BottomNavigation from '../../components/BottomNavigation';
+import { deviceTime } from '../../lib/device-time-utils';
 
 // Interfaces para TypeScript
 interface DataPoint {
@@ -63,37 +64,53 @@ export default function Progress() {
 
     // Solo cargar datos reales del usuario, sin generar datos de demostración
     for (let i = days - 1; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      const dateKey = date.toISOString().split('T')[0];
-
-      // Intentar obtener datos reales del localStorage
       try {
-        const savedData = localStorage.getItem(`nutrition_${dateKey}`);
-        if (savedData) {
-          const parsed: SavedNutritionData = JSON.parse(savedData);
-          data.calories.push({ date: dateKey, value: parsed.calories || 0 });
-          data.protein.push({ date: dateKey, value: parsed.protein || 0 });
-          data.carbs.push({ date: dateKey, value: parsed.carbs || 0 });
-          data.fats.push({ date: dateKey, value: parsed.fats || 0 });
-        }
-        // Si no hay datos guardados, simplemente no agregar nada (no generar datos falsos)
-      } catch (error) {
-        console.error('Error parsing nutrition data:', error);
-        // En caso de error, no agregar datos falsos
-      }
+        // Usar fecha del dispositivo de forma segura
+        const date = new Date();
+        date.setDate(date.getDate() - i);
 
-      // Obtener datos de peso reales del localStorage
-      try {
-        const savedWeight = localStorage.getItem(`weight_${dateKey}`);
-        if (savedWeight) {
-          const weightData: WeightData = JSON.parse(savedWeight);
-          data.weight.push({ date: dateKey, value: weightData.weight });
+        // Intentar obtener fecha usando el sistema del dispositivo
+        let dateKey: string;
+        try {
+          // Si hay error con deviceTime, usar fallback
+          if (i === 0) {
+            dateKey = deviceTime.getCurrentDate();
+          } else {
+            dateKey = date.toISOString().split('T')[0];
+          }
+        } catch (error) {
+          // Fallback completamente seguro
+          dateKey = date.toISOString().split('T')[0];
         }
-        // Si no hay peso guardado, no agregar datos falsos
+
+        // Intentar obtener datos reales del localStorage
+        try {
+          const savedData = localStorage.getItem(`nutrition_${dateKey}`);
+          if (savedData) {
+            const parsed: SavedNutritionData = JSON.parse(savedData);
+            data.calories.push({ date: dateKey, value: parsed.calories || 0 });
+            data.protein.push({ date: dateKey, value: parsed.protein || 0 });
+            data.carbs.push({ date: dateKey, value: parsed.carbs || 0 });
+            data.fats.push({ date: dateKey, value: parsed.fats || 0 });
+          }
+        } catch (error) {
+          console.error('Error parsing nutrition data:', error);
+        }
+
+        // Obtener datos de peso reales del localStorage
+        try {
+          const savedWeight = localStorage.getItem(`weight_${dateKey}`);
+          if (savedWeight) {
+            const weightData: WeightData = JSON.parse(savedWeight);
+            data.weight.push({ date: dateKey, value: weightData.weight });
+          }
+        } catch (error) {
+          console.error('Error parsing weight data:', error);
+        }
       } catch (error) {
-        console.error('Error parsing weight data:', error);
-        // En caso de error, no agregar datos falsos
+        console.error('Error processing date for progress data:', error);
+        // Continuar con el siguiente día si hay error
+        continue;
       }
     }
 
@@ -113,14 +130,27 @@ export default function Progress() {
         return;
       }
 
-      // Get current date
-      const today = new Date().toISOString().split('T')[0];
+      // Usar fecha actual del dispositivo de forma segura
+      let today: string;
+      try {
+        today = deviceTime.getCurrentDate();
+      } catch (error) {
+        console.warn('Error obteniendo fecha del dispositivo para peso:', error);
+        // Fallback seguro
+        today = new Date().toISOString().split('T')[0];
+      }
 
-      // Save weight data
+      // Save weight data con timestamp del dispositivo
       const weightData: WeightData = {
         weight: weight,
         date: today,
-        timestamp: new Date().toISOString()
+        timestamp: (() => {
+          try {
+            return deviceTime.createTimestamp();
+          } catch (error) {
+            return new Date().toISOString();
+          }
+        })()
       };
 
       localStorage.setItem(`weight_${today}`, JSON.stringify(weightData));
@@ -146,25 +176,47 @@ export default function Progress() {
   };
 
   const getTodayWeight = (): number | null => {
-    const today = new Date().toISOString().split('T')[0];
     try {
+      const today = deviceTime.getCurrentDate();
       const savedWeight = localStorage.getItem(`weight_${today}`);
       if (savedWeight) {
         const weightData: WeightData = JSON.parse(savedWeight);
         return weightData.weight;
       }
     } catch (error) {
-      console.error('Error getting today weight:', error);
+      console.warn('Error obteniendo peso de hoy:', error);
+      // Fallback seguro
+      try {
+        const fallbackToday = new Date().toISOString().split('T')[0];
+        const savedWeight = localStorage.getItem(`weight_${fallbackToday}`);
+        if (savedWeight) {
+          const weightData: WeightData = JSON.parse(savedWeight);
+          return weightData.weight;
+        }
+      } catch (fallbackError) {
+        console.error('Error en fallback para peso de hoy:', fallbackError);
+      }
     }
     return null;
   };
 
   const formatDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('es-ES', { 
-      month: 'short', 
-      day: 'numeric' 
-    });
+    try {
+      // Usar formato del dispositivo si está disponible
+      const date = new Date(dateString);
+      const locale = deviceTime.getLocale();
+      return date.toLocaleDateString(locale, { 
+        month: 'short', 
+        day: 'numeric' 
+      });
+    } catch (error) {
+      // Fallback seguro
+      const date = new Date(dateString);
+      return date.toLocaleDateString('es-ES', { 
+        month: 'short', 
+        day: 'numeric' 
+      });
+    }
   };
 
   const getAverage = (data: DataPoint[]): number => {
@@ -216,11 +268,11 @@ export default function Progress() {
         </div>
       );
     }
-    
+
     const maxValue = max || getMaxValue(data);
     const minValue = getMinValue(data);
     const range = maxValue - minValue || 1; // Evitar división por cero
-    
+
     // Create scale marks
     const scaleMarks: number[] = [];
     const numMarks = 4;
@@ -330,29 +382,46 @@ export default function Progress() {
   const calculateConsecutiveDays = (): number => {
     let consecutiveDays = 0;
     let currentDate = new Date();
-    
+
     while (consecutiveDays < 30) { // Máximo 30 días hacia atrás
-      const dateKey = currentDate.toISOString().split('T')[0];
-      const savedData = localStorage.getItem(`nutrition_${dateKey}`);
-      
-      if (savedData) {
-        try {
-          const parsed = JSON.parse(savedData);
-          if (parsed.calories > 0 || parsed.protein > 0 || parsed.carbs > 0 || parsed.fats > 0) {
-            consecutiveDays++;
-          } else {
+      try {
+        let dateKey: string;
+
+        // Para el día actual, usar deviceTime si es posible
+        if (consecutiveDays === 0) {
+          try {
+            dateKey = deviceTime.getCurrentDate();
+          } catch (error) {
+            dateKey = currentDate.toISOString().split('T')[0];
+          }
+        } else {
+          dateKey = currentDate.toISOString().split('T')[0];
+        }
+
+        const savedData = localStorage.getItem(`nutrition_${dateKey}`);
+
+        if (savedData) {
+          try {
+            const parsed = JSON.parse(savedData);
+            if (parsed.calories > 0 || parsed.protein > 0 || parsed.carbs > 0 || parsed.fats > 0) {
+              consecutiveDays++;
+            } else {
+              break;
+            }
+          } catch (error) {
             break;
           }
-        } catch (error) {
+        } else {
           break;
         }
-      } else {
+
+        currentDate.setDate(currentDate.getDate() - 1);
+      } catch (error) {
+        console.error('Error calculando días consecutivos:', error);
         break;
       }
-      
-      currentDate.setDate(currentDate.getDate() - 1);
     }
-    
+
     return consecutiveDays;
   };
 
@@ -360,27 +429,27 @@ export default function Progress() {
   const calculateMetasAlcanzadas = (): number => {
     let metasAlcanzadas = 0;
     const userProfile = localStorage.getItem('userProfile');
-    
+
     if (!userProfile) return 0;
-    
+
     try {
       const profile = JSON.parse(userProfile);
       const targetCalories = profile.targetCalories || 2000;
       const targetProtein = profile.targetProtein || 120;
       const targetCarbs = profile.targetCarbs || 250;
       const targetFats = profile.targetFats || 67;
-      
+
       // Revisar últimos 30 días
       for (let i = 0; i < 30; i++) {
         const date = new Date();
         date.setDate(date.getDate() - i);
         const dateKey = date.toISOString().split('T')[0];
         const savedData = localStorage.getItem(`nutrition_${dateKey}`);
-        
+
         if (savedData) {
           try {
             const parsed = JSON.parse(savedData);
-            
+
             // Verificar si alcanzó al menos 80% de sus metas
             if (parsed.calories >= targetCalories * 0.8 && 
                 parsed.protein >= targetProtein * 0.8 && 
@@ -396,7 +465,7 @@ export default function Progress() {
     } catch (error) {
       console.error('Error calculating metas alcanzadas:', error);
     }
-    
+
     return metasAlcanzadas;
   };
 

@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import BottomNavigation from '../../components/BottomNavigation';
 import { NutritionCalculator } from '../../lib/nutrition-calculator';
 import { fitnessSync, FitnessData } from '../../lib/fitness-sync';
+import { deviceTime } from '../../lib/device-time-utils';
 
 export default function Profile() {
   const [mounted, setMounted] = useState(false);
@@ -61,11 +62,21 @@ export default function Profile() {
         setLanguage(profile.language || 'es');
       }
 
-      // Cargar datos de fitness del día actual
-      const today = new Date().toISOString().split('T')[0];
-      const todayFitnessData = fitnessSync.getFitnessData(today);
-      if (todayFitnessData) {
-        setFitnessData(todayFitnessData);
+      // Cargar datos de fitness del día actual usando fecha del dispositivo
+      try {
+        const today = deviceTime.getCurrentDate();
+        const todayFitnessData = fitnessSync.getFitnessData(today);
+        if (todayFitnessData) {
+          setFitnessData(todayFitnessData);
+        }
+      } catch (error) {
+        console.warn('Error cargando datos fitness con fecha del dispositivo:', error);
+        // Fallback seguro
+        const fallbackToday = new Date().toISOString().split('T')[0];
+        const todayFitnessData = fitnessSync.getFitnessData(fallbackToday);
+        if (todayFitnessData) {
+          setFitnessData(todayFitnessData);
+        }
       }
 
       // Cargar configuración de días de descanso
@@ -262,26 +273,42 @@ export default function Profile() {
         }
       }
 
-      // Sincronizar datos
-      const today = new Date().toISOString().split('T')[0];
-      const syncResult = await fitnessSync.syncFitnessData(today);
+      // Sincronizar datos usando fecha del dispositivo
+      try {
+        const today = deviceTime.getCurrentDate();
+        const syncResult = await fitnessSync.syncFitnessData(today);
 
-      if (syncResult.success && syncResult.data) {
-        setFitnessData(syncResult.data);
-        setSyncStatus('success');
-        setSyncMessage(t.syncSuccess);
+        if (syncResult.success && syncResult.data) {
+          setFitnessData(syncResult.data);
+          setSyncStatus('success');
+          setSyncMessage(t.syncSuccess);
 
-        // Actualizar perfil con datos sincronizados
-        const updatedProfile = {
-          ...userProfile,
-          lastSyncTime: new Date().toISOString(),
-          syncEnabled: true
-        };
-        setUserProfile(updatedProfile);
-        localStorage.setItem('userProfile', JSON.stringify(updatedProfile));
-      } else {
-        setSyncStatus('error');
-        setSyncMessage(syncResult.error || t.syncError);
+          // Actualizar perfil con datos sincronizados
+          const updatedProfile = {
+            ...userProfile,
+            lastSyncTime: deviceTime.createTimestamp(), // Usar timestamp del dispositivo
+            syncEnabled: true
+          };
+          setUserProfile(updatedProfile);
+          localStorage.setItem('userProfile', JSON.stringify(updatedProfile));
+        } else {
+          setSyncStatus('error');
+          setSyncMessage(syncResult.error || t.syncError);
+        }
+      } catch (error) {
+        console.warn('Error en sincronización con fecha del dispositivo, intentando fallback:', error);
+        // Fallback seguro
+        const fallbackToday = new Date().toISOString().split('T')[0];
+        const syncResult = await fitnessSync.syncFitnessData(fallbackToday);
+
+        if (syncResult.success && syncResult.data) {
+          setFitnessData(syncResult.data);
+          setSyncStatus('success');
+          setSyncMessage(t.syncSuccess);
+        } else {
+          setSyncStatus('error');
+          setSyncMessage(syncResult.error || t.syncError);
+        }
       }
     } catch (error) {
       setSyncStatus('error');
@@ -362,20 +389,32 @@ export default function Profile() {
     localStorage.setItem('restDaySettings', JSON.stringify(restDayConfig));
 
     // Aplicar configuración de descanso si es día de descanso
-    const today = new Date().toLocaleDateString('es-ES', { weekday: 'long' });
-    const todayKey = getDayKey(today);
+    try {
+      // Usar detección de día de la semana del dispositivo de forma segura
+      const timezone = deviceTime.getTimezone();
+      const locale = deviceTime.getLocale();
 
-    if (restDayConfig.enabled && restDayConfig.selectedDays.includes(todayKey)) {
-      // Aplicar reducción de calorías si está habilitada
-      if (restDayConfig.reducedCalories) {
-        const updatedProfile = {
-          ...userProfile,
-          restDayActive: true,
-          adjustedCalories: (userProfile.targetCalories || 2000) - restDayConfig.calorieReduction
-        };
-        setUserProfile(updatedProfile);
-        localStorage.setItem('userProfile', JSON.stringify(updatedProfile));
+      const today = new Date().toLocaleDateString(locale, {
+        weekday: 'long',
+        timeZone: timezone
+      });
+      const todayKey = getDayKey(today);
+
+      if (restDayConfig.enabled && restDayConfig.selectedDays.includes(todayKey)) {
+        // Aplicar reducción de calorías si está habilitada
+        if (restDayConfig.reducedCalories) {
+          const updatedProfile = {
+            ...userProfile,
+            restDayActive: true,
+            adjustedCalories: (userProfile.targetCalories || 2000) - restDayConfig.calorieReduction
+          };
+          setUserProfile(updatedProfile);
+          localStorage.setItem('userProfile', JSON.stringify(updatedProfile));
+        }
       }
+    } catch (error) {
+      console.warn('Error aplicando configuración de día de descanso:', error);
+      // Continuar sin aplicar configuración específica si hay error
     }
   };
 
@@ -941,7 +980,19 @@ export default function Profile() {
                 marginTop: '16px',
                 margin: '16px 0 0 0'
               }}>
-                {t.lastSync}: {new Date(userProfile.lastSyncTime).toLocaleString()}
+                {t.lastSync}: {(() => {
+                  try {
+                    return deviceTime.formatTimestamp(userProfile.lastSyncTime, {
+                      includeDate: true,
+                      includeTime: true,
+                      dateOptions: { format: 'short' },
+                      timeOptions: { use24Hour: true }
+                    });
+                  } catch (error) {
+                    // Fallback seguro
+                    return new Date(userProfile.lastSyncTime).toLocaleString();
+                  }
+                })()}
               </p>
             )}
           </div>
@@ -1556,7 +1607,7 @@ export default function Profile() {
               );
             })()}
           </div>
-       )}
+        )
 
         {/* Goal Section */}
         <div style={{
@@ -2448,15 +2499,7 @@ export default function Profile() {
                       gridTemplateColumns: 'repeat(2, 1fr)',
                       gap: '8px'
                     }}>
-                      {[
-                        ['monday', t.monday],
-                        ['tuesday', t.tuesday],
-                        ['wednesday', t.wednesday],
-                        ['thursday', t.thursday],
-                        ['friday', t.friday],
-                        ['saturday', t.saturday],
-                        ['sunday', t.sunday]
-                      ].map(([day, dayText]) => (
+                      {[['monday', t.monday], ['tuesday', t.tuesday], ['wednesday', t.wednesday], ['thursday', t.thursday], ['friday', t.friday], ['saturday', t.saturday], ['sunday', t.sunday]].map(([day, dayText]) => (
                         <button
                           key={day}
                           onClick={() => toggleRestDay(day)}
@@ -2654,15 +2697,15 @@ export default function Profile() {
                 transition: 'all 0.2s ease',
                 boxShadow: '0 6px 20px rgba(255, 66, 77, 0.3)'
               }}
-              onClick={handlePatreonDonate}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 8px 25px rgba(255, 66, 77, 0.4)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0px)';
-                e.currentTarget.style.boxShadow = '0 6px 20px rgba(255, 66, 77, 0.3)';
-              }}
+                onClick={handlePatreonDonate}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 8px 25px rgba(255, 66, 77, 0.4)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0px)';
+                  e.currentTarget.style.boxShadow = '0 6px 20px rgba(255, 66, 77, 0.3)';
+                }}
               >
                 <div style={{
                   display: 'flex',
@@ -2682,7 +2725,9 @@ export default function Profile() {
                   }}>
                     <i className="ri-heart-3-fill" style={{ color: 'white', fontSize: '28px' }}></i>
                   </div>
-                  <div style={{ flex: 1 }}>
+                  <div style={{
+                    flex: 1
+                  }}>
                     <h4 style={{
                       fontSize: '18px',
                       fontWeight: '700',
@@ -2708,7 +2753,7 @@ export default function Profile() {
                     <i className="ri-external-link-line" style={{ fontSize: '18px' }}></i>
                   </div>
                 </div>
-                
+
                 <div style={{
                   background: 'rgba(255,255,255,0.15)',
                   borderRadius: '12px',

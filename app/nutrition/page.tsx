@@ -4,6 +4,7 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import BottomNavigation from '../../components/BottomNavigation';
+import { deviceTime } from '../../lib/device-time-utils';
 
 interface Meal {
   id: string;
@@ -95,8 +96,20 @@ export default function Nutrition() {
   useEffect(() => {
     setMounted(true);
 
-    const today = new Date().toISOString().split('T')[0];
-    setSelectedDate(today);
+    const initializeDate = () => {
+      try {
+        const today = deviceTime.getCurrentDate();
+        setSelectedDate(today);
+        return today;
+      } catch (error) {
+        console.warn('Error obteniendo fecha del dispositivo, usando fallback:', error);
+        const fallbackDate = new Date().toISOString().split('T')[0];
+        setSelectedDate(fallbackDate);
+        return fallbackDate;
+      }
+    };
+
+    const currentDate = initializeDate();
 
     const profileData = localStorage.getItem('userProfile');
     if (profileData) {
@@ -159,7 +172,7 @@ export default function Nutrition() {
       }
     }
 
-    loadNutritionData(today);
+    loadNutritionData(currentDate);
 
     const handleNutritionUpdate = (event: Event) => {
       const customEvent = event as CustomNutritionEvent;
@@ -230,15 +243,30 @@ export default function Nutrition() {
   };
 
   const formatDate = (dateString: string): string => {
-    const [year, month, day] = dateString.split('-').map(Number);
-    const date = new Date(year, month - 1, day);
+    try {
+      const [year, month, day] = dateString.split('-').map(Number);
+      const date = new Date(year, month - 1, day);
 
-    return date.toLocaleDateString('es-ES', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+      if (deviceTime.getLocale) {
+        const locale = deviceTime.getLocale();
+        return date.toLocaleDateString(locale, {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        });
+      }
+
+      return date.toLocaleDateString('es-ES', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    } catch (error) {
+      console.warn('Error formateando fecha:', error);
+      return dateString;
+    }
   };
 
   const groupMealsByType = (meals: Meal[]): { [key: string]: Meal[] } => {
