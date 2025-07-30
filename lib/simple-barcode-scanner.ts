@@ -12,7 +12,7 @@ export interface BarcodeResult {
     width: number;
     height: number;
   };
-}
+};
 
 export interface BarcodeConfig {
   video: HTMLVideoElement;
@@ -26,7 +26,7 @@ export interface BarcodeConfig {
     width: number;
     height: number;
   };
-}
+};
 
 // Detector de códigos de barras ULTRA MEJORADO con enfoque automático avanzado
 class UltraBarcodeScannerPro {
@@ -229,10 +229,10 @@ class UltraBarcodeScannerPro {
 
       // CONFIGURAR ENFOQUE AUTOMÁTICO CONTINUO
       const capabilities = this.focusCapabilities as any;
-      if (capabilities.focusMode && capabilities.focusMode.includes && capabilities.focusMode.includes("continuous")) {
+      if (capabilities.focusMode && Array.isArray(capabilities.focusMode) && capabilities.focusMode.includes("continuous")) {
         constraints.focusMode = "continuous";
         console.log("Enfoque automático continuo activado");
-      } else if (capabilities.focusMode && capabilities.focusMode.includes && capabilities.focusMode.includes("manual")) {
+      } else if (capabilities.focusMode && Array.isArray(capabilities.focusMode) && capabilities.focusMode.includes("manual")) {
         // Si no hay automático, configurar manual a distancia óptima
         constraints.focusMode = "manual";
         if (capabilities.focusDistance) {
@@ -242,13 +242,13 @@ class UltraBarcodeScannerPro {
       }
 
       // CONFIGURAR EXPOSICIÓN AUTOMÁTICA
-      if (capabilities.exposureMode && capabilities.exposureMode.includes && capabilities.exposureMode.includes("continuous")) {
+      if (capabilities.exposureMode && Array.isArray(capabilities.exposureMode) && capabilities.exposureMode.includes("continuous")) {
         constraints.exposureMode = "continuous";
         console.log("Exposición automática activada");
       }
 
       // CONFIGURAR BALANCE DE BLANCOS AUTOMÁTICO
-      if (capabilities.whiteBalanceMode && capabilities.whiteBalanceMode.includes && capabilities.whiteBalanceMode.includes("continuous")) {
+      if (capabilities.whiteBalanceMode && Array.isArray(capabilities.whiteBalanceMode) && capabilities.whiteBalanceMode.includes("continuous")) {
         constraints.whiteBalanceMode = "continuous";
         console.log("Balance de blancos automático activado");
       }
@@ -380,9 +380,9 @@ class UltraBarcodeScannerPro {
     try {
       console.log("Optimizando enfoque para códigos de barras...");
 
-      const capabilities = this.focusCapabilities as any;
+      const capabilities = this.currentTrack.getCapabilities() as any;
 
-      if (capabilities?.focusMode?.includes && capabilities.focusMode.includes("manual") && capabilities?.focusDistance) {
+      if (capabilities?.focusMode && Array.isArray(capabilities.focusMode) && capabilities.focusMode.includes("manual") && capabilities?.focusDistance) {
         // PROBAR DIFERENTES DISTANCIAS DE ENFOQUE ÓPTIMAS PARA CÓDIGOS
         const optimalDistances = [0.2, 0.3, 0.4, 0.5];
         let bestDistance = 0.3;
@@ -395,7 +395,7 @@ class UltraBarcodeScannerPro {
                 {
                   focusMode: "manual",
                   focusDistance: distance,
-                },
+                } as any,
               ],
             });
 
@@ -423,20 +423,20 @@ class UltraBarcodeScannerPro {
               {
                 focusMode: "manual",
                 focusDistance: bestDistance,
-              },
+              } as any,
             ],
           });
 
           this.manualFocusDistance = bestDistance;
           console.log(`Enfoque optimizado a ${bestDistance}m (nitidez: ${bestSharpness.toFixed(3)})`);
         }
-      } else if (capabilities?.focusMode?.includes && capabilities.focusMode.includes("continuous")) {
+      } else if (capabilities?.focusMode && Array.isArray(capabilities.focusMode) && capabilities.focusMode.includes("continuous")) {
         // Si no hay modo manual, forzar reactivación de modo continuo
         await this.currentTrack.applyConstraints({
           advanced: [
             {
               focusMode: "continuous",
-            },
+            } as any,
           ],
         });
 
@@ -454,13 +454,18 @@ class UltraBarcodeScannerPro {
 
   // MÉTODO PÚBLICO PARA ALTERNAR FLASH/TORCH
   async toggleTorch(enable?: boolean): Promise<boolean> {
-    const capabilities = this.focusCapabilities as any;
-    if (!this.currentTrack || !capabilities?.torch) {
-      console.warn("Flash/Torch no disponible en este dispositivo");
+    if (!this.currentTrack) {
+      console.warn("Flash/Torch no disponible: no hay track de video activo");
       return false;
     }
 
     try {
+      const capabilities = this.currentTrack.getCapabilities() as any;
+      if (!capabilities?.torch) {
+        console.warn("Flash/Torch no disponible en este dispositivo");
+        return false;
+      }
+
       const currentSettings = this.currentTrack.getSettings() as any;
       const newTorchState = enable !== undefined ? enable : !currentSettings.torch;
 
@@ -468,7 +473,7 @@ class UltraBarcodeScannerPro {
         advanced: [
           {
             torch: newTorchState,
-          },
+          } as any,
         ],
       });
 
@@ -1140,16 +1145,18 @@ class UltraBarcodeScannerPro {
     if (config.manualFocusDistance !== undefined) {
       this.manualFocusDistance = config.manualFocusDistance;
       // Aplicar inmediatamente si está en modo manual
-      const capabilities = this.focusCapabilities as any;
-      if (this.currentTrack && capabilities?.focusMode?.includes && capabilities.focusMode.includes("manual")) {
-        this.currentTrack.applyConstraints({
-          advanced: [
-            {
-              focusMode: "manual",
-              focusDistance: config.manualFocusDistance,
-            },
-          ],
-        }).catch((error) => console.warn("Error aplicando nueva distancia de enfoque:", error));
+      if (this.currentTrack) {
+        const capabilities = this.currentTrack.getCapabilities() as any;
+        if (capabilities?.focusMode && Array.isArray(capabilities.focusMode) && capabilities.focusMode.includes("manual")) {
+          this.currentTrack.applyConstraints({
+            advanced: [
+              {
+                focusMode: "manual",
+                focusDistance: config.manualFocusDistance,
+              } as any,
+            ],
+          }).catch((error) => console.warn("Error aplicando nueva distancia de enfoque:", error));
+        }
       }
     }
 
@@ -1260,4 +1267,166 @@ export function stopBarcodeScanner(scanner?: UltraBarcodeScannerPro): void {
   if (scanner) {
     scanner.stop();
   }
+}
+
+// NUEVA FUNCIÓN PARA BUSCAR PRODUCTOS POR CÓDIGO DE BARRAS
+export interface ProductInfo {
+  product_name?: string;
+  brands?: string;
+  nutriments?: {
+    'energy-kcal_100g'?: number;
+    'proteins_100g'?: number;
+    'carbohydrates_100g'?: number;
+    'fat_100g'?: number;
+    'fiber_100g'?: number;
+    'sugars_100g'?: number;
+    'salt_100g'?: number;
+  };
+  source?: string;
+}
+
+export async function getProductByBarcode(barcode: string): Promise<ProductInfo | null> {
+  try {
+    console.log(`Buscando producto con código: ${barcode}`);
+
+    // Validar formato del código de barras
+    if (!barcode || barcode.length < 8 || barcode.length > 14) {
+      throw new Error('Código de barras inválido');
+    }
+
+    // Lista de APIs para probar
+    const apis = [
+      {
+        name: 'OpenFoodFacts',
+        url: `https://world.openfoodfacts.org/api/v0/product/${barcode}.json`,
+        transform: (data: any) => {
+          if (data.status === 1 && data.product) {
+            return {
+              product_name: data.product.product_name || data.product.generic_name,
+              brands: data.product.brands,
+              nutriments: data.product.nutriments,
+              source: 'OpenFoodFacts'
+            };
+          }
+          return null;
+        }
+      },
+      {
+        name: 'UPC Database',
+        url: `https://api.upcitemdb.com/prod/trial/lookup?upc=${barcode}`,
+        transform: (data: any) => {
+          if (data.items && data.items.length > 0) {
+            const item = data.items[0];
+            return {
+              product_name: item.title,
+              brands: item.brand,
+              nutriments: {},
+              source: 'UPC Database'
+            };
+          }
+          return null;
+        }
+      }
+    ];
+
+    // Probar cada API
+    for (const api of apis) {
+      try {
+        const response = await fetch(api.url, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'ProFitness/1.0'
+          },
+          signal: AbortSignal.timeout(10000) // 10 segundos timeout
+        });
+
+        if (!response.ok) {
+          console.warn(`Error en ${api.name}: ${response.status}`);
+          continue;
+        }
+
+        const data = await response.json();
+        const product = api.transform(data);
+
+        if (product && product.product_name) {
+          console.log(`Producto encontrado en ${api.name}:`, product.product_name);
+          return product;
+        }
+      } catch (apiError) {
+        console.warn(`Error consultando ${api.name}:`, apiError);
+        continue;
+      }
+    }
+
+    // Si ninguna API funcionó, retornar datos básicos
+    console.log(`No se encontró información para el código: ${barcode}`);
+    return {
+      product_name: `Producto ${barcode}`,
+      brands: 'Marca desconocida',
+      nutriments: {
+        'energy-kcal_100g': 0,
+        'proteins_100g': 0,
+        'carbohydrates_100g': 0,
+        'fat_100g': 0,
+        'fiber_100g': 0,
+        'sugars_100g': 0,
+        'salt_100g': 0
+      },
+      source: 'Sistema local'
+    };
+
+  } catch (error) {
+    console.error('Error buscando producto por código de barras:', error);
+
+    if (error instanceof Error) {
+      if (error.message.includes('inválido')) {
+        throw error;
+      } else if (error.message.includes('fetch')) {
+        throw new Error('Error de conexión. Verifica tu conexión a internet.');
+      } else if (error.message.includes('timeout')) {
+        throw new Error('Tiempo de espera agotado. Intenta nuevamente.');
+      }
+    }
+
+    throw new Error('Error desconocido al buscar el producto');
+  }
+}
+
+// FUNCIÓN AUXILIAR PARA VALIDAR CÓDIGOS DE BARRAS
+export function validateBarcodeFormat(barcode: string): boolean {
+  if (!barcode || typeof barcode !== 'string') {
+    return false;
+  }
+
+  const cleanCode = barcode.trim();
+
+  // Validar longitud
+  if (cleanCode.length < 8 || cleanCode.length > 14) {
+    return false;
+  }
+
+  // Validar que contenga solo números
+  if (!(/^\d+$/.test(cleanCode))) {
+    return false;
+  }
+
+  // Validar formatos específicos
+  const validLengths = [8, 12, 13, 14]; // EAN-8, UPC-A, EAN-13, etc.
+  return validLengths.includes(cleanCode.length);
+}
+
+// FUNCIÓN PARA LIMPIAR Y FORMATEAR CÓDIGOS DE BARRAS
+export function formatBarcode(rawCode: string): string {
+  if (!rawCode) return '';
+
+  // Limpiar espacios y caracteres especiales
+  let cleaned = rawCode.trim().replace(/[^\\d]/g, '');
+
+  // Asegurar longitud mínima
+  if (cleaned.length < 8) {
+    cleaned = cleaned.padStart(8, '0');
+  }
+
+  return cleaned;
 }

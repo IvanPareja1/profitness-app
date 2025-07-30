@@ -548,7 +548,7 @@ export default function AddFood() {
           fats_per_100g: Math.max(0, product.nutriments?.['fat_100g'] || 0),
           fiber_per_100g: Math.max(0, product.nutriments?.['fiber_100g'] || 0),
           sugar_per_100g: Math.max(0, product.nutriments?.['sugars_100g'] || 0),
-          sodium_per_100g: Math.max(0, product.nutriments?.['salt_100g'] * 400 || 0) // Convertir sal a sodio
+          sodium_per_100g: Math.max(0, (product.nutriments?.['salt_100g'] || 0) * 400) // Convertir sal a sodio
         };
 
         // Mostrar información adicional del producto si está disponible
@@ -1945,11 +1945,7 @@ export default function AddFood() {
                   color: '#6b7280',
                   fontSize: '14px',
                   fontWeight: '500',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px'
+                  cursor: 'pointer'
                 }}
               >
                 <i className="ri-camera-line" style={{ fontSize: '16px' }}></i>
