@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -407,20 +408,20 @@ export default function AddFood() {
 
     try {
       setIsTakingPhoto(true);
-      
+
       // Crear canvas para capturar imagen
       const canvas = document.createElement('canvas');
       const context = canvas.getContext('2d');
-      
+
       if (context) {
         canvas.width = foodVideoRef.current.videoWidth;
         canvas.height = foodVideoRef.current.videoHeight;
         context.drawImage(foodVideoRef.current, 0, 0);
-        
+
         const imageDataUrl = canvas.toDataURL('image/jpeg');
         setCapturedImage(imageDataUrl);
         setIsTakingPhoto(false);
-        
+
         // Simular análisis de IA
         setIsAnalyzing(true);
         setTimeout(() => {
@@ -446,7 +447,7 @@ export default function AddFood() {
               detected: true
             }
           ];
-          
+
           setDetectedFoods(mockDetectedFoods);
           setIsAnalyzing(false);
           setShowFoodResults(true);
@@ -514,10 +515,10 @@ export default function AddFood() {
       // Cerrar modal y mostrar éxito
       setShowNutritionModal(false);
       setSelectedFood(null);
-      
+
       // Mostrar mensaje de éxito
       setTimeout(() => {
-        alert(`¡${selectedFood.name} agregado exitosamente!\n${calculatedNutrition.calories} calorías registradas.`);
+        alert(`¡${selectedFood.name} agregado exitosamente!\\n${calculatedNutrition.calories} calorías registradas.`);
       }, 100);
 
     } catch (error) {
@@ -528,10 +529,7 @@ export default function AddFood() {
 
   // Manejar cambios en formulario manual
   const handleManualFoodChange = (field: keyof ManualFoodData, value: string) => {
-    setManualFood(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setManualFood(prev => ({ ...prev, [field]: value }));
   };
 
   // Crear alimento manual
@@ -631,7 +629,7 @@ export default function AddFood() {
 
       // Mostrar mensaje de éxito
       setTimeout(() => {
-        alert(`¡${manualFood.name} creado y agregado exitosamente!\n${calculatedCalories} calorías registradas.`);
+        alert(`¡${manualFood.name} creado y agregado exitosamente!\\n${calculatedCalories} calorías registradas.`);
       }, 100);
 
     } catch (error) {
@@ -642,7 +640,7 @@ export default function AddFood() {
 
   // Formatear números
   const formatNumber = (num: number): string => {
-    return Math.round(num * 10) / 10;
+    return (Math.round(num * 10) / 10).toString();
   };
 
   const t = translations[language as keyof typeof translations] || translations.es;
@@ -1473,14 +1471,20 @@ export default function AddFood() {
                       gap: '12px',
                       marginBottom: '12px'
                     }}>
-                      <i className="ri-camera-line" style={{ color: '#16a34a', fontSize: '24px' }}></i>
+                      <div style={{
+                        width: '12px',
+                        height: '12px',
+                        background: '#10b981',
+                        borderRadius: '50%',
+                        animation: 'pulse 1.5s infinite'
+                      }}></div>
                       <p style={{
-                        color: '#16a34a',
+                        color: '#10b981',
                         fontSize: '16px',
                         fontWeight: '600',
                         margin: 0
                       }}>
-                        Cámara Lista
+                        Escáner Activo
                       </p>
                     </div>
                     <p style={{
@@ -1536,8 +1540,8 @@ export default function AddFood() {
               )}
             </div>
           </div>
-        </>
-      )}
+        </>)
+      }
 
       {/* Food Results Modal */}
       {showFoodResults && (
@@ -2250,8 +2254,8 @@ export default function AddFood() {
               )}
             </div>
           </div>
-        </>
-      )}
+        </>)
+      }
 
       {/* Nutrition Modal */}
       {showNutritionModal && selectedFood && (
