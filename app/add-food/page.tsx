@@ -82,6 +82,18 @@ export default function AddFood() {
   const [analysisError, setAnalysisError] = useState<string>('');
   const [capturedImage, setCapturedImage] = useState<string>('');
 
+  // NUEVO estado para formulario manual
+  const [showManualForm, setShowManualForm] = useState(false);
+  const [manualFood, setManualFood] = useState({
+    name: '',
+    brand: '',
+    calories: '',
+    protein: '',
+    carbs: '',
+    fats: '',
+    fiber: ''
+  });
+
   // Referencias para escáner y cámara
   const videoRef = useRef<HTMLVideoElement>(null);
   const scannerRef = useRef<any>(null);
@@ -202,7 +214,21 @@ export default function AddFood() {
       selectAll: 'Seleccionar todos',
       deselectAll: 'Deseleccionar todos',
       cameraError: 'Error al acceder a la cámara',
-      allowCameraFood: 'Por favor permite el acceso a la cámara para fotografiar comida'
+      allowCameraFood: 'Por favor permite el acceso a la cámara para fotografiar comida',
+      // NUEVAS traducciones para formulario manual
+      addManual: 'Agregar manual',
+      manualFood: 'Alimento personalizado',
+      foodName: 'Nombre del alimento',
+      brandName: 'Marca (opcional)',
+      nutritionPer100g: 'Información nutricional por 100g',
+      caloriesPlaceholder: 'Calorías (ej: 250)',
+      proteinPlaceholder: 'Proteínas en gramos (ej: 12.5)',
+      carbsPlaceholder: 'Carbohidratos en gramos (ej: 30)',
+      fatsPlaceholder: 'Grasas en gramos (ej: 8.2)',
+      fiberPlaceholder: 'Fibra en gramos (opcional)',
+      createFood: 'Crear alimento',
+      fillRequired: 'Por favor completa los campos requeridos',
+      invalidNumbers: 'Por favor ingresa números válidos',
     },
     en: {
       addFood: 'Add Food',
@@ -258,7 +284,21 @@ export default function AddFood() {
       selectAll: 'Select all',
       deselectAll: 'Deselect all',
       cameraError: 'Error accessing camera',
-      allowCameraFood: 'Please allow camera access to take food photos'
+      allowCameraFood: 'Please allow camera access to take food photos',
+      // NEW translations for manual form
+      addManual: 'Add manual',
+      manualFood: 'Custom food',
+      foodName: 'Food name',
+      brandName: 'Brand (optional)',
+      nutritionPer100g: 'Nutrition information per 100g',
+      caloriesPlaceholder: 'Calories (e.g: 250)',
+      proteinPlaceholder: 'Protein in grams (e.g: 12.5)',
+      carbsPlaceholder: 'Carbs in grams (e.g: 30)',
+      fatsPlaceholder: 'Fats in grams (e.g: 8.2)',
+      fiberPlaceholder: 'Fiber in grams (optional)',
+      createFood: 'Create food',
+      fillRequired: 'Please fill required fields',
+      invalidNumbers: 'Please enter valid numbers',
     }
   };
 
@@ -1214,6 +1254,62 @@ export default function AddFood() {
     );
   }
 
+  const handleManualFoodChange = (field: string, value: string) => {
+    setManualFood(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const createManualFood = () => {
+    // Validar campos requeridos
+    if (!manualFood.name.trim() || !manualFood.calories || !manualFood.protein || !manualFood.carbs || !manualFood.fats) {
+      showErrorMessage(t.fillRequired);
+      return;
+    }
+
+    // Validar que los números sean válidos
+    const calories = parseFloat(manualFood.calories);
+    const protein = parseFloat(manualFood.protein);
+    const carbs = parseFloat(manualFood.carbs);
+    const fats = parseFloat(manualFood.fats);
+    const fiber = parseFloat(manualFood.fiber || '0');
+
+    if (isNaN(calories) || isNaN(protein) || isNaN(carbs) || isNaN(fats) || (manualFood.fiber && isNaN(fiber))) {
+      showErrorMessage(t.invalidNumbers);
+      return;
+    }
+
+    // Crear el objeto FoodItem
+    const customFoodItem: FoodItem = {
+      id: `manual_${Date.now()}`,
+      name: manualFood.name.trim(),
+      brand: manualFood.brand.trim() || 'Personalizado',
+      calories_per_100g: Math.max(0, calories),
+      protein_per_100g: Math.max(0, protein),
+      carbs_per_100g: Math.max(0, carbs),
+      fats_per_100g: Math.max(0, fats),
+      fiber_per_100g: Math.max(0, fiber)
+    };
+
+    // Cerrar formulario manual
+    setShowManualForm(false);
+
+    // Limpiar formulario
+    setManualFood({
+      name: '',
+      brand: '',
+      calories: '',
+      protein: '',
+      carbs: '',
+      fats: '',
+      fiber: ''
+    });
+
+    // Abrir modal de nutrición con el alimento creado
+    handleFoodSelect(customFoodItem);
+  };
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -1340,7 +1436,7 @@ export default function AddFood() {
           {/* Action Buttons - MEJORADO con botón de foto */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
+            gridTemplateColumns: '1fr 1fr 1fr',
             gap: '12px'
           }}>
             <button
@@ -1397,6 +1493,30 @@ export default function AddFood() {
             >
               <i className="ri-camera-line" style={{ fontSize: '18px' }}></i>
               {t.takePhoto}
+            </button>
+
+            {/* NUEVO: Botón para agregar manual */}
+            <button
+              onClick={() => setShowManualForm(true)}
+              className="!rounded-button"
+              style={{
+                padding: '12px 16px',
+                background: 'linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%)',
+                border: 'none',
+                borderRadius: '12px',
+                color: 'white',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                boxShadow: '0 4px 12px rgba(139, 92, 246, 0.3)'
+              }}
+            >
+              <i className="ri-add-line" style={{ fontSize: '18px' }}></i>
+              {t.addManual}
             </button>
           </div>
         </div>
@@ -1746,26 +1866,22 @@ export default function AddFood() {
                     left: '-3px',
                     borderTop: '6px solid #16a34a',
                     borderLeft: '6px solid #16a34a'
-                  },
-                  {
+                  }, {
                     top: '-3px',
                     right: '-3px',
                     borderTop: '6px solid #16a34a',
                     borderRight: '6px solid #16a34a'
-                  },
-                  {
+                  }, {
                     bottom: '-3px',
                     left: '-3px',
                     borderBottom: '6px solid #16a34a',
                     borderLeft: '6px solid #16a34a'
-                  },
-                  {
+                  }, {
                     bottom: '-3px',
                     right: '-3px',
                     borderBottom: '6px solid #16a34a',
                     borderRight: '6px solid #16a34a'
-                  }
-                  ].map((corner, index) => (
+                  }].map((corner, index) => (
                     <div
                       key={index}
                       style={{
@@ -2457,26 +2573,22 @@ export default function AddFood() {
                   left: '-3px',
                   borderTop: '6px solid #3b82f6',
                   borderLeft: '6px solid #3b82f6'
-                },
-                {
+                }, {
                   top: '-3px',
                   right: '-3px',
                   borderTop: '6px solid #3b82f6',
                   borderRight: '6px solid #3b82f6'
-                },
-                {
+                }, {
                   bottom: '-3px',
                   left: '-3px',
                   borderBottom: '6px solid #3b82f6',
                   borderLeft: '6px solid #3b82f6'
-                },
-                {
+                }, {
                   bottom: '-3px',
                   right: '-3px',
                   borderBottom: '6px solid #3b82f6',
                   borderRight: '6px solid #3b82f6'
-                }
-                ].map((corner, index) => (
+                }].map((corner, index) => (
                   <div
                     key={index}
                     style={{
@@ -2948,11 +3060,7 @@ export default function AddFood() {
               }}>
                 {t.nutrition}
               </h4>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(2, 1fr)',
-                gap: '12px'
-              }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{
                     width: '32px',
@@ -3110,6 +3218,387 @@ export default function AddFood() {
                 }}
               >
                 {t.addToLog}
+              </button>
+            </div>
+          </div>
+        </>
+
+      )}
+
+      {/* NUEVO: Manual Food Form Modal */}
+      {showManualForm && (
+        <>
+          <div
+            onClick={() => setShowManualForm(false)}
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(0,0,0,0.5)',
+              zIndex: 1000
+            }}
+          />
+          <div style={{
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            background: 'white',
+            borderRadius: '20px',
+            padding: '24px',
+            width: '90%',
+            maxWidth: '400px',
+            maxHeight: '80vh',
+            overflowY: 'auto',
+            zIndex: 1001
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '24px'
+            }}>
+              <h3 style={{
+                fontSize: '18px',
+                fontWeight: '600',
+                color: '#1f2937',
+                margin: 0
+              }}>
+                {t.manualFood}
+              </h3>
+              <button
+                onClick={() => setShowManualForm(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '24px',
+                  color: '#6b7280',
+                  cursor: 'pointer'
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Nombre del alimento */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '500',
+                color: '#374151',
+                marginBottom: '8px'
+              }}>
+                {t.foodName} *
+              </label>
+              <input
+                type="text"
+                value={manualFood.name}
+                onChange={(e) => handleManualFoodChange('name', e.target.value)}
+                placeholder="Ej: Pizza casera"
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  borderRadius: '12px',
+                  border: '1px solid #e5e7eb',
+                  fontSize: '16px',
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+
+            {/* Marca */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '500',
+                color: '#374151',
+                marginBottom: '8px'
+              }}>
+                {t.brandName}
+              </label>
+              <input
+                type="text"
+                value={manualFood.brand}
+                onChange={(e) => handleManualFoodChange('brand', e.target.value)}
+                placeholder="Ej: Casera"
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  borderRadius: '12px',
+                  border: '1px solid #e5e7eb',
+                  fontSize: '16px',
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+
+            {/* Título de información nutricional */}
+            <div style={{
+              background: 'linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%)',
+              borderRadius: '12px',
+              padding: '16px',
+              marginBottom: '20px',
+              textAlign: 'center'
+            }}>
+              <h4 style={{
+                fontSize: '14px',
+                fontWeight: '600',
+                color: 'white',
+                margin: 0
+              }}>
+                {t.nutritionPer100g}
+              </h4>
+            </div>
+
+            {/* Grid de campos nutricionales */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, 1fr)',
+              gap: '16px',
+              marginBottom: '24px'
+            }}>
+              {/* Calorías */}
+              <div>
+                <label style={{
+                  display: 'block',
+                  fontSize: '12px',
+                  fontWeight: '500',
+                  color: '#374151',
+                  marginBottom: '6px'
+                }}>
+                  {t.calories} *
+                </label>
+                <input
+                  type="number"
+                  value={manualFood.calories}
+                  onChange={(e) => handleManualFoodChange('calories', e.target.value)}
+                  placeholder="250"
+                  min="0"
+                  step="1"
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: '10px',
+                    border: '1px solid #e5e7eb',
+                    fontSize: '14px',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              {/* Proteínas */}
+              <div>
+                <label style={{
+                  display: 'block',
+                  fontSize: '12px',
+                  fontWeight: '500',
+                  color: '#374151',
+                  marginBottom: '6px'
+                }}>
+                  {t.protein} *
+                </label>
+                <input
+                  type="number"
+                  value={manualFood.protein}
+                  onChange={(e) => handleManualFoodChange('protein', e.target.value)}
+                  placeholder="12.5"
+                  min="0"
+                  step="0.1"
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: '10px',
+                    border: '1px solid #e5e7eb',
+                    fontSize: '14px',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              {/* Carbohidratos */}
+              <div>
+                <label style={{
+                  display: 'block',
+                  fontSize: '12px',
+                  fontWeight: '500',
+                  color: '#374151',
+                  marginBottom: '6px'
+                }}>
+                  {t.carbs} *
+                </label>
+                <input
+                  type="number"
+                  value={manualFood.carbs}
+                  onChange={(e) => handleManualFoodChange('carbs', e.target.value)}
+                  placeholder="30.0"
+                  min="0"
+                  step="0.1"
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: '10px',
+                    border: '1px solid #e5e7eb',
+                    fontSize: '14px',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              {/* Grasas */}
+              <div>
+                <label style={{
+                  display: 'block',
+                  fontSize: '12px',
+                  fontWeight: '500',
+                  color: '#374151',
+                  marginBottom: '6px'
+                }}>
+                  {t.fats} *
+                </label>
+                <input
+                  type="number"
+                  value={manualFood.fats}
+                  onChange={(e) => handleManualFoodChange('fats', e.target.value)}
+                  placeholder="8.2"
+                  min="0"
+                  step="0.1"
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: '10px',
+                    border: '1px solid #e5e7eb',
+                    fontSize: '14px',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Fibra (campo completo) */}
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '500',
+                color: '#374151',
+                marginBottom: '8px'
+              }}>
+                {t.fiber} (opcional)
+              </label>
+              <input
+                type="number"
+                value={manualFood.fiber}
+                onChange={(e) => handleManualFoodChange('fiber', e.target.value)}
+                placeholder="2.5"
+                min="0"
+                step="0.1"
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  borderRadius: '12px',
+                  border: '1px solid #e5e7eb',
+                  fontSize: '16px',
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+
+            {/* Nota informativa */}
+            <div style={{
+              background: '#f0f9ff',
+              border: '1px solid #e0e7ff',
+              borderRadius: '12px',
+              padding: '16px',
+              marginBottom: '24px'
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px'
+              }}>
+                <div style={{
+                  width: '24px',
+                  height: '24px',
+                  background: '#3b82f6',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <i className="ri-information-line" style={{ color: 'white', fontSize: '14px' }}></i>
+                </div>
+                <div>
+                  <p style={{
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: '#1f2937',
+                    margin: '0 0 4px 0'
+                  }}>
+                    Información nutricional
+                  </p>
+                  <p style={{
+                    fontSize: '12px',
+                    color: '#6b7280',
+                    margin: 0,
+                    lineHeight: '1.4'
+                  }}>
+                    Ingresa los valores nutricionales por cada 100 gramos del alimento. Los campos marcados con * son obligatorios.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                onClick={() => setShowManualForm(false)}
+                className="!rounded-button"
+                style={{
+                  flex: 1,
+                  padding: '12px 16px',
+                  background: '#f8fafc',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '12px',
+                  color: '#6b7280',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer'
+                }}
+              >
+                {t.cancel}
+              </button>
+              <button
+                onClick={createManualFood}
+                className="!rounded-button"
+                style={{
+                  flex: 1,
+                  padding: '12px 16px',
+                  background: 'linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%)',
+                  border: 'none',
+                  borderRadius: '12px',
+                  color: 'white',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
+                }}
+              >
+                <i className="ri-add-line" style={{ fontSize: '16px' }}></i>
+                {t.createFood}
               </button>
             </div>
           </div>
