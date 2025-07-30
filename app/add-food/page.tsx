@@ -399,7 +399,7 @@ export default function AddFood() {
       const calculatedProtein = Math.round(foodItem.protein * factor * 10) / 10;
       const calculatedCarbs = Math.round(foodItem.carbs * factor * 10) / 10;
       const calculatedFats = Math.round(foodItem.fats * factor * 10) / 10;
-      const calculatedFiber = Math.round(foodItem.fiber * factor * 10) / 10;
+      const calculatedFiber = Math.round((foodItem.fiber || 0) * factor * 10) / 10;
 
       const newMeal = {
         id: Date.now().toString(),
@@ -648,6 +648,308 @@ export default function AddFood() {
     }
   ];
 
+  // Base de datos expandida de alimentos para búsqueda manual
+  const extendedFoodDatabase: FoodItem[] = [
+    ...popularFoods,
+    // Frutas
+    {
+      id: '7',
+      name: 'Manzana',
+      brand: 'Genérico',
+      calories_per_100g: 52,
+      protein_per_100g: 0.3,
+      carbs_per_100g: 14,
+      fats_per_100g: 0.2,
+      fiber_per_100g: 2.4
+    },
+    {
+      id: '8',
+      name: 'Naranja',
+      brand: 'Genérico',
+      calories_per_100g: 47,
+      protein_per_100g: 0.9,
+      carbs_per_100g: 12,
+      fats_per_100g: 0.1,
+      fiber_per_100g: 2.4
+    },
+    {
+      id: '9',
+      name: 'Fresa',
+      brand: 'Genérico',
+      calories_per_100g: 32,
+      protein_per_100g: 0.7,
+      carbs_per_100g: 8,
+      fats_per_100g: 0.3,
+      fiber_per_100g: 2
+    },
+    {
+      id: '10',
+      name: 'Piña',
+      brand: 'Genérico',
+      calories_per_100g: 50,
+      protein_per_100g: 0.5,
+      carbs_per_100g: 13,
+      fats_per_100g: 0.1,
+      fiber_per_100g: 1.4
+    },
+    {
+      id: '11',
+      name: 'Sandía',
+      brand: 'Genérico',
+      calories_per_100g: 30,
+      protein_per_100g: 0.6,
+      carbs_per_100g: 8,
+      fats_per_100g: 0.2,
+      fiber_per_100g: 0.4
+    },
+    {
+      id: '12',
+      name: 'Uvas',
+      brand: 'Genérico',
+      calories_per_100g: 69,
+      protein_per_100g: 0.7,
+      carbs_per_100g: 18,
+      fats_per_100g: 0.2,
+      fiber_per_100g: 0.9
+    },
+    // Verduras
+    {
+      id: '13',
+      name: 'Brócoli',
+      brand: 'Genérico',
+      calories_per_100g: 34,
+      protein_per_100g: 2.8,
+      carbs_per_100g: 7,
+      fats_per_100g: 0.4,
+      fiber_per_100g: 2.6
+    },
+    {
+      id: '14',
+      name: 'Zanahoria',
+      brand: 'Genérico',
+      calories_per_100g: 41,
+      protein_per_100g: 0.9,
+      carbs_per_100g: 10,
+      fats_per_100g: 0.2,
+      fiber_per_100g: 2.8
+    },
+    {
+      id: '15',
+      name: 'Espinaca',
+      brand: 'Genérico',
+      calories_per_100g: 23,
+      protein_per_100g: 2.9,
+      carbs_per_100g: 4,
+      fats_per_100g: 0.4,
+      fiber_per_100g: 2.2
+    },
+    {
+      id: '16',
+      name: 'Tomate',
+      brand: 'Genérico',
+      calories_per_100g: 18,
+      protein_per_100g: 0.9,
+      carbs_per_100g: 4,
+      fats_per_100g: 0.2,
+      fiber_per_100g: 1.2
+    },
+    {
+      id: '17',
+      name: 'Lechuga',
+      brand: 'Genérico',
+      calories_per_100g: 15,
+      protein_per_100g: 1.4,
+      carbs_per_100g: 3,
+      fats_per_100g: 0.2,
+      fiber_per_100g: 1.3
+    },
+    {
+      id: '18',
+      name: 'Pepino',
+      brand: 'Genérico',
+      calories_per_100g: 16,
+      protein_per_100g: 0.7,
+      carbs_per_100g: 4,
+      fats_per_100g: 0.1,
+      fiber_per_100g: 0.5
+    },
+    // Proteínas
+    {
+      id: '19',
+      name: 'Salmón',
+      brand: 'Genérico',
+      calories_per_100g: 208,
+      protein_per_100g: 25,
+      carbs_per_100g: 0,
+      fats_per_100g: 12,
+      fiber_per_100g: 0
+    },
+    {
+      id: '20',
+      name: 'Atún',
+      brand: 'Genérico',
+      calories_per_100g: 144,
+      protein_per_100g: 30,
+      carbs_per_100g: 0,
+      fats_per_100g: 1,
+      fiber_per_100g: 0
+    },
+    {
+      id: '21',
+      name: 'Carne de res',
+      brand: 'Genérico',
+      calories_per_100g: 250,
+      protein_per_100g: 26,
+      carbs_per_100g: 0,
+      fats_per_100g: 15,
+      fiber_per_100g: 0
+    },
+    {
+      id: '22',
+      name: 'Cerdo',
+      brand: 'Genérico',
+      calories_per_100g: 242,
+      protein_per_100g: 27,
+      carbs_per_100g: 0,
+      fats_per_100g: 14,
+      fiber_per_100g: 0
+    },
+    // Carbohidratos
+    {
+      id: '23',
+      name: 'Papa',
+      brand: 'Genérico',
+      calories_per_100g: 77,
+      protein_per_100g: 2,
+      carbs_per_100g: 17,
+      fats_per_100g: 0.1,
+      fiber_per_100g: 2.2
+    },
+    {
+      id: '24',
+      name: 'Pasta',
+      brand: 'Genérico',
+      calories_per_100g: 131,
+      protein_per_100g: 5,
+      carbs_per_100g: 25,
+      fats_per_100g: 1.1,
+      fiber_per_100g: 1.8
+    },
+    {
+      id: '25',
+      name: 'Pan integral',
+      brand: 'Genérico',
+      calories_per_100g: 247,
+      protein_per_100g: 13,
+      carbs_per_100g: 41,
+      fats_per_100g: 4.2,
+      fiber_per_100g: 7
+    },
+    {
+      id: '26',
+      name: 'Quinoa',
+      brand: 'Genérico',
+      calories_per_100g: 120,
+      protein_per_100g: 4.4,
+      carbs_per_100g: 22,
+      fats_per_100g: 1.9,
+      fiber_per_100g: 2.8
+    },
+    // Lácteos
+    {
+      id: '27',
+      name: 'Queso',
+      brand: 'Genérico',
+      calories_per_100g: 113,
+      protein_per_100g: 7,
+      carbs_per_100g: 1,
+      fats_per_100g: 9,
+      fiber_per_100g: 0
+    },
+    {
+      id: '28',
+      name: 'Yogur natural',
+      brand: 'Genérico',
+      calories_per_100g: 61,
+      protein_per_100g: 3.5,
+      carbs_per_100g: 4.7,
+      fats_per_100g: 3.3,
+      fiber_per_100g: 0
+    },
+    {
+      id: '29',
+      name: 'Mantequilla',
+      brand: 'Genérico',
+      calories_per_100g: 717,
+      protein_per_100g: 0.9,
+      carbs_per_100g: 0.1,
+      fats_per_100g: 81,
+      fiber_per_100g: 0
+    },
+    // Frutos secos
+    {
+      id: '30',
+      name: 'Almendras',
+      brand: 'Genérico',
+      calories_per_100g: 579,
+      protein_per_100g: 21,
+      carbs_per_100g: 22,
+      fats_per_100g: 50,
+      fiber_per_100g: 12
+    },
+    {
+      id: '31',
+      name: 'Nueces',
+      brand: 'Genérico',
+      calories_per_100g: 654,
+      protein_per_100g: 15,
+      carbs_per_100g: 14,
+      fats_per_100g: 65,
+      fiber_per_100g: 7
+    },
+    {
+      id: '32',
+      name: 'Cacahuates',
+      brand: 'Genérico',
+      calories_per_100g: 567,
+      protein_per_100g: 26,
+      carbs_per_100g: 16,
+      fats_per_100g: 49,
+      fiber_per_100g: 8.5
+    },
+    // Legumbres
+    {
+      id: '33',
+      name: 'Frijoles negros',
+      brand: 'Genérico',
+      calories_per_100g: 132,
+      protein_per_100g: 8.9,
+      carbs_per_100g: 23,
+      fats_per_100g: 0.5,
+      fiber_per_100g: 8.7
+    },
+    {
+      id: '34',
+      name: 'Lentejas',
+      brand: 'Genérico',
+      calories_per_100g: 116,
+      protein_per_100g: 9,
+      carbs_per_100g: 20,
+      fats_per_100g: 0.4,
+      fiber_per_100g: 7.9
+    },
+    {
+      id: '35',
+      name: 'Garbanzos',
+      brand: 'Genérico',
+      calories_per_100g: 164,
+      protein_per_100g: 8.9,
+      carbs_per_100g: 27,
+      fats_per_100g: 2.6,
+      fiber_per_100g: 8
+    }
+  ];
+
   const searchFood = async (query: string) => {
     if (!query.trim()) {
       setSearchResults([]);
@@ -657,14 +959,56 @@ export default function AddFood() {
     setIsSearching(true);
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Simular delay de búsqueda para mejor UX
+      await new Promise(resolve => setTimeout(resolve, 300));
 
-      const filteredFoods = popularFoods.filter(food =>
-        food.name.toLowerCase().includes(query.toLowerCase()) ||
-        food.brand.toLowerCase().includes(query.toLowerCase())
+      const queryLower = query.toLowerCase().trim();
+
+      // Buscar en la base de datos expandida
+      const filteredFoods = extendedFoodDatabase.filter(food =>
+        food.name.toLowerCase().includes(queryLower) ||
+        food.brand.toLowerCase().includes(queryLower) ||
+        // Búsqueda parcial por palabras
+        queryLower.split(' ').some(word =>
+          food.name.toLowerCase().includes(word) && word.length > 2
+        )
       );
 
-      setSearchResults(filteredFoods);
+      // Ordenar por relevancia
+      const sortedResults = filteredFoods.sort((a, b) => {
+        const aNameMatch = a.name.toLowerCase().indexOf(queryLower);
+        const bNameMatch = b.name.toLowerCase().indexOf(queryLower);
+
+        // Priorizar coincidencias exactas al inicio
+        if (aNameMatch === 0 && bNameMatch !== 0) return -1;
+        if (bNameMatch === 0 && aNameMatch !== 0) return 1;
+
+        // Luego por longitud de nombre (más específico primero)
+        if (aNameMatch !== -1 && bNameMatch !== -1) {
+          return a.name.length - b.name.length;
+        }
+
+        return aNameMatch === -1 ? 1 : -1;
+      });
+
+      // Limitar resultados para mejor rendimiento
+      setSearchResults(sortedResults.slice(0, 15));
+
+      if (sortedResults.length === 0) {
+        // Si no hay resultados, sugerir alimento personalizable
+        const customFood: FoodItem = {
+          id: 'custom',
+          name: `"${query}" - Personalizar`,
+          brand: 'Alimento personalizado',
+          calories_per_100g: 100,
+          protein_per_100g: 5,
+          carbs_per_100g: 15,
+          fats_per_100g: 3,
+          fiber_per_100g: 2
+        };
+        setSearchResults([customFood]);
+      }
+
     } catch (error) {
       console.error('Error searching food:', error);
       setSearchResults([]);
@@ -1551,7 +1895,7 @@ export default function AddFood() {
                     }}></div>
                     <div>
                       <p style={{
-                        color: '#16a34a',
+                        color: '#3b82f6',
                         fontSize: '16px',
                         fontWeight: '600',
                         margin: '0 0 4px 0'
@@ -1575,6 +1919,7 @@ export default function AddFood() {
                     border: '1px solid rgba(59, 130, 246, 0.4)',
                     borderRadius: '12px',
                     padding: '20px',
+                    marginBottom: '16px',
                     backdropFilter: 'blur(10px)'
                   }}>
                     <p style={{
@@ -1722,6 +2067,7 @@ export default function AddFood() {
             </div>
           </div>
         </>
+
       )}
 
       {/* NUEVO: Food Results Modal */}
@@ -1979,6 +2325,7 @@ export default function AddFood() {
             </div>
           </div>
         </>
+
       )}
 
       {/* Barcode Scanner Modal */}
@@ -2445,6 +2792,7 @@ export default function AddFood() {
             </div>
           </div>
         </>
+
       )}
 
       {/* Nutrition Modal */}
@@ -2766,6 +3114,7 @@ export default function AddFood() {
             </div>
           </div>
         </>
+
       )}
 
       <BottomNavigation />
