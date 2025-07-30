@@ -155,6 +155,41 @@ export default function Progress() {
 
       localStorage.setItem(`weight_${today}`, JSON.stringify(weightData));
 
+      // NUEVA FUNCIONALIDAD: Actualizar también el perfil del usuario
+      try {
+        const userProfileStored = localStorage.getItem('userProfile');
+        if (userProfileStored) {
+          const currentProfile = JSON.parse(userProfileStored);
+
+          // Actualizar el peso en el perfil
+          const updatedProfile = {
+            ...currentProfile,
+            weight: weight.toString(),
+            lastWeightUpdate: weightData.timestamp,
+            lastWeightUpdateDate: today
+          };
+
+          // Guardar el perfil actualizado
+          localStorage.setItem('userProfile', JSON.stringify(updatedProfile));
+
+          // Disparar evento para que otras páginas se enteren del cambio
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('profileUpdated', {
+              detail: {
+                weightUpdated: true,
+                newWeight: weight,
+                updateSource: 'progress-page'
+              }
+            }));
+          }
+
+          console.log('Peso actualizado en el perfil:', weight, 'kg');
+        }
+      } catch (profileError) {
+        console.warn('Error actualizando perfil con nuevo peso:', profileError);
+        // Continuar aunque falle la actualización del perfil
+      }
+
       // Update progress data
       loadProgressData();
 
@@ -162,9 +197,9 @@ export default function Progress() {
       setNewWeight('');
       setShowWeightModal(false);
 
-      // Show success feedback
+      // Show success feedback with additional info
       setTimeout(() => {
-        alert('¡Peso registrado exitosamente!');
+        alert('¡Peso registrado exitosamente!\\n\\n✅ Guardado en progreso diario\\n✅ Actualizado en tu perfil\\n✅ IMC recalculado automáticamente');
       }, 100);
 
     } catch (error) {
@@ -205,16 +240,16 @@ export default function Progress() {
       // Usar formato del dispositivo si está disponible
       const date = new Date(dateString);
       const locale = deviceTime.getLocale();
-      return date.toLocaleDateString(locale, { 
-        month: 'short', 
-        day: 'numeric' 
+      return date.toLocaleDateString(locale, {
+        month: 'short',
+        day: 'numeric'
       });
     } catch (error) {
       // Fallback seguro
       const date = new Date(dateString);
-      return date.toLocaleDateString('es-ES', { 
-        month: 'short', 
-        day: 'numeric' 
+      return date.toLocaleDateString('es-ES', {
+        month: 'short',
+        day: 'numeric'
       });
     }
   };
@@ -246,10 +281,10 @@ export default function Progress() {
           borderRadius: '8px',
           border: '1px solid #e2e8f0'
         }}>
-          <i className="ri-bar-chart-line" style={{ 
-            fontSize: '32px', 
-            color: '#9ca3af', 
-            marginBottom: '12px' 
+          <i className="ri-bar-chart-line" style={{
+            fontSize: '32px',
+            color: '#9ca3af',
+            marginBottom: '12px'
           }}></i>
           <p style={{
             fontSize: '14px',
@@ -451,9 +486,9 @@ export default function Progress() {
             const parsed = JSON.parse(savedData);
 
             // Verificar si alcanzó al menos 80% de sus metas
-            if (parsed.calories >= targetCalories * 0.8 && 
-                parsed.protein >= targetProtein * 0.8 && 
-                parsed.carbs >= targetCarbs * 0.8 && 
+            if (parsed.calories >= targetCalories * 0.8 &&
+                parsed.protein >= targetProtein * 0.8 &&
+                parsed.carbs >= targetCarbs * 0.8 &&
                 parsed.fats >= targetFats * 0.8) {
               metasAlcanzadas++;
             }
@@ -709,11 +744,16 @@ export default function Progress() {
             display: 'flex',
             gap: '8px'
           }}>
-            {[
-              { value: '7', label: '7 días' },
-              { value: '14', label: '14 días' },
-              { value: '30', label: '30 días' }
-            ].map(option => (
+            {[{
+              value: '7',
+              label: '7 días'
+            }, {
+              value: '14',
+              label: '14 días'
+            }, {
+              value: '30',
+              label: '30 días'
+            }].map(option => (
               <button
                 key={option.value}
                 onClick={() => setSelectedPeriod(option.value)}
@@ -817,7 +857,7 @@ export default function Progress() {
           boxShadow: '0 4px 6px rgba(0,0,0,0.07)',
           marginBottom: '24px'
         }}>
-          <div style={{ 
+          <div style={{
             display: 'flex',
             alignItems: 'center',
             gap: '12px',

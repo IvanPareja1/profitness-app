@@ -66,6 +66,7 @@ export default function Profile() {
       try {
         const today = deviceTime.getCurrentDate();
         const todayFitnessData = fitnessSync.getFitnessData(today);
+
         if (todayFitnessData) {
           setFitnessData(todayFitnessData);
         }
@@ -74,6 +75,7 @@ export default function Profile() {
         // Fallback seguro
         const fallbackToday = new Date().toISOString().split('T')[0];
         const todayFitnessData = fitnessSync.getFitnessData(fallbackToday);
+
         if (todayFitnessData) {
           setFitnessData(todayFitnessData);
         }
@@ -1607,7 +1609,7 @@ export default function Profile() {
               );
             })()}
           </div>
-        )
+        )}
 
         {/* Goal Section */}
         <div style={{
@@ -2499,7 +2501,7 @@ export default function Profile() {
                       gridTemplateColumns: 'repeat(2, 1fr)',
                       gap: '8px'
                     }}>
-                      {[['monday', t.monday], ['tuesday', t.tuesday], ['wednesday', t.wednesday], ['thursday', t.thursday], ['friday', t.friday], ['saturday', t.saturday], ['sunday', t.sunday]].map(([day, dayText]) => (
+                      {[[ 'monday', t.monday], [ 'tuesday', t.tuesday], [ 'wednesday', t.wednesday], [ 'thursday', t.thursday], [ 'friday', t.friday], [ 'saturday', t.saturday], [ 'sunday', t.sunday]].map(([ day, dayText]) => (
                         <button
                           key={day}
                           onClick={() => toggleRestDay(day)}
@@ -2765,7 +2767,7 @@ export default function Profile() {
                     color: 'white',
                     margin: '0 0 8px 0'
                   }}>
-                    ✨ Beneficios exclusivos:
+                    Beneficios exclusivos:
                   </h5>
                   <ul style={{
                     fontSize: '13px',
@@ -2795,7 +2797,7 @@ export default function Profile() {
                   color: '#6b7280',
                   margin: '0 0 4px 0'
                 }}>
-                  💝 Tu apoyo nos ayuda a:
+                  Tu apoyo nos ayuda a:
                 </p>
                 <p style={{
                   fontSize: '12px',
