@@ -53,12 +53,12 @@ class UltraBarcodeScannerPro {
   // NUEVAS PROPIEDADES PARA ENFOQUE AUTOMÁTICO AVANZADO
   private mediaStream: MediaStream | null = null;
   private currentTrack: MediaStreamTrack | null = null;
-  private autoFocusInterval: number | null = null;
-  private focusCapabilities: any = null;
+  private autoFocusInterval: NodeJS.Timeout | null = null;
+  private focusCapabilities: MediaTrackCapabilities | null = null;
   private lastSharpnessScore = 0;
   private sharpnessHistory: number[] = [];
   private focusOptimizationActive = false;
-  private manualFocusDistance = 0.3; // Distancia óptima para códigos de barras (30cm)
+  private manualFocusDistance = 0.3;
 
   // Estadísticas de rendimiento
   private performanceStats = {
@@ -113,7 +113,7 @@ class UltraBarcodeScannerPro {
   async init(): Promise<void> {
     try {
       // Intentar BarcodeDetector primero con configuración optimizada
-      if ("BarcodeDetector" in window) {
+      if (typeof window !== 'undefined' && "BarcodeDetector" in window) {
         try {
           const supportedFormats = await (window as any).BarcodeDetector.getSupportedFormats();
           console.log("Formatos soportados por BarcodeDetector:", supportedFormats);
@@ -149,9 +149,7 @@ class UltraBarcodeScannerPro {
       // CONFIGURACIÓN ULTRA AVANZADA DE CÁMARA CON ENFOQUE AUTOMÁTICO
       const advancedConstraints: MediaStreamConstraints = {
         video: {
-          facingMode: "environment", // Cámara trasera preferida
-
-          // RESOLUCIÓN OPTIMIZADA PARA CÓDIGOS DE BARRAS
+          facingMode: "environment",
           width: {
             ideal: 1920,
             min: 1280,
@@ -160,32 +158,16 @@ class UltraBarcodeScannerPro {
             ideal: 1080,
             min: 720,
           },
-
-          // FRAME RATE OPTIMIZADO
           frameRate: {
             ideal: 30,
             min: 20,
           },
-
-          // CONFIGURACIONES DE ENFOQUE AUTOMÁTICO AVANZADAS
-          focusMode: "continuous" as any,
-          focusDistance: 0.3, // 30cm - ideal para códigos de barras,
-
-          // CONFIGURACIONES ADICIONALES DE CALIDAD
           aspectRatio: { ideal: 16 / 9 },
-          resizeMode: "crop-and-scale" as any,
-
-          // CONFIGURACIONES DE EXPOSICIÓN Y BRILLO
-          exposureMode: "continuous" as any,
-          exposureCompensation: 0,
-          whiteBalanceMode: "continuous" as any,
-
-          // CONFIGURACIONES DE IMAGEN OPTIMIZADAS
           brightness: { ideal: 0.5 },
-          contrast: { ideal: 1.2 }, // Aumentar contraste para códigos
-          saturation: { ideal: 0.8 }, // Reducir saturación para mejor detección
-          sharpness: { ideal: 1.0 }, // Máxima nitidez
-        },
+          contrast: { ideal: 1.2 },
+          saturation: { ideal: 0.8 },
+          sharpness: { ideal: 1.0 },
+        } as MediaTrackConstraints,
       };
 
       // INTENTAR OBTENER STREAM CON CONFIGURACIÓN AVANZADA
@@ -203,7 +185,7 @@ class UltraBarcodeScannerPro {
             width: { ideal: 1280, min: 640 },
             height: { ideal: 720, min: 480 },
             frameRate: { ideal: 30, min: 15 },
-          },
+          } as MediaTrackConstraints,
         };
 
         stream = await navigator.mediaDevices.getUserMedia(fallbackConstraints);
@@ -220,11 +202,11 @@ class UltraBarcodeScannerPro {
         this.focusCapabilities = capabilities;
 
         console.log("Capacidades de cámara:", {
-          focusMode: capabilities.focusMode,
-          focusDistance: capabilities.focusDistance,
-          exposureMode: capabilities.exposureMode,
-          whiteBalanceMode: capabilities.whiteBalanceMode,
-          torch: capabilities.torch,
+          focusMode: (capabilities as any).focusMode,
+          focusDistance: (capabilities as any).focusDistance,
+          exposureMode: (capabilities as any).exposureMode,
+          whiteBalanceMode: (capabilities as any).whiteBalanceMode,
+          torch: (capabilities as any).torch,
         });
 
         // APLICAR CONFIGURACIONES AVANZADAS DE ENFOQUE
@@ -246,33 +228,33 @@ class UltraBarcodeScannerPro {
       const constraints: any = {};
 
       // CONFIGURAR ENFOQUE AUTOMÁTICO CONTINUO
-      if (this.focusCapabilities.focusMode && this.focusCapabilities.focusMode.includes("continuous")) {
+      const capabilities = this.focusCapabilities as any;
+      if (capabilities.focusMode && capabilities.focusMode.includes && capabilities.focusMode.includes("continuous")) {
         constraints.focusMode = "continuous";
         console.log("Enfoque automático continuo activado");
-      } else if (this.focusCapabilities.focusMode && this.focusCapabilities.focusMode.includes("manual")) {
+      } else if (capabilities.focusMode && capabilities.focusMode.includes && capabilities.focusMode.includes("manual")) {
         // Si no hay automático, configurar manual a distancia óptima
         constraints.focusMode = "manual";
-        if (this.focusCapabilities.focusDistance) {
+        if (capabilities.focusDistance) {
           constraints.focusDistance = this.manualFocusDistance;
           console.log("Enfoque manual configurado a distancia óptima");
         }
       }
 
       // CONFIGURAR EXPOSICIÓN AUTOMÁTICA
-      if (this.focusCapabilities.exposureMode && this.focusCapabilities.exposureMode.includes("continuous")) {
+      if (capabilities.exposureMode && capabilities.exposureMode.includes && capabilities.exposureMode.includes("continuous")) {
         constraints.exposureMode = "continuous";
         console.log("Exposición automática activada");
       }
 
       // CONFIGURAR BALANCE DE BLANCOS AUTOMÁTICO
-      if (this.focusCapabilities.whiteBalanceMode && this.focusCapabilities.whiteBalanceMode.includes("continuous")) {
+      if (capabilities.whiteBalanceMode && capabilities.whiteBalanceMode.includes && capabilities.whiteBalanceMode.includes("continuous")) {
         constraints.whiteBalanceMode = "continuous";
         console.log("Balance de blancos automático activado");
       }
 
       // ACTIVAR FLASH/TORCH SI ESTÁ DISPONIBLE Y ES ÚTIL
-      if (this.focusCapabilities.torch) {
-        // No activamos automáticamente, pero lo dejamos disponible
+      if (capabilities.torch) {
         console.log("Flash/Torch disponible para condiciones de poca luz");
       }
 
@@ -286,7 +268,6 @@ class UltraBarcodeScannerPro {
       this.startContinuousAutofocus();
     } catch (error) {
       console.warn("No se pudieron aplicar algunas configuraciones avanzadas:", error);
-      // No fallar, continuar con configuración básica
     }
   }
 
@@ -326,7 +307,7 @@ class UltraBarcodeScannerPro {
       } catch (error) {
         console.warn("Error en enfoque automático continuo:", error);
       }
-    }, 500); // Cada 500ms
+    }, 500);
 
     console.log("Enfoque automático continuo iniciado");
   }
@@ -386,7 +367,7 @@ class UltraBarcodeScannerPro {
       return Math.min(normalizedSharpness, 1);
     } catch (error) {
       console.warn("Error calculando nitidez:", error);
-      return 0.5; // Valor por defecto
+      return 0.5;
     }
   }
 
@@ -399,11 +380,11 @@ class UltraBarcodeScannerPro {
     try {
       console.log("Optimizando enfoque para códigos de barras...");
 
-      const capabilities = this.focusCapabilities;
+      const capabilities = this.focusCapabilities as any;
 
-      if (capabilities?.focusMode?.includes("manual") && capabilities?.focusDistance) {
+      if (capabilities?.focusMode?.includes && capabilities.focusMode.includes("manual") && capabilities?.focusDistance) {
         // PROBAR DIFERENTES DISTANCIAS DE ENFOQUE ÓPTIMAS PARA CÓDIGOS
-        const optimalDistances = [0.2, 0.3, 0.4, 0.5]; // 20cm, 30cm, 40cm, 50cm
+        const optimalDistances = [0.2, 0.3, 0.4, 0.5];
         let bestDistance = 0.3;
         let bestSharpness = 0;
 
@@ -449,7 +430,7 @@ class UltraBarcodeScannerPro {
           this.manualFocusDistance = bestDistance;
           console.log(`Enfoque optimizado a ${bestDistance}m (nitidez: ${bestSharpness.toFixed(3)})`);
         }
-      } else if (capabilities?.focusMode?.includes("continuous")) {
+      } else if (capabilities?.focusMode?.includes && capabilities.focusMode.includes("continuous")) {
         // Si no hay modo manual, forzar reactivación de modo continuo
         await this.currentTrack.applyConstraints({
           advanced: [
@@ -473,7 +454,8 @@ class UltraBarcodeScannerPro {
 
   // MÉTODO PÚBLICO PARA ALTERNAR FLASH/TORCH
   async toggleTorch(enable?: boolean): Promise<boolean> {
-    if (!this.currentTrack || !this.focusCapabilities?.torch) {
+    const capabilities = this.focusCapabilities as any;
+    if (!this.currentTrack || !capabilities?.torch) {
       console.warn("Flash/Torch no disponible en este dispositivo");
       return false;
     }
@@ -517,27 +499,31 @@ class UltraBarcodeScannerPro {
 
       // Formatos optimizados por prioridad
       const priorityFormats = [
-        ZXing.BarcodeFormat.EAN_13,
-        ZXing.BarcodeFormat.EAN_8,
-        ZXing.BarcodeFormat.UPC_A,
-        ZXing.BarcodeFormat.UPC_E,
-        ZXing.BarcodeFormat.CODE_128,
-        ZXing.BarcodeFormat.CODE_39,
-        ZXing.BarcodeFormat.QR_CODE,
+        ZXing.BarcodeFormat?.EAN_13,
+        ZXing.BarcodeFormat?.EAN_8,
+        ZXing.BarcodeFormat?.UPC_A,
+        ZXing.BarcodeFormat?.UPC_E,
+        ZXing.BarcodeFormat?.CODE_128,
+        ZXing.BarcodeFormat?.CODE_39,
+        ZXing.BarcodeFormat?.QR_CODE,
       ].filter((format) => format !== undefined);
 
-      hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, priorityFormats);
-      hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-      hints.set(ZXing.DecodeHintType.ALSO_INVERTED, true);
-      hints.set(ZXing.DecodeHintType.ASSUME_CODE_39_CHECK_DIGIT, false);
-      hints.set(ZXing.DecodeHintType.ASSUME_GS1, false);
+      if (ZXing.DecodeHintType) {
+        hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, priorityFormats);
+        hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+        hints.set(ZXing.DecodeHintType.ALSO_INVERTED, true);
+        hints.set(ZXing.DecodeHintType.ASSUME_CODE_39_CHECK_DIGIT, false);
+        hints.set(ZXing.DecodeHintType.ASSUME_GS1, false);
 
-      // Configuración para mejor rendimiento
-      if (ZXing.DecodeHintType.RETURN_CODABAR_START_END) {
-        hints.set(ZXing.DecodeHintType.RETURN_CODABAR_START_END, true);
+        // Configuración para mejor rendimiento
+        if (ZXing.DecodeHintType.RETURN_CODABAR_START_END) {
+          hints.set(ZXing.DecodeHintType.RETURN_CODABAR_START_END, true);
+        }
       }
 
-      this.zxingReader.hints = hints;
+      if (this.zxingReader) {
+        this.zxingReader.hints = hints;
+      }
 
       console.log("ZXing inicializado con configuración avanzada");
       this.useZXing = true;
@@ -549,7 +535,6 @@ class UltraBarcodeScannerPro {
 
   private loadZXingScriptAdvanced(): Promise<void> {
     return new Promise((resolve, reject) => {
-      // CDNs optimizados con prioridad por velocidad y confiabilidad
       const cdnUrls = [
         "https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js",
         "https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js",
@@ -558,7 +543,7 @@ class UltraBarcodeScannerPro {
       ];
 
       let currentIndex = 0;
-      const loadTimeout = 8000; // 8 segundos timeout por CDN
+      const loadTimeout = 8000;
 
       const tryLoadScript = () => {
         if (currentIndex >= cdnUrls.length) {
@@ -592,7 +577,9 @@ class UltraBarcodeScannerPro {
           tryLoadScript();
         };
 
-        document.head.appendChild(script);
+        if (typeof document !== 'undefined') {
+          document.head.appendChild(script);
+        }
       };
 
       tryLoadScript();
@@ -710,7 +697,7 @@ class UltraBarcodeScannerPro {
         const frameHash = this.createFrameHash(imageData);
         const cachedResult = this.resultCache.get(frameHash);
 
-        if (cachedResult && now - cachedResult.timestamp! < this.cacheTimeout) {
+        if (cachedResult && cachedResult.timestamp && now - cachedResult.timestamp < this.cacheTimeout) {
           this.processDetection(cachedResult);
           if (this.continuous) {
             setTimeout(scanWithZXing, 100);
@@ -719,42 +706,43 @@ class UltraBarcodeScannerPro {
         }
 
         // Intentar decodificar con ZXing
-        this.zxingReader.decodeFromCanvas(this.canvas)
-          .then((result: any) => {
-            const processingTime = performance.now() - startTime;
+        if (this.zxingReader && this.zxingReader.decodeFromCanvas) {
+          this.zxingReader.decodeFromCanvas(this.canvas)
+            .then((result: any) => {
+              const processingTime = performance.now() - startTime;
 
-            this.updatePerformanceStats(processingTime);
+              this.updatePerformanceStats(processingTime);
 
-            if (result && this.isValidBarcodeValue(result.text)) {
-              const barcodeResult: BarcodeResult = {
-                code: result.text,
-                format: this.mapZXingFormat(result.format) || "unknown",
-                confidence: this.calculateZXingConfidence(result),
-                timestamp: now,
-                location: this.extractBarcodeLocation(result),
-              };
+              if (result && this.isValidBarcodeValue(result.text)) {
+                const barcodeResult: BarcodeResult = {
+                  code: result.text,
+                  format: this.mapZXingFormat(result.format) || "unknown",
+                  confidence: this.calculateZXingConfidence(result),
+                  timestamp: now,
+                  location: this.extractBarcodeLocation(result),
+                };
 
-              // Guardar en cache
-              this.resultCache.set(frameHash, barcodeResult);
+                // Guardar en cache
+                this.resultCache.set(frameHash, barcodeResult);
 
-              this.processDetection(barcodeResult);
-              this.performanceStats.successfulScans++;
-            }
+                this.processDetection(barcodeResult);
+                this.performanceStats.successfulScans++;
+              }
 
-            if (this.continuous) {
-              setTimeout(scanWithZXing, 50);
-            }
-          })
-          .catch((error: any) => {
-            const processingTime = performance.now() - startTime;
+              if (this.continuous) {
+                setTimeout(scanWithZXing, 50);
+              }
+            })
+            .catch((error: any) => {
+              const processingTime = performance.now() - startTime;
 
-            this.updatePerformanceStats(processingTime);
+              this.updatePerformanceStats(processingTime);
 
-            // Error normal cuando no se detecta código
-            if (this.continuous) {
-              setTimeout(scanWithZXing, 80);
-            }
-          });
+              if (this.continuous) {
+                setTimeout(scanWithZXing, 80);
+              }
+            });
+        }
       } catch (error) {
         if (this.onError) {
           this.onError(error as Error);
@@ -786,7 +774,7 @@ class UltraBarcodeScannerPro {
       const frameHash = this.createFrameHash(imageData);
       const cachedResult = this.resultCache.get(frameHash);
 
-      if (cachedResult && now - cachedResult.timestamp! < this.cacheTimeout) {
+      if (cachedResult && cachedResult.timestamp && now - cachedResult.timestamp < this.cacheTimeout) {
         this.processDetection(cachedResult);
         return;
       }
@@ -811,7 +799,7 @@ class UltraBarcodeScannerPro {
 
             this.processDetection(barcodeResult);
             this.performanceStats.successfulScans++;
-            break; // Procesar solo el primer código válido
+            break;
           }
         }
       }
@@ -897,7 +885,6 @@ class UltraBarcodeScannerPro {
       output[i] = contrasted; // Red
       output[i + 1] = contrasted; // Green
       output[i + 2] = contrasted; // Blue
-      // Alpha se mantiene igual (output[i + 3] = data[i + 3])
     }
 
     return new ImageData(output, width, height);
@@ -929,7 +916,7 @@ class UltraBarcodeScannerPro {
     let confidence = 0.85; // Base para ZXing
 
     // Factor por formato (algunos son más confiables)
-    const formatReliability = {
+    const formatReliability: { [key: string]: number } = {
       EAN_13: 0.95,
       EAN_8: 0.92,
       UPC_A: 0.95,
@@ -940,14 +927,14 @@ class UltraBarcodeScannerPro {
     };
 
     const format = result.format?.toString();
-    if (format && formatReliability[format as keyof typeof formatReliability]) {
-      confidence *= formatReliability[format as keyof typeof formatReliability];
+    if (format && formatReliability[format]) {
+      confidence *= formatReliability[format];
     }
 
     // Factor por longitud del código
     const codeLength = result.text?.length || 0;
     if (codeLength >= 8 && codeLength <= 14) {
-      confidence *= 1.05; // Longitudes típicas de códigos de barras
+      confidence *= 1.05;
     }
 
     // Reducir confianza si el procesamiento fue muy lento
@@ -962,7 +949,7 @@ class UltraBarcodeScannerPro {
     let confidence = 0.9; // Base más alta para BarcodeDetector nativo
 
     // Factor por formato
-    const formatWeights = {
+    const formatWeights: { [key: string]: number } = {
       ean_13: 0.98,
       ean_8: 0.95,
       upc_a: 0.98,
@@ -972,7 +959,7 @@ class UltraBarcodeScannerPro {
       qr_code: 0.95,
     };
 
-    confidence *= formatWeights[barcode.format as keyof typeof formatWeights] || 0.8;
+    confidence *= formatWeights[barcode.format] || 0.8;
 
     // Factor de área del código (códigos más grandes = mayor confianza)
     if (barcode.boundingBox) {
@@ -1110,7 +1097,6 @@ class UltraBarcodeScannerPro {
       lastProcessingTime: number;
     };
     cacheSize: number;
-    // NUEVAS ESTADÍSTICAS DE ENFOQUE
     focusStats: {
       autoFocusActive: boolean;
       lastSharpnessScore: number;
@@ -1135,7 +1121,7 @@ class UltraBarcodeScannerPro {
         averageSharpness,
         focusOptimizationActive: this.focusOptimizationActive,
         currentFocusDistance: this.manualFocusDistance,
-        torchAvailable: !!(this.focusCapabilities?.torch),
+        torchAvailable: !!(this.focusCapabilities as any)?.torch,
       },
     };
   }
@@ -1154,7 +1140,8 @@ class UltraBarcodeScannerPro {
     if (config.manualFocusDistance !== undefined) {
       this.manualFocusDistance = config.manualFocusDistance;
       // Aplicar inmediatamente si está en modo manual
-      if (this.currentTrack && this.focusCapabilities?.focusMode?.includes("manual")) {
+      const capabilities = this.focusCapabilities as any;
+      if (this.currentTrack && capabilities?.focusMode?.includes && capabilities.focusMode.includes("manual")) {
         this.currentTrack.applyConstraints({
           advanced: [
             {
@@ -1190,7 +1177,7 @@ class UltraBarcodeScannerPro {
     }
 
     // Validar patrones específicos de códigos conocidos
-    const commonPatterns = [/^\d{8}$/, /^\d{12}$/, /^\d{13}$/, /^\d{14}$/];
+    const commonPatterns = [/^( \d{8}| \d{12}| \d{13}| \d{14})$/, /^( \d{6}| \d{12})$/];
 
     const matchesPattern = commonPatterns.some((pattern) => pattern.test(code));
     if (matchesPattern) return true;
@@ -1274,450 +1261,3 @@ export function stopBarcodeScanner(scanner?: UltraBarcodeScannerPro): void {
     scanner.stop();
   }
 }
-
-// MEJORAS EN API DE PRODUCTOS
-
-// Cache inteligente para productos
-const PRODUCT_CACHE = new Map<string, { data: any; timestamp: number }>();
-const PRODUCT_CACHE_DURATION = 10 * 60 * 1000; // 10 minutos
-
-// Función ultra mejorada para buscar producto por código de barras
-export async function getProductByBarcode(barcode: string): Promise<any> {
-  // Validar código antes de hacer la petición
-  if (!isValidBarcode(barcode)) {
-    throw new Error("Código de barras inválido");
-  }
-
-  // Verificar cache primero
-  const cached = PRODUCT_CACHE.get(barcode);
-  if (cached && Date.now() - cached.timestamp < PRODUCT_CACHE_DURATION) {
-    console.log("Producto obtenido del cache:", barcode);
-    return cached.data;
-  }
-
-  try {
-    console.log("Buscando producto con código:", barcode);
-
-    // APIs mejoradas con mejor manejo de errores
-    const apis = [
-      {
-        name: "OpenFoodFacts",
-        url: `https://world.openfoodfacts.org/api/v0/product/${barcode}.json`,
-        parser: parseOpenFoodFactsResponseAdvanced,
-        timeout: 8000,
-      },
-      {
-        name: "UPCDatabase",
-        url: `https://api.upcitemdb.com/prod/trial/lookup?upc=${barcode}`,
-        parser: parseUPCDatabaseResponseAdvanced,
-        timeout: 6000,
-      },
-      {
-        name: "Barcode Lookup",
-        url: `https://api.barcodelookup.com/v3/products?barcode=${barcode}&formatted=y&key=demo`,
-        parser: parseBarcodeLookupResponse,
-        timeout: 5000,
-      },
-    ];
-
-    // Intentar APIs en paralelo para mayor velocidad
-    const promises = apis.map(async (api) => {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), api.timeout);
-
-      try {
-        const response = await fetch(api.url, {
-          headers: {
-            Accept: "application/json",
-            "User-Agent": "ProFitnessApp/1.0 (Nutrition Tracker)",
-            "Cache-Control": "no-cache",
-          },
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-          throw new Error(`${api.name} API Error: ${response.status}`);
-        }
-
-        const data = await response.json();
-        const product = api.parser(data, barcode);
-
-        if (product) {
-          console.log(`Producto encontrado en ${api.name}:`, product.product_name);
-          return { product, source: api.name };
-        }
-
-        return null;
-      } catch (error) {
-        clearTimeout(timeoutId);
-        console.warn(`Error con ${api.name}:`, error);
-        return null;
-      }
-    });
-
-    // Esperar por el primer resultado exitoso
-    const results = await Promise.allSettled(promises);
-    const successfulResults = results
-      .filter((result): result is PromiseFulfilledResult<any> => result.status === "fulfilled" && result.value !== null)
-      .map((result) => result.value);
-
-    if (successfulResults.length > 0) {
-      const bestResult = successfulResults[0]; // Tomar el primero (más rápido)
-
-      // Guardar en cache
-      PRODUCT_CACHE.set(barcode, {
-        data: bestResult.product,
-        timestamp: Date.now(),
-      });
-
-      return bestResult.product;
-    }
-
-    // Si no se encuentra en ninguna API, crear producto genérico mejorado
-    console.log("Creando producto genérico para:", barcode);
-    const genericProduct = createAdvancedGenericProduct(barcode);
-
-    // Guardar producto genérico en cache temporal
-    PRODUCT_CACHE.set(barcode, {
-      data: genericProduct,
-      timestamp: Date.now(),
-    });
-
-    return genericProduct;
-  } catch (error) {
-    console.error("Error crítico obteniendo producto:", error);
-    throw error;
-  }
-}
-
-// Parser mejorado para OpenFoodFacts
-function parseOpenFoodFactsResponseAdvanced(data: any, barcode: string): any | null {
-  if (data.status === 1 && data.product) {
-    const product = data.product;
-
-    return {
-      product_name: product.product_name || product.product_name_es || product.product_name_en || `Producto ${barcode}`,
-      brands: product.brands || product.brand_owner || "Marca desconocida",
-      quantity: product.quantity || "",
-      image_url: product.image_front_url || product.image_url || generateEnhancedProductImage(barcode, product.product_name),
-      nutriments: {
-        "energy-kcal_100g": Math.round(
-          product.nutriments?.["energy-kcal_100g"] ||
-            product.nutriments?.["energy-kcal"] ||
-            product.nutriments?.["energy_100g"] / 4.184 || // Convert from kJ if needed
-            0
-        ),
-        "proteins_100g": Math.round(
-          (product.nutriments?.["proteins_100g"] || product.nutriments?.["proteins"] || 0) * 10
-        ) / 10,
-        "carbohydrates_100g": Math.round(
-          (product.nutriments?.["carbohydrates_100g"] || product.nutriments?.["carbohydrates"] || 0) * 10
-        ) / 10,
-        "fat_100g": Math.round((product.nutriments?.["fat_100g"] || product.nutriments?.["fat"] || 0) * 10) / 10,
-        "fiber_100g": Math.round((product.nutriments?.["fiber_100g"] || product.nutriments?.["fiber"] || 0) * 10) / 10,
-        "sugars_100g": Math.round((product.nutriments?.["sugars_100g"] || product.nutriments?.["sugars"] || 0) * 10) / 10,
-        "salt_100g": Math.round(
-          (product.nutriments?.["salt_100g"] ||
-            product.nutriments?.["salt"] ||
-            product.nutriments?.["sodium_100g"] * 2.54 || // Convert from sodium
-            0) * 100
-        ) / 100,
-      },
-      categories: product.categories || product.categories_tags?.join(", ") || "",
-      ingredients_text: product.ingredients_text || product.ingredients_text_es || product.ingredients_text_en || "",
-      nutrition_score: product.nutrition_grades || product.nutriscore_grade || "",
-      eco_score: product.ecoscore_grade || "",
-      labels: product.labels || product.labels_tags?.join(", ") || "",
-      allergens: product.allergens || product.allergens_tags?.join(", ") || "",
-      source: "OpenFoodFacts Enhanced",
-    };
-  }
-  return null;
-}
-
-// Parser mejorado para UPCDatabase
-function parseUPCDatabaseResponseAdvanced(data: any, barcode: string): any | null {
-  if (data.code === "OK" && data.items && data.items.length > 0) {
-    const item = data.items[0];
-
-    return {
-      product_name: item.title || item.description || `Producto ${barcode}`,
-      brands: item.brand || item.manufacturer || "Marca desconocida",
-      quantity: item.size || "",
-      image_url: (item.images && item.images.length > 0) ? item.images[0] : generateEnhancedProductImage(barcode, item.title),
-      nutriments: estimateNutritionFromCategory(item.category, item.title),
-      categories: item.category || "",
-      ingredients_text: item.description || "Información no disponible",
-      source: "UPCDatabase Enhanced",
-    };
-  }
-  return null;
-}
-
-// Parser para Barcode Lookup (nueva API)
-function parseBarcodeLookupResponse(data: any, barcode: string): any | null {
-  if (data.products && data.products.length > 0) {
-    const product = data.products[0];
-
-    return {
-      product_name: product.product_name || product.title || `Producto ${barcode}`,
-      brands: product.brand || product.manufacturer || "Marca desconocida",
-      quantity: product.size || "",
-      image_url: product.images && product.images.length > 0 ? product.images[0] : generateEnhancedProductImage(barcode, product.product_name),
-      nutriments: estimateNutritionFromCategory(product.category, product.product_name),
-      categories: product.category || "",
-      ingredients_text: product.description || "Información no disponible",
-      source: "Barcode Lookup",
-    };
-  }
-  return null;
-}
-
-// Función mejorada para estimar nutrición desde categoría
-function estimateNutritionFromCategory(category: string, productName: string): any {
-  const categoryLower = (category || "").toLowerCase();
-  const nameLower = (productName || "").toLowerCase();
-
-  // Patrones de categorías más específicos
-  const nutritionPatterns = {
-    // Bebidas
-    beverages: { calories: 45, proteins: 0.2, carbohydrates: 11, fat: 0.1, fiber: 0, sugars: 10, salt: 0.01 },
-    soda: { calories: 150, proteins: 0, carbohydrates: 39, fat: 0, fiber: 0, sugars: 39, salt: 0.02 },
-    juice: { calories: 55, proteins: 0.5, carbohydrates: 13, fat: 0.1, fiber: 0.2, sugars: 12, salt: 0.001 },
-
-    // Lácteos
-    dairy: { calories: 85, proteins: 6, carbohydrates: 6, fat: 4.5, fiber: 0, sugars: 6, salt: 0.12 },
-    milk: { calories: 61, proteins: 3.2, carbohydrates: 4.8, fat: 3.3, fiber: 0, sugars: 4.8, salt: 0.04 },
-    cheese: { calories: 350, proteins: 25, carbohydrates: 3, fat: 28, fiber: 0, sugars: 1, salt: 1.5 },
-    yogurt: { calories: 85, proteins: 8, carbohydrates: 12, fat: 2.5, fiber: 0, sugars: 10, salt: 0.08 },
-
-    // Carnes y proteínas
-    meat: { calories: 250, proteins: 26, carbohydrates: 0, fat: 15, fiber: 0, sugars: 0, salt: 0.8 },
-    chicken: { calories: 165, proteins: 31, carbohydrates: 0, fat: 3.6, fiber: 0, sugars: 0, salt: 0.7 },
-    fish: { calories: 200, proteins: 25, carbohydrates: 0, fat: 10, fiber: 0, sugars: 0, salt: 0.6 },
-
-    // Granos y cereales
-    cereal: { calories: 380, proteins: 12, carbohydrates: 70, fat: 6, fiber: 8, sugars: 8, salt: 0.8 },
-    bread: { calories: 265, proteins: 9, carbohydrates: 49, fat: 3.2, fiber: 2.7, sugars: 5, salt: 1.2 },
-    pasta: { calories: 350, proteins: 13, carbohydrates: 70, fat: 1.5, fiber: 3, sugars: 2, salt: 0.01 },
-
-    // Frutas y verduras
-    fruit: { calories: 60, proteins: 1, carbohydrates: 15, fat: 0.3, fiber: 3, sugars: 12, salt: 0.001 },
-    vegetable: { calories: 25, proteins: 2.5, carbohydrates: 5, fat: 0.2, fiber: 3, sugars: 3, salt: 0.01 },
-
-    // Snacks
-    snack: { calories: 450, proteins: 8, carbohydrates: 55, fat: 22, fiber: 3, sugars: 8, salt: 1.2 },
-    candy: { calories: 400, proteins: 2, carbohydrates: 85, fat: 8, fiber: 1, sugars: 80, salt: 0.1 },
-    chocolate: { calories: 535, proteins: 8, carbohydrates: 60, fat: 30, fiber: 7, sugars: 55, salt: 0.02 },
-  };
-
-  // Buscar patrón más específico primero
-  for (const [pattern, nutrition] of Object.entries(nutritionPatterns)) {
-    if (categoryLower.includes(pattern) || nameLower.includes(pattern)) {
-      return {
-        "energy-kcal_100g": nutrition.calories,
-        "proteins_100g": nutrition.proteins,
-        "carbohydrates_100g": nutrition.carbohydrates,
-        "fat_100g": nutrition.fat,
-        "fiber_100g": nutrition.fiber,
-        "sugars_100g": nutrition.sugars,
-        "salt_100g": nutrition.salt,
-      };
-    }
-  }
-
-  // Fallback genérico
-  return {
-    "energy-kcal_100g": 150,
-    "proteins_100g": 5,
-    "carbohydrates_100g": 20,
-    "fat_100g": 5,
-    "fiber_100g": 2,
-    "sugars_100g": 8,
-    "salt_100g": 0.5,
-  };
-}
-
-// Función mejorada para crear producto genérico
-function createAdvancedGenericProduct(barcode: string): any {
-  // Intentar deducir información del código de barras
-  const countryInfo = getBarcodeCountryInfo(barcode);
-
-  return {
-    product_name: `Producto ${barcode}`,
-    brands: countryInfo.country ? `Producto de ${countryInfo.country}` : "Marca desconocida",
-    quantity: "",
-    image_url: generateEnhancedProductImage(barcode, `Producto ${barcode}`),
-    nutriments: {
-      "energy-kcal_100g": 150,
-      "proteins_100g": 5,
-      "carbohydrates_100g": 20,
-      "fat_100g": 5,
-      "fiber_100g": 2,
-      "sugars_100g": 8,
-      "salt_100g": 0.5,
-    },
-    categories: "Producto alimenticio",
-    ingredients_text: "Información no disponible. Escaneo exitoso pero producto no encontrado en bases de datos.",
-    barcode_info: countryInfo,
-    source: "Generic Enhanced",
-    note: "Producto genérico. Puedes editar la información nutricional manualmente.",
-  };
-}
-
-// Función para obtener información del país desde código de barras
-function getBarcodeCountryInfo(barcode: string): { country: string; region: string } {
-  if (barcode.length < 3) return { country: "Desconocido", region: "Desconocido" };
-
-  const countryCode = barcode.substring(0, 3);
-  const countryMap: { [key: string]: { country: string; region: string } } = {
-    "000": { country: "Estados Unidos", region: "América del Norte" },
-    "001": { country: "Estados Unidos", region: "América del Norte" },
-    "020": { country: "Reino Unido", region: "Europa" },
-    "050": { country: "Reino Unido", region: "Europa" },
-    "070": { country: "Noruega", region: "Europa" },
-    "100": { country: "Estados Unidos", region: "América del Norte" },
-    "380": { country: "Bulgaria", region: "Europa" },
-    "400": { country: "Alemania", region: "Europa" },
-    "450": { country: "Japón", region: "Asia" },
-    "460": { country: "Rusia", region: "Europa/Asia" },
-    "500": { country: "Reino Unido", region: "Europa" },
-    "520": { country: "Grecia", region: "Europa" },
-    "560": { country: "Portugal", region: "Europa" },
-    "590": { country: "Polonia", region: "Europa" },
-    "690": { country: "China", region: "Asia" },
-    "750": { country: "México", region: "América del Norte" },
-    "770": { country: "Colombia", region: "América del Sur" },
-    "773": { country: "Uruguay", region: "América del Sur" },
-    "775": { country: "Perú", region: "América del Sur" },
-    "778": { country: "Argentina", region: "América del Sur" },
-    "780": { country: "Chile", region: "América del Sur" },
-    "789": { country: "Brasil", region: "América del Sur" },
-    "880": { country: "Corea del Sur", region: "Asia" },
-    "890": { country: "India", region: "Asia" },
-  };
-
-  // Buscar coincidencia exacta o por rango
-  for (const [code, info] of Object.entries(countryMap)) {
-    if (countryCode.startsWith(code) || countryCode === code) {
-      return info;
-    }
-  }
-
-  return { country: "Desconocido", region: "Desconocido" };
-}
-
-// Función mejorada para generar imagen de producto
-function generateEnhancedProductImage(barcode: string, productName?: string): string {
-  const productType = productName ? detectProductType(productName) : "generic";
-  const queries = {
-    beverage: "beverage bottle product commercial realistic food photography",
-    dairy: "dairy product milk cheese yogurt commercial packaging realistic",
-    meat: "meat protein food product commercial packaging realistic",
-    cereal: "cereal breakfast food box packaging commercial realistic",
-    snack: "snack food package commercial realistic product photography",
-    fruit: "fresh fruit healthy food commercial realistic photography",
-    vegetable: "fresh vegetables healthy food commercial realistic photography",
-    generic: "food product package commercial realistic product photography",
-  };
-
-  const query = queries[productType as keyof typeof queries] || queries.generic;
-
-  return `https://readdy.ai/api/search-image?query=${encodeURIComponent(query)}&width=200&height=200&seq=barcode_${barcode}&orientation=squarish`;
-}
-
-// Función para detectar tipo de producto
-function detectProductType(productName: string): string {
-  const name = productName.toLowerCase();
-
-  if (name.includes("juice") || name.includes("soda") || name.includes("drink") || name.includes("bebida")) return "beverage";
-  if (name.includes("milk") || name.includes("cheese") || name.includes("yogurt") || name.includes("leche") || name.includes("queso")) return "dairy";
-  if (name.includes("meat") || name.includes("chicken") || name.includes("beef") || name.includes("carne") || name.includes("pollo")) return "meat";
-  if (name.includes("cereal") || name.includes("bread") || name.includes("pasta") || name.includes("pan") || name.includes("cereal")) return "cereal";
-  if (name.includes("snack") || name.includes("chip") || name.includes("cookie") || name.includes("galleta")) return "snack";
-  if (name.includes("fruit") || name.includes("apple") || name.includes("banana") || name.includes("fruta") || name.includes("manzana")) return "fruit";
-  if (name.includes("vegetable") || name.includes("carrot") || name.includes("broccoli") || name.includes("verdura")) return "vegetable";
-
-  return "generic";
-}
-
-// Función mejorada para validar código de barras
-export function isValidBarcode(code: string): boolean {
-  if (!code || code.length < 6 || code.length > 18) {
-    return false;
-  }
-
-  // Limpiar código (remover espacios y guiones)
-  const cleanCode = code.replace(/[\\s\\-]/g, "");
-
-  // Validar que contenga principalmente números
-  if (!/^\d+$/.test(cleanCode)) {
-    return false;
-  }
-
-  // Validar longitudes específicas más estrictas
-  const validLengths = [6, 7, 8, 12, 13, 14, 17, 18];
-  if (!validLengths.includes(cleanCode.length)) {
-    return false;
-  }
-
-  // Validar checksum para códigos principales
-  if (cleanCode.length === 13 || cleanCode.length === 12) {
-    return validateEANUPCChecksum(cleanCode);
-  }
-
-  if (cleanCode.length === 8) {
-    return validateEAN8Checksum(cleanCode);
-  }
-
-  return true; // Para otros formatos, aceptar si pasa las validaciones básicas
-}
-
-// Validar checksum de EAN-13 y UPC-A mejorado
-function validateEANUPCChecksum(code: string): boolean {
-  if (code.length !== 13 && code.length !== 12) return false;
-
-  const digits = code.split("").map(Number);
-  const checkDigit = digits.pop()!;
-
-  let sum = 0;
-  for (let i = 0; i < digits.length; i++) {
-    // Para UPC-A (12 dígitos), el primer dígito se multiplica por 3
-    // Para EAN-13, se alterna empezando por 1
-    const multiplier = code.length === 12 ? (i % 2 === 0 ? 1 : 3) : i % 2 === 0 ? 1 : 3;
-    sum += digits[i] * multiplier;
-  }
-
-  const calculatedCheck = (10 - (sum % 10)) % 10;
-  return calculatedCheck === checkDigit;
-}
-
-// Validar checksum de EAN-8
-function validateEAN8Checksum(code: string): boolean {
-  if (code.length !== 8) return false;
-
-  const digits = code.split("").map(Number);
-  const checkDigit = digits.pop()!;
-
-  let sum = 0;
-  for (let i = 0; i < digits.length; i++) {
-    sum += digits[i] * (i % 2 === 0 ? 1 : 3);
-  }
-
-  const calculatedCheck = (10 - (sum % 10)) % 10;
-  return calculatedCheck === checkDigit;
-}
-
-// Limpiar cache periódicamente
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, value] of PRODUCT_CACHE.entries()) {
-    if (now - value.timestamp > PRODUCT_CACHE_DURATION) {
-      PRODUCT_CACHE.delete(key);
-    }
-  }
-}, 5 * 60 * 1000); // Cada 5 minutos
-
-console.log("Ultra Barcode Scanner Pro con AutoFocus Avanzado inicializado");
