@@ -385,7 +385,7 @@ function findBestFoodMatch(description: string): any | null {
   // Buscar coincidencias por inclusión
   for (const [key, food] of Object.entries(enhancedFoodDatabase)) {
     for (const name of food.names) {
-      const similarity = calculateAdvancedSimilarity(cleanDescription, name";
+      const similarity = calculateAdvancedSimilarity(cleanDescription, name)
 
 
       if (similarity > 0.8) {
