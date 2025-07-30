@@ -264,7 +264,7 @@ export default function AddFood() {
 
   const t = translations[language as keyof typeof translations] || translations.es;
 
-  // NUEVA función para iniciar cámara de comida
+  // NUEVA función para iniciar cámara de comida - CORREGIDA
   const startFoodCamera = async () => {
     if (!foodVideoRef.current) return;
 
@@ -273,17 +273,17 @@ export default function AddFood() {
       setAnalysisError('');
       setCapturedImage('');
 
-      // Solicitar acceso a la cámara con configuración optimizada para fotos de comida
-      const stream = await navigator.mediaDevices.getUserMedia({
+      // Configuración de cámara compatible con TypeScript
+      const constraints: MediaStreamConstraints = {
         video: {
-          facingMode: 'environment', // Cámara trasera preferida
+          facingMode: 'environment',
           width: { ideal: 1920, min: 1280 },
           height: { ideal: 1080, min: 720 },
-          frameRate: { ideal: 30, min: 15 },
-          focusMode: 'continuous' // Enfoque continuo para comida
+          frameRate: { ideal: 30, min: 15 }
         }
-      });
+      };
 
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
       foodStreamRef.current = stream;
       foodVideoRef.current.srcObject = stream;
 
@@ -457,7 +457,7 @@ export default function AddFood() {
     }
   };
 
-  // Función mejorada para iniciar el escáner de códigos
+  // Función mejorada para iniciar el escáner de códigos - CORREGIDA
   const startBarcodeScanner = async () => {
     if (!videoRef.current) return;
 
@@ -466,16 +466,17 @@ export default function AddFood() {
       setScannerError('');
       setLastScannedCode('');
 
-      // Solicitar acceso a la cámara con configuración optimizada
-      const stream = await navigator.mediaDevices.getUserMedia({
+      // Configuración de cámara compatible con TypeScript
+      const constraints: MediaStreamConstraints = {
         video: {
-          facingMode: 'environment', // Cámara trasera preferida
+          facingMode: 'environment',
           width: { ideal: 1920, min: 640 },
           height: { ideal: 1080, min: 480 },
           frameRate: { ideal: 30, min: 15 }
         }
-      });
+      };
 
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
       streamRef.current = stream;
       videoRef.current.srcObject = stream;
 
@@ -1588,11 +1589,7 @@ export default function AddFood() {
                 </div>
               ) : capturedImage ? (
                 <div style={{ marginBottom: '20px' }}>
-                  <div style={{
-                    display: 'flex',
-                    gap: '12px',
-                    justifyContent: 'center'
-                  }}>
+                  <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
                     <button
                       onClick={() => {
                         setCapturedImage('');
@@ -1601,13 +1598,14 @@ export default function AddFood() {
                       }}
                       className="!rounded-button"
                       style={{
+                        width: '100%',
+                        padding: '10px 16px',
                         background: 'rgba(255,255,255,0.1)',
                         border: '1px solid rgba(255,255,255,0.3)',
                         borderRadius: '12px',
                         color: 'white',
                         fontSize: '14px',
                         fontWeight: '500',
-                        padding: '12px 24px',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
@@ -1629,7 +1627,7 @@ export default function AddFood() {
                         color: 'white',
                         fontSize: '14px',
                         fontWeight: '500',
-                        padding: '12px 24px',
+                        padding: '10px 20px',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
@@ -1692,14 +1690,14 @@ export default function AddFood() {
                     onClick={captureAndAnalyzeFood}
                     className="!rounded-button"
                     style={{
+                      width: '80px',
+                      height: '80px',
                       background: 'linear-gradient(135deg, #16a34a 0%, #10b981 100%)',
                       border: 'none',
                       borderRadius: '50%',
                       color: 'white',
                       fontSize: '24px',
                       cursor: 'pointer',
-                      width: '80px',
-                      height: '80px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -1863,8 +1861,7 @@ export default function AddFood() {
                     gridTemplateColumns: 'repeat(4, 1fr)',
                     gap: '8px',
                     fontSize: '12px',
-                    color: '#374151',
-                    marginBottom: '12px'
+                    color: '#374151'
                   }}>
                     <div style={{ textAlign: 'center' }}>
                       <span style={{ color: '#6b7280' }}>Cal:</span><br />
@@ -2612,13 +2609,7 @@ export default function AddFood() {
                 gridTemplateColumns: 'repeat(2, 1fr)',
                 gap: '12px'
               }}>
-                <div style={{
-                  textAlign: 'center',
-                  padding: '12px',
-                  background: 'white',
-                  borderRadius: '8px',
-                  border: '1px solid #e5e7eb'
-                }}>
+                <div style={{ textAlign: 'center' }}>
                   <div style={{
                     width: '32px',
                     height: '32px',
@@ -2648,13 +2639,7 @@ export default function AddFood() {
                   </p>
                 </div>
 
-                <div style={{
-                  textAlign: 'center',
-                  padding: '12px',
-                  background: 'white',
-                  borderRadius: '8px',
-                  border: '1px solid #e5e7eb'
-                }}>
+                <div style={{ textAlign: 'center' }}>
                   <div style={{
                     width: '32px',
                     height: '32px',
@@ -2684,13 +2669,7 @@ export default function AddFood() {
                   </p>
                 </div>
 
-                <div style={{
-                  textAlign: 'center',
-                  padding: '12px',
-                  background: 'white',
-                  borderRadius: '8px',
-                  border: '1px solid #e5e7eb'
-                }}>
+                <div style={{ textAlign: 'center' }}>
                   <div style={{
                     width: '32px',
                     height: '32px',
@@ -2720,13 +2699,7 @@ export default function AddFood() {
                   </p>
                 </div>
 
-                <div style={{
-                  textAlign: 'center',
-                  padding: '12px',
-                  background: 'white',
-                  borderRadius: '8px',
-                  border: '1px solid #e5e7eb'
-                }}>
+                <div style={{ textAlign: 'center' }}>
                   <div style={{
                     width: '32px',
                     height: '32px',
