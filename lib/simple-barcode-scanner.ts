@@ -1,5 +1,5 @@
 
-'use client';
+// 'use client';
 
 export interface BarcodeResult {
   code: string;
@@ -28,7 +28,7 @@ export interface BarcodeConfig {
   };
 }
 
-// Detector de códigos de barras ULTRA MEJORADO con múltiples métodos de detección
+// Detector de códigos de barras ULTRA MEJORADO con enfoque automático avanzado
 class UltraBarcodeScannerPro {
   private video: HTMLVideoElement;
   private onDetected: (result: BarcodeResult) => void;
@@ -38,7 +38,7 @@ class UltraBarcodeScannerPro {
   private barcodeDetector: any = null;
   private zxingReader: any = null;
   private lastDetection = 0;
-  private detectionCooldown = 1200; // Optimizado para mejor respuesta
+  private detectionCooldown = 1200;
   private useZXing = false;
   private continuous = true;
   private supportedFormats: string[];
@@ -50,17 +50,27 @@ class UltraBarcodeScannerPro {
   private context: CanvasRenderingContext2D;
   private scanArea?: { x: number; y: number; width: number; height: number };
 
+  // NUEVAS PROPIEDADES PARA ENFOQUE AUTOMÁTICO AVANZADO
+  private mediaStream: MediaStream | null = null;
+  private currentTrack: MediaStreamTrack | null = null;
+  private autoFocusInterval: number | null = null;
+  private focusCapabilities: any = null;
+  private lastSharpnessScore = 0;
+  private sharpnessHistory: number[] = [];
+  private focusOptimizationActive = false;
+  private manualFocusDistance = 0.3; // Distancia óptima para códigos de barras (30cm)
+
   // Estadísticas de rendimiento
   private performanceStats = {
     totalScans: 0,
     successfulScans: 0,
     averageProcessingTime: 0,
-    lastProcessingTime: 0
+    lastProcessingTime: 0,
   };
 
   // Cache de resultados para evitar re-procesamiento
   private resultCache = new Map<string, BarcodeResult>();
-  private cacheTimeout = 2000; // 2 segundos
+  private cacheTimeout = 2000;
 
   constructor(config: BarcodeConfig) {
     this.video = config.video;
@@ -69,33 +79,33 @@ class UltraBarcodeScannerPro {
     this.continuous = config.continuous ?? true;
     this.scanArea = config.scanArea;
     this.supportedFormats = config.formats || [
-      'code_128',
-      'code_39',
-      'code_93',
-      'code_11',
-      'ean_13',
-      'ean_8',
-      'ean_5',
-      'ean_2',
-      'upc_a',
-      'upc_e',
-      'upc_ean_extension',
-      'codabar',
-      'itf',
-      'rss_14',
-      'rss_expanded',
-      'qr_code',
-      'data_matrix',
-      'aztec',
-      'pdf_417',
-      'maxicode'
+      "code_128",
+      "code_39",
+      "code_93",
+      "code_11",
+      "ean_13",
+      "ean_8",
+      "ean_5",
+      "ean_2",
+      "upc_a",
+      "upc_e",
+      "upc_ean_extension",
+      "codabar",
+      "itf",
+      "rss_14",
+      "rss_expanded",
+      "qr_code",
+      "data_matrix",
+      "aztec",
+      "pdf_417",
+      "maxicode",
     ];
 
     // Crear canvas optimizado
-    this.canvas = document.createElement('canvas');
-    const ctx = this.canvas.getContext('2d');
+    this.canvas = document.createElement("canvas");
+    const ctx = this.canvas.getContext("2d");
     if (!ctx) {
-      throw new Error('No se pudo crear contexto del canvas');
+      throw new Error("No se pudo crear contexto del canvas");
     }
     this.context = ctx;
   }
@@ -103,44 +113,400 @@ class UltraBarcodeScannerPro {
   async init(): Promise<void> {
     try {
       // Intentar BarcodeDetector primero con configuración optimizada
-      if ('BarcodeDetector' in window) {
+      if ("BarcodeDetector" in window) {
         try {
           const supportedFormats = await (window as any).BarcodeDetector.getSupportedFormats();
-          console.log(' Formatos soportados por BarcodeDetector:', supportedFormats);
+          console.log("Formatos soportados por BarcodeDetector:", supportedFormats);
 
           this.barcodeDetector = new (window as any).BarcodeDetector({
-            formats: this.supportedFormats.filter(format =>
+            formats: this.supportedFormats.filter((format) =>
               supportedFormats.includes(format)
-            )
+            ),
           });
 
-          console.log(' BarcodeDetector inicializado correctamente');
+          console.log("BarcodeDetector inicializado correctamente");
           this.useZXing = false;
           return;
         } catch (error) {
-          console.warn(' Error inicializando BarcodeDetector:', error);
+          console.warn("Error inicializando BarcodeDetector:", error);
         }
       }
 
       // Fallback a ZXing con mejor configuración
-      console.log(' BarcodeDetector no disponible, inicializando ZXing...');
+      console.log("BarcodeDetector no disponible, inicializando ZXing...");
       await this.initZXingAdvanced();
-
     } catch (error) {
-      console.error(' Error crítico inicializando scanner:', error);
+      console.error("Error crítico inicializando scanner:", error);
       throw error;
     }
   }
 
-  private async initZXingAdvanced(): Promise<void> {
+  // MÉTODO MEJORADO PARA INICIALIZAR CÁMARA CON ENFOQUE AUTOMÁTICO
+  async initializeCameraWithAutoFocus(): Promise<MediaStream> {
     try {
-      if (typeof window !== 'undefined' && !(window as any).ZXing) {
+      console.log("Inicializando cámara con enfoque automático avanzado...");
+
+      // CONFIGURACIÓN ULTRA AVANZADA DE CÁMARA CON ENFOQUE AUTOMÁTICO
+      const advancedConstraints: MediaStreamConstraints = {
+        video: {
+          facingMode: "environment", // Cámara trasera preferida
+
+          // RESOLUCIÓN OPTIMIZADA PARA CÓDIGOS DE BARRAS
+          width: {
+            ideal: 1920,
+            min: 1280,
+          },
+          height: {
+            ideal: 1080,
+            min: 720,
+          },
+
+          // FRAME RATE OPTIMIZADO
+          frameRate: {
+            ideal: 30,
+            min: 20,
+          },
+
+          // CONFIGURACIONES DE ENFOQUE AUTOMÁTICO AVANZADAS
+          focusMode: "continuous" as any,
+          focusDistance: 0.3, // 30cm - ideal para códigos de barras,
+
+          // CONFIGURACIONES ADICIONALES DE CALIDAD
+          aspectRatio: { ideal: 16 / 9 },
+          resizeMode: "crop-and-scale" as any,
+
+          // CONFIGURACIONES DE EXPOSICIÓN Y BRILLO
+          exposureMode: "continuous" as any,
+          exposureCompensation: 0,
+          whiteBalanceMode: "continuous" as any,
+
+          // CONFIGURACIONES DE IMAGEN OPTIMIZADAS
+          brightness: { ideal: 0.5 },
+          contrast: { ideal: 1.2 }, // Aumentar contraste para códigos
+          saturation: { ideal: 0.8 }, // Reducir saturación para mejor detección
+          sharpness: { ideal: 1.0 }, // Máxima nitidez
+        },
+      };
+
+      // INTENTAR OBTENER STREAM CON CONFIGURACIÓN AVANZADA
+      let stream: MediaStream;
+
+      try {
+        stream = await navigator.mediaDevices.getUserMedia(advancedConstraints);
+        console.log("Cámara inicializada con configuración avanzada completa");
+      } catch (advancedError) {
+        console.warn("Configuración avanzada no soportada, usando configuración optimizada...");
+        // Fallback a configuración más compatible pero optimizada
+        const fallbackConstraints: MediaStreamConstraints = {
+          video: {
+            facingMode: "environment",
+            width: { ideal: 1280, min: 640 },
+            height: { ideal: 720, min: 480 },
+            frameRate: { ideal: 30, min: 15 },
+          },
+        };
+
+        stream = await navigator.mediaDevices.getUserMedia(fallbackConstraints);
+        console.log("Cámara inicializada con configuración compatible");
+      }
+
+      // CONFIGURAR TRACK DE VIDEO Y CAPACIDADES DE ENFOQUE
+      this.mediaStream = stream;
+      this.currentTrack = stream.getVideoTracks()[0];
+
+      if (this.currentTrack) {
+        // OBTENER CAPACIDADES DE LA CÁMARA
+        const capabilities = this.currentTrack.getCapabilities();
+        this.focusCapabilities = capabilities;
+
+        console.log("Capacidades de cámara:", {
+          focusMode: capabilities.focusMode,
+          focusDistance: capabilities.focusDistance,
+          exposureMode: capabilities.exposureMode,
+          whiteBalanceMode: capabilities.whiteBalanceMode,
+          torch: capabilities.torch,
+        });
+
+        // APLICAR CONFIGURACIONES AVANZADAS DE ENFOQUE
+        await this.applyAdvancedCameraSettings();
+      }
+
+      return stream;
+    } catch (error) {
+      console.error("Error inicializando cámara con enfoque automático:", error);
+      throw new Error(`Error de cámara: ${error instanceof Error ? error.message : "Error desconocido"}`);
+    }
+  }
+
+  // APLICAR CONFIGURACIONES AVANZADAS DE CÁMARA
+  private async applyAdvancedCameraSettings(): Promise<void> {
+    if (!this.currentTrack || !this.focusCapabilities) return;
+
+    try {
+      const constraints: any = {};
+
+      // CONFIGURAR ENFOQUE AUTOMÁTICO CONTINUO
+      if (this.focusCapabilities.focusMode && this.focusCapabilities.focusMode.includes("continuous")) {
+        constraints.focusMode = "continuous";
+        console.log("Enfoque automático continuo activado");
+      } else if (this.focusCapabilities.focusMode && this.focusCapabilities.focusMode.includes("manual")) {
+        // Si no hay automático, configurar manual a distancia óptima
+        constraints.focusMode = "manual";
+        if (this.focusCapabilities.focusDistance) {
+          constraints.focusDistance = this.manualFocusDistance;
+          console.log("Enfoque manual configurado a distancia óptima");
+        }
+      }
+
+      // CONFIGURAR EXPOSICIÓN AUTOMÁTICA
+      if (this.focusCapabilities.exposureMode && this.focusCapabilities.exposureMode.includes("continuous")) {
+        constraints.exposureMode = "continuous";
+        console.log("Exposición automática activada");
+      }
+
+      // CONFIGURAR BALANCE DE BLANCOS AUTOMÁTICO
+      if (this.focusCapabilities.whiteBalanceMode && this.focusCapabilities.whiteBalanceMode.includes("continuous")) {
+        constraints.whiteBalanceMode = "continuous";
+        console.log("Balance de blancos automático activado");
+      }
+
+      // ACTIVAR FLASH/TORCH SI ESTÁ DISPONIBLE Y ES ÚTIL
+      if (this.focusCapabilities.torch) {
+        // No activamos automáticamente, pero lo dejamos disponible
+        console.log("Flash/Torch disponible para condiciones de poca luz");
+      }
+
+      // APLICAR CONFIGURACIONES
+      if (Object.keys(constraints).length > 0) {
+        await this.currentTrack.applyConstraints({ advanced: [constraints] });
+        console.log("Configuraciones avanzadas aplicadas:", constraints);
+      }
+
+      // INICIAR OPTIMIZACIÓN CONTINUA DE ENFOQUE
+      this.startContinuousAutofocus();
+    } catch (error) {
+      console.warn("No se pudieron aplicar algunas configuraciones avanzadas:", error);
+      // No fallar, continuar con configuración básica
+    }
+  }
+
+  // ENFOQUE AUTOMÁTICO CONTINUO INTELIGENTE
+  private startContinuousAutofocus(): void {
+    if (this.autoFocusInterval) {
+      clearInterval(this.autoFocusInterval);
+    }
+
+    this.autoFocusInterval = setInterval(async () => {
+      if (!this.isScanning || !this.currentTrack) return;
+
+      try {
+        // CALCULAR NITIDEZ DE LA IMAGEN ACTUAL
+        const currentSharpness = this.calculateImageSharpness();
+        this.sharpnessHistory.push(currentSharpness);
+
+        // Mantener historial de los últimos 5 frames
+        if (this.sharpnessHistory.length > 5) {
+          this.sharpnessHistory.shift();
+        }
+
+        // DECIDIR SI NECESITA REAJUSTE DE ENFOQUE
+        const averageSharpness = this.sharpnessHistory.reduce((a, b) => a + b, 0) / this.sharpnessHistory.length;
+        const sharpnessVariation = Math.max(...this.sharpnessHistory) - Math.min(...this.sharpnessHistory);
+
+        // Si la nitidez es baja o muy variable, intentar optimizar
+        if (averageSharpness < 0.4 || sharpnessVariation > 0.3) {
+          if (!this.focusOptimizationActive) {
+            this.optimizeFocusForBarcodes();
+          }
+        } else {
+          this.focusOptimizationActive = false;
+        }
+
+        this.lastSharpnessScore = currentSharpness;
+      } catch (error) {
+        console.warn("Error en enfoque automático continuo:", error);
+      }
+    }, 500); // Cada 500ms
+
+    console.log("Enfoque automático continuo iniciado");
+  }
+
+  // CALCULAR NITIDEZ DE LA IMAGEN
+  private calculateImageSharpness(): number {
+    if (!this.video || this.video.readyState < 2) return 0;
+
+    try {
+      // Crear canvas pequeño para análisis rápido
+      const analysisCanvas = document.createElement("canvas");
+      const analysisContext = analysisCanvas.getContext("2d");
+      if (!analysisContext) return 0;
+
+      // Usar área pequeña para análisis rápido
+      const sampleWidth = 200;
+      const sampleHeight = 150;
+      analysisCanvas.width = sampleWidth;
+      analysisCanvas.height = sampleHeight;
+
+      // Dibujar frame actual redimensionado
+      analysisContext.drawImage(this.video, 0, 0, sampleWidth, sampleHeight);
+      const imageData = analysisContext.getImageData(0, 0, sampleWidth, sampleHeight);
+      const data = imageData.data;
+
+      // CALCULAR GRADIENTE LAPLACIANO PARA MEDIR NITIDEZ
+      let sharpness = 0;
+      let pixelCount = 0;
+
+      for (let y = 1; y < sampleHeight - 1; y++) {
+        for (let x = 1; x < sampleWidth - 1; x++) {
+          const center = (y * sampleWidth + x) * 4;
+          const top = ((y - 1) * sampleWidth + x) * 4;
+          const bottom = ((y + 1) * sampleWidth + x) * 4;
+          const left = (y * sampleWidth + (x - 1)) * 4;
+          const right = (y * sampleWidth + (x + 1)) * 4;
+
+          // Convertir a escala de grises y calcular gradiente
+          const centerGray = (data[center] + data[center + 1] + data[center + 2]) / 3;
+          const topGray = (data[top] + data[top + 1] + data[top + 2]) / 3;
+          const bottomGray = (data[bottom] + data[bottom + 1] + data[bottom + 2]) / 3;
+          const leftGray = (data[left] + data[left + 1] + data[left + 2]) / 3;
+          const rightGray = (data[right] + data[right + 1] + data[right + 2]) / 3;
+
+          // Operador Laplaciano
+          const laplacian = Math.abs(
+            4 * centerGray - topGray - bottomGray - leftGray - rightGray
+          );
+
+          sharpness += laplacian;
+          pixelCount++;
+        }
+      }
+
+      // Normalizar y devolver valor entre 0 y 1
+      const normalizedSharpness = (sharpness / pixelCount) / 255;
+      return Math.min(normalizedSharpness, 1);
+    } catch (error) {
+      console.warn("Error calculando nitidez:", error);
+      return 0.5; // Valor por defecto
+    }
+  }
+
+  // OPTIMIZAR ENFOQUE ESPECÍFICAMENTE PARA CÓDIGOS DE BARRAS
+  private async optimizeFocusForBarcodes(): Promise<void> {
+    if (!this.currentTrack || this.focusOptimizationActive) return;
+
+    this.focusOptimizationActive = true;
+
+    try {
+      console.log("Optimizando enfoque para códigos de barras...");
+
+      const capabilities = this.focusCapabilities;
+
+      if (capabilities?.focusMode?.includes("manual") && capabilities?.focusDistance) {
+        // PROBAR DIFERENTES DISTANCIAS DE ENFOQUE ÓPTIMAS PARA CÓDIGOS
+        const optimalDistances = [0.2, 0.3, 0.4, 0.5]; // 20cm, 30cm, 40cm, 50cm
+        let bestDistance = 0.3;
+        let bestSharpness = 0;
+
+        for (const distance of optimalDistances) {
+          try {
+            await this.currentTrack.applyConstraints({
+              advanced: [
+                {
+                  focusMode: "manual",
+                  focusDistance: distance,
+                },
+              ],
+            });
+
+            // Esperar a que se estabilice el enfoque
+            await new Promise((resolve) => setTimeout(resolve, 300));
+
+            // Medir nitidez
+            const sharpness = this.calculateImageSharpness();
+
+            if (sharpness > bestSharpness) {
+              bestSharpness = sharpness;
+              bestDistance = distance;
+            }
+
+            console.log(`Distancia ${distance}m: nitidez ${sharpness.toFixed(3)}`);
+          } catch (error) {
+            console.warn(`Error probando distancia ${distance}:`, error);
+          }
+        }
+
+        // Aplicar la mejor distancia encontrada
+        if (bestSharpness > this.lastSharpnessScore) {
+          await this.currentTrack.applyConstraints({
+            advanced: [
+              {
+                focusMode: "manual",
+                focusDistance: bestDistance,
+              },
+            ],
+          });
+
+          this.manualFocusDistance = bestDistance;
+          console.log(`Enfoque optimizado a ${bestDistance}m (nitidez: ${bestSharpness.toFixed(3)})`);
+        }
+      } else if (capabilities?.focusMode?.includes("continuous")) {
+        // Si no hay modo manual, forzar reactivación de modo continuo
+        await this.currentTrack.applyConstraints({
+          advanced: [
+            {
+              focusMode: "continuous",
+            },
+          ],
+        });
+
+        console.log("Enfoque automático continuo reactivado");
+      }
+    } catch (error) {
+      console.warn("Error en optimización de enfoque:", error);
+    } finally {
+      // Dejar un tiempo antes de la próxima optimización
+      setTimeout(() => {
+        this.focusOptimizationActive = false;
+      }, 2000);
+    }
+  }
+
+  // MÉTODO PÚBLICO PARA ALTERNAR FLASH/TORCH
+  async toggleTorch(enable?: boolean): Promise<boolean> {
+    if (!this.currentTrack || !this.focusCapabilities?.torch) {
+      console.warn("Flash/Torch no disponible en este dispositivo");
+      return false;
+    }
+
+    try {
+      const currentSettings = this.currentTrack.getSettings() as any;
+      const newTorchState = enable !== undefined ? enable : !currentSettings.torch;
+
+      await this.currentTrack.applyConstraints({
+        advanced: [
+          {
+            torch: newTorchState,
+          },
+        ],
+      });
+
+      console.log(`Flash/Torch ${newTorchState ? "activado" : "desactivado"}`);
+      return newTorchState;
+    } catch (error) {
+      console.error("Error controlando flash/torch:", error);
+      return false;
+    }
+  }
+
+  async initZXingAdvanced(): Promise<void> {
+    try {
+      if (typeof window !== "undefined" && !(window as any).ZXing) {
         await this.loadZXingScriptAdvanced();
       }
 
       const ZXing = (window as any).ZXing;
       if (!ZXing) {
-        throw new Error('No se pudo cargar ZXing desde ningún CDN');
+        throw new Error("No se pudo cargar ZXing desde ningún CDN");
       }
 
       // Crear reader con configuración ultra optimizada
@@ -157,8 +523,8 @@ class UltraBarcodeScannerPro {
         ZXing.BarcodeFormat.UPC_E,
         ZXing.BarcodeFormat.CODE_128,
         ZXing.BarcodeFormat.CODE_39,
-        ZXing.BarcodeFormat.QR_CODE
-      ].filter(format => format !== undefined);
+        ZXing.BarcodeFormat.QR_CODE,
+      ].filter((format) => format !== undefined);
 
       hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, priorityFormats);
       hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
@@ -173,11 +539,10 @@ class UltraBarcodeScannerPro {
 
       this.zxingReader.hints = hints;
 
-      console.log(' ZXing inicializado con configuración avanzada');
+      console.log("ZXing inicializado con configuración avanzada");
       this.useZXing = true;
-
     } catch (error) {
-      console.error(' Error crítico inicializando ZXing:', error);
+      console.error("Error crítico inicializando ZXing:", error);
       throw error;
     }
   }
@@ -186,10 +551,10 @@ class UltraBarcodeScannerPro {
     return new Promise((resolve, reject) => {
       // CDNs optimizados con prioridad por velocidad y confiabilidad
       const cdnUrls = [
-        'https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js',
-        'https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js',
-        'https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js',
-        'https://cdn.jsdelivr.net/npm/@zxing/library@0.19.1/umd/index.min.js'
+        "https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js",
+        "https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js",
+        "https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js",
+        "https://cdn.jsdelivr.net/npm/@zxing/library@0.19.1/umd/index.min.js",
       ];
 
       let currentIndex = 0;
@@ -197,14 +562,14 @@ class UltraBarcodeScannerPro {
 
       const tryLoadScript = () => {
         if (currentIndex >= cdnUrls.length) {
-          reject(new Error(' No se pudo cargar ZXing desde ningún CDN disponible'));
+          reject(new Error("No se pudo cargar ZXing desde ningún CDN disponible"));
           return;
         }
 
-        const script = document.createElement('script');
+        const script = document.createElement("script");
         const timeoutId = setTimeout(() => {
           script.remove();
-          console.warn(` Timeout cargando ZXing desde: ${cdnUrls[currentIndex]}`);
+          console.warn(`Timeout cargando ZXing desde: ${cdnUrls[currentIndex]}`);
           currentIndex++;
           tryLoadScript();
         }, loadTimeout);
@@ -215,14 +580,14 @@ class UltraBarcodeScannerPro {
 
         script.onload = () => {
           clearTimeout(timeoutId);
-          console.log(` ZXing cargado exitosamente desde: ${cdnUrls[currentIndex]}`);
+          console.log(`ZXing cargado exitosamente desde: ${cdnUrls[currentIndex]}`);
           resolve();
         };
 
         script.onerror = () => {
           clearTimeout(timeoutId);
           script.remove();
-          console.warn(` Error cargando ZXing desde: ${cdnUrls[currentIndex]}`);
+          console.warn(`Error cargando ZXing desde: ${cdnUrls[currentIndex]}`);
           currentIndex++;
           tryLoadScript();
         };
@@ -236,7 +601,7 @@ class UltraBarcodeScannerPro {
 
   start(): void {
     if (this.isScanning) {
-      console.log(' Scanner ya está en funcionamiento');
+      console.log("Scanner ya está en funcionamiento");
       return;
     }
 
@@ -247,7 +612,7 @@ class UltraBarcodeScannerPro {
     this.performanceStats.totalScans = 0;
     this.performanceStats.successfulScans = 0;
 
-    console.log(` Iniciando scanner con método: ${this.useZXing ? 'ZXing' : 'BarcodeDetector'}`);
+    console.log(`Iniciando scanner con método: ${this.useZXing ? "ZXing" : "BarcodeDetector"}`);
 
     if (this.useZXing) {
       this.startZXingScanningAdvanced();
@@ -266,18 +631,35 @@ class UltraBarcodeScannerPro {
       this.animationId = null;
     }
 
+    // DETENER ENFOQUE AUTOMÁTICO
+    if (this.autoFocusInterval) {
+      clearInterval(this.autoFocusInterval);
+      this.autoFocusInterval = null;
+    }
+
+    // LIMPIAR RECURSOS DE CÁMARA
+    if (this.mediaStream) {
+      this.mediaStream.getTracks().forEach((track) => track.stop());
+      this.mediaStream = null;
+    }
+
+    this.currentTrack = null;
+    this.focusCapabilities = null;
+    this.focusOptimizationActive = false;
+    this.sharpnessHistory = [];
+
     if (this.zxingReader) {
       try {
         this.zxingReader.reset();
       } catch (error) {
-        console.warn(' Error al detener ZXing reader:', error);
+        console.warn("Error al detener ZXing reader:", error);
       }
     }
 
     this.consecutiveDetections.clear();
     this.resultCache.clear();
 
-    console.log(` Scanner detenido. Stats: ${this.performanceStats.successfulScans}/${this.performanceStats.totalScans} exitosos`);
+    console.log(`Scanner detenido. Stats: ${this.performanceStats.successfulScans}/${this.performanceStats.totalScans} exitosos`);
   }
 
   private startBarcodeDetectorScanning(): void {
@@ -288,7 +670,7 @@ class UltraBarcodeScannerPro {
         if (this.isScanning && this.continuous) {
           this.animationId = requestAnimationFrame(scanLoop);
         }
-      }).catch(error => {
+      }).catch((error) => {
         if (this.onError) {
           this.onError(error);
         }
@@ -346,10 +728,10 @@ class UltraBarcodeScannerPro {
             if (result && this.isValidBarcodeValue(result.text)) {
               const barcodeResult: BarcodeResult = {
                 code: result.text,
-                format: this.mapZXingFormat(result.format) || 'unknown',
+                format: this.mapZXingFormat(result.format) || "unknown",
                 confidence: this.calculateZXingConfidence(result),
                 timestamp: now,
-                location: this.extractBarcodeLocation(result)
+                location: this.extractBarcodeLocation(result),
               };
 
               // Guardar en cache
@@ -373,7 +755,6 @@ class UltraBarcodeScannerPro {
               setTimeout(scanWithZXing, 80);
             }
           });
-
       } catch (error) {
         if (this.onError) {
           this.onError(error as Error);
@@ -422,7 +803,7 @@ class UltraBarcodeScannerPro {
               format: barcode.format,
               confidence: this.calculateBarcodeDetectorConfidence(barcode),
               timestamp: now,
-              location: this.extractBarcodeDetectorLocation(barcode)
+              location: this.extractBarcodeDetectorLocation(barcode),
             };
 
             // Guardar en cache
@@ -441,7 +822,7 @@ class UltraBarcodeScannerPro {
 
       // Si falla BarcodeDetector, cambiar a ZXing
       if (!this.useZXing) {
-        console.log(' Error con BarcodeDetector, cambiando a ZXing...');
+        console.log("Error con BarcodeDetector, cambiando a ZXing...");
         try {
           await this.initZXingAdvanced();
           this.stop();
@@ -485,11 +866,7 @@ class UltraBarcodeScannerPro {
     this.canvas.height = scanHeight;
 
     // Dibujar frame del video con área optimizada
-    this.context.drawImage(
-      this.video,
-      scanX, scanY, scanWidth, scanHeight,
-      0, 0, scanWidth, scanHeight
-    );
+    this.context.drawImage(this.video, scanX, scanY, scanWidth, scanHeight, 0, 0, scanWidth, scanHeight);
 
     // Aplicar filtros optimizados para detección de códigos
     const imageData = this.context.getImageData(0, 0, scanWidth, scanHeight);
@@ -508,11 +885,7 @@ class UltraBarcodeScannerPro {
     // Aplicar múltiples mejoras para códigos de barras
     for (let i = 0; i < data.length; i += 4) {
       // Convertir a escala de grises con pesos optimizados para códigos
-      const gray = Math.round(
-        0.299 * data[i] +
-        0.587 * data[i + 1] +
-        0.114 * data[i + 2]
-      );
+      const gray = Math.round(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
 
       // Aplicar threshold adaptativo más agresivo
       const threshold = 128;
@@ -521,7 +894,7 @@ class UltraBarcodeScannerPro {
       // Aplicar un poco de contraste adicional
       const contrasted = enhanced === 255 ? 255 : Math.max(0, enhanced - 20);
 
-      output[i] = contrasted;     // Red
+      output[i] = contrasted; // Red
       output[i + 1] = contrasted; // Green
       output[i + 2] = contrasted; // Blue
       // Alpha se mantiene igual (output[i + 3] = data[i + 3])
@@ -557,13 +930,13 @@ class UltraBarcodeScannerPro {
 
     // Factor por formato (algunos son más confiables)
     const formatReliability = {
-      'EAN_13': 0.95,
-      'EAN_8': 0.92,
-      'UPC_A': 0.95,
-      'UPC_E': 0.90,
-      'CODE_128': 0.88,
-      'CODE_39': 0.85,
-      'QR_CODE': 0.93
+      EAN_13: 0.95,
+      EAN_8: 0.92,
+      UPC_A: 0.95,
+      UPC_E: 0.9,
+      CODE_128: 0.88,
+      CODE_39: 0.85,
+      QR_CODE: 0.93,
     };
 
     const format = result.format?.toString();
@@ -590,16 +963,16 @@ class UltraBarcodeScannerPro {
 
     // Factor por formato
     const formatWeights = {
-      'ean_13': 0.98,
-      'ean_8': 0.95,
-      'upc_a': 0.98,
-      'upc_e': 0.94,
-      'code_128': 0.90,
-      'code_39': 0.87,
-      'qr_code': 0.95
+      ean_13: 0.98,
+      ean_8: 0.95,
+      upc_a: 0.98,
+      upc_e: 0.94,
+      code_128: 0.9,
+      code_39: 0.87,
+      qr_code: 0.95,
     };
 
-    confidence *= formatWeights[barcode.format as keyof typeof formatWeights] || 0.80;
+    confidence *= formatWeights[barcode.format as keyof typeof formatWeights] || 0.8;
 
     // Factor de área del código (códigos más grandes = mayor confianza)
     if (barcode.boundingBox) {
@@ -637,7 +1010,7 @@ class UltraBarcodeScannerPro {
         x: minX,
         y: minY,
         width: maxX - minX,
-        height: maxY - minY
+        height: maxY - minY,
       };
     }
     return undefined;
@@ -649,7 +1022,7 @@ class UltraBarcodeScannerPro {
         x: barcode.boundingBox.x,
         y: barcode.boundingBox.y,
         width: barcode.boundingBox.width,
-        height: barcode.boundingBox.height
+        height: barcode.boundingBox.height,
       };
     }
     return undefined;
@@ -688,7 +1061,7 @@ class UltraBarcodeScannerPro {
         entries.slice(0, 5).forEach(([key]) => this.detectionHistory.delete(key));
       }
 
-      console.log(` Código confirmado: ${code} (${result.format}) - Confianza: ${(result.confidence || 0).toFixed(2)}`);
+      console.log(`Código confirmado: ${code} (${result.format}) - Confianza: ${(result.confidence || 0).toFixed(2)}`);
 
       // Agregar estadísticas al resultado
       const enhancedResult = {
@@ -697,8 +1070,8 @@ class UltraBarcodeScannerPro {
         scanStats: {
           totalScans: this.performanceStats.totalScans,
           successRate: this.performanceStats.successfulScans / this.performanceStats.totalScans,
-          avgProcessingTime: Math.round(this.performanceStats.averageProcessingTime)
-        }
+          avgProcessingTime: Math.round(this.performanceStats.averageProcessingTime),
+        },
       };
 
       this.onDetected(enhancedResult);
@@ -714,14 +1087,11 @@ class UltraBarcodeScannerPro {
 
   // Métodos públicos mejorados
   getMethod(): string {
-    return this.useZXing ? 'ZXing Pro' : 'BarcodeDetector Native';
+    return this.useZXing ? "ZXing Pro + AutoFocus" : "BarcodeDetector Native + AutoFocus";
   }
 
-  getDetectionHistory(): Array<{ code: string, timestamp: number }> {
-    return Array.from(this.detectionHistory.entries()).map(([code, timestamp]) => ({
-      code,
-      timestamp
-    }));
+  getDetectionHistory(): Array<{ code: string; timestamp: number }> {
+    return Array.from(this.detectionHistory.entries()).map(([code, timestamp]) => ({ code, timestamp }));
   }
 
   getPerformanceStats(): typeof this.performanceStats {
@@ -740,23 +1110,38 @@ class UltraBarcodeScannerPro {
       lastProcessingTime: number;
     };
     cacheSize: number;
+    // NUEVAS ESTADÍSTICAS DE ENFOQUE
+    focusStats: {
+      autoFocusActive: boolean;
+      lastSharpnessScore: number;
+      averageSharpness: number;
+      focusOptimizationActive: boolean;
+      currentFocusDistance: number;
+      torchAvailable: boolean;
+    };
   } {
+    const averageSharpness = this.sharpnessHistory.length > 0 ? this.sharpnessHistory.reduce((a, b) => a + b, 0) / this.sharpnessHistory.length : 0;
+
     return {
       method: this.getMethod(),
       scanning: this.isScanning,
       lastDetection: this.lastDetection,
       detectionCount: this.detectionHistory.size,
       performance: this.getPerformanceStats(),
-      cacheSize: this.resultCache.size
+      cacheSize: this.resultCache.size,
+      focusStats: {
+        autoFocusActive: this.autoFocusInterval !== null,
+        lastSharpnessScore: this.lastSharpnessScore,
+        averageSharpness,
+        focusOptimizationActive: this.focusOptimizationActive,
+        currentFocusDistance: this.manualFocusDistance,
+        torchAvailable: !!(this.focusCapabilities?.torch),
+      },
     };
   }
 
   // Método para ajustar configuración en tiempo real
-  updateConfiguration(config: Partial< {
-    detectionCooldown: number;
-    requiredConsecutive: number;
-    scanArea: { x: number; y: number; width: number; height: number };
-  } > ): void {
+  updateConfiguration(config: Partial<{ detectionCooldown: number; requiredConsecutive: number; scanArea: { x: number; y: number; width: number; height: number }; manualFocusDistance: number }>): void {
     if (config.detectionCooldown !== undefined) {
       this.detectionCooldown = config.detectionCooldown;
     }
@@ -766,8 +1151,22 @@ class UltraBarcodeScannerPro {
     if (config.scanArea !== undefined) {
       this.scanArea = config.scanArea;
     }
+    if (config.manualFocusDistance !== undefined) {
+      this.manualFocusDistance = config.manualFocusDistance;
+      // Aplicar inmediatamente si está en modo manual
+      if (this.currentTrack && this.focusCapabilities?.focusMode?.includes("manual")) {
+        this.currentTrack.applyConstraints({
+          advanced: [
+            {
+              focusMode: "manual",
+              focusDistance: config.manualFocusDistance,
+            },
+          ],
+        }).catch((error) => console.warn("Error aplicando nueva distancia de enfoque:", error));
+      }
+    }
 
-    console.log(' Configuración actualizada:', config);
+    console.log("Configuración actualizada:", config);
   }
 
   // Método para limpiar cache manualmente
@@ -775,7 +1174,8 @@ class UltraBarcodeScannerPro {
     this.resultCache.clear();
     this.detectionHistory.clear();
     this.consecutiveDetections.clear();
-    console.log(' Cache limpiado');
+    this.sharpnessHistory = [];
+    console.log("Cache limpiado");
   }
 
   private isValidBarcodeValue(code: string): boolean {
@@ -790,14 +1190,9 @@ class UltraBarcodeScannerPro {
     }
 
     // Validar patrones específicos de códigos conocidos
-    const commonPatterns = [
-      /^\d{8}$/,   // EAN-8
-      /^\d{12}$/,  // UPC-A
-      /^\d{13}$/,  // EAN-13
-      /^\d{14}$/,  // ITF-14
-    ];
+    const commonPatterns = [/^\d{8}$/, /^\d{12}$/, /^\d{13}$/, /^\d{14}$/];
 
-    const matchesPattern = commonPatterns.some(pattern => pattern.test(code));
+    const matchesPattern = commonPatterns.some((pattern) => pattern.test(code));
     if (matchesPattern) return true;
 
     // Validación flexible para otros formatos
@@ -810,25 +1205,24 @@ class UltraBarcodeScannerPro {
 
   private mapZXingFormat(zxingFormat: any): string {
     const formatMap: { [key: string]: string } = {
-      'EAN_13': 'ean_13',
-      'EAN_8': 'ean_8',
-      'UPC_A': 'upc_a',
-      'UPC_E': 'upc_e',
-      'CODE_128': 'code_128',
-      'CODE_39': 'code_39',
-      'CODE_93': 'code_93',
-      'QR_CODE': 'qr_code',
-      'DATA_MATRIX': 'data_matrix',
-      'AZTEC': 'aztec',
-      'PDF_417': 'pdf_417'
+      EAN_13: "ean_13",
+      EAN_8: "ean_8",
+      UPC_A: "upc_a",
+      UPC_E: "upc_e",
+      CODE_128: "code_128",
+      CODE_39: "code_39",
+      CODE_93: "code_93",
+      QR_CODE: "qr_code",
+      DATA_MATRIX: "data_matrix",
+      AZTEC: "aztec",
+      PDF_417: "pdf_417",
     };
 
-    return formatMap[zxingFormat?.toString()] || 'unknown';
+    return formatMap[zxingFormat?.toString()] || "unknown";
   }
-
 }
 
-// Funciones principales mejoradas para usar en el componente
+// FUNCIONES PRINCIPALES MEJORADAS CON ENFOQUE AUTOMÁTICO
 export async function initializeBarcodeScanner(
   videoElement: HTMLVideoElement,
   onBarcodeDetected: (result: BarcodeResult) => void,
@@ -850,8 +1244,24 @@ export async function initializeBarcodeScanner(
     onError: onError,
     continuous: options?.continuous ?? true,
     formats: options?.formats,
-    scanArea: options?.scanArea
+    scanArea: options?.scanArea,
   });
+
+  // INICIALIZAR CON ENFOQUE AUTOMÁTICO
+  try {
+    const stream = await scanner.initializeCameraWithAutoFocus();
+    videoElement.srcObject = stream;
+
+    await new Promise<void>((resolve) => {
+      videoElement.onloadedmetadata = () => resolve();
+    });
+
+    await videoElement.play();
+    console.log("Video stream con enfoque automático iniciado");
+  } catch (error) {
+    console.error("Error iniciando cámara con enfoque automático:", error);
+    throw error;
+  }
 
   await scanner.init();
   scanner.start();
@@ -875,39 +1285,39 @@ const PRODUCT_CACHE_DURATION = 10 * 60 * 1000; // 10 minutos
 export async function getProductByBarcode(barcode: string): Promise<any> {
   // Validar código antes de hacer la petición
   if (!isValidBarcode(barcode)) {
-    throw new Error('Código de barras inválido');
+    throw new Error("Código de barras inválido");
   }
 
   // Verificar cache primero
   const cached = PRODUCT_CACHE.get(barcode);
   if (cached && Date.now() - cached.timestamp < PRODUCT_CACHE_DURATION) {
-    console.log(' Producto obtenido del cache:', barcode);
+    console.log("Producto obtenido del cache:", barcode);
     return cached.data;
   }
 
   try {
-    console.log(' Buscando producto con código:', barcode);
+    console.log("Buscando producto con código:", barcode);
 
     // APIs mejoradas con mejor manejo de errores
     const apis = [
       {
-        name: 'OpenFoodFacts',
+        name: "OpenFoodFacts",
         url: `https://world.openfoodfacts.org/api/v0/product/${barcode}.json`,
         parser: parseOpenFoodFactsResponseAdvanced,
-        timeout: 8000
+        timeout: 8000,
       },
       {
-        name: 'UPCDatabase',
+        name: "UPCDatabase",
         url: `https://api.upcitemdb.com/prod/trial/lookup?upc=${barcode}`,
         parser: parseUPCDatabaseResponseAdvanced,
-        timeout: 6000
+        timeout: 6000,
       },
       {
-        name: 'Barcode Lookup',
+        name: "Barcode Lookup",
         url: `https://api.barcodelookup.com/v3/products?barcode=${barcode}&formatted=y&key=demo`,
         parser: parseBarcodeLookupResponse,
-        timeout: 5000
-      }
+        timeout: 5000,
+      },
     ];
 
     // Intentar APIs en paralelo para mayor velocidad
@@ -918,11 +1328,11 @@ export async function getProductByBarcode(barcode: string): Promise<any> {
       try {
         const response = await fetch(api.url, {
           headers: {
-            'Accept': 'application/json',
-            'User-Agent': 'ProFitnessApp/1.0 (Nutrition Tracker)',
-            'Cache-Control': 'no-cache'
+            Accept: "application/json",
+            "User-Agent": "ProFitnessApp/1.0 (Nutrition Tracker)",
+            "Cache-Control": "no-cache",
           },
-          signal: controller.signal
+          signal: controller.signal,
         });
 
         clearTimeout(timeoutId);
@@ -935,14 +1345,14 @@ export async function getProductByBarcode(barcode: string): Promise<any> {
         const product = api.parser(data, barcode);
 
         if (product) {
-          console.log(` Producto encontrado en ${api.name}:`, product.product_name);
+          console.log(`Producto encontrado en ${api.name}:`, product.product_name);
           return { product, source: api.name };
         }
 
         return null;
       } catch (error) {
         clearTimeout(timeoutId);
-        console.warn(` Error con ${api.name}:`, error);
+        console.warn(`Error con ${api.name}:`, error);
         return null;
       }
     });
@@ -950,10 +1360,8 @@ export async function getProductByBarcode(barcode: string): Promise<any> {
     // Esperar por el primer resultado exitoso
     const results = await Promise.allSettled(promises);
     const successfulResults = results
-      .filter((result): result is PromiseFulfilledResult<any> =>
-        result.status === 'fulfilled' && result.value !== null
-      )
-      .map(result => result.value);
+      .filter((result): result is PromiseFulfilledResult<any> => result.status === "fulfilled" && result.value !== null)
+      .map((result) => result.value);
 
     if (successfulResults.length > 0) {
       const bestResult = successfulResults[0]; // Tomar el primero (más rápido)
@@ -961,26 +1369,25 @@ export async function getProductByBarcode(barcode: string): Promise<any> {
       // Guardar en cache
       PRODUCT_CACHE.set(barcode, {
         data: bestResult.product,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
 
       return bestResult.product;
     }
 
     // Si no se encuentra en ninguna API, crear producto genérico mejorado
-    console.log(' Creando producto genérico para:', barcode);
+    console.log("Creando producto genérico para:", barcode);
     const genericProduct = createAdvancedGenericProduct(barcode);
 
     // Guardar producto genérico en cache temporal
     PRODUCT_CACHE.set(barcode, {
       data: genericProduct,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
 
     return genericProduct;
-
   } catch (error) {
-    console.error(' Error crítico obteniendo producto:', error);
+    console.error("Error crítico obteniendo producto:", error);
     throw error;
   }
 }
@@ -991,64 +1398,40 @@ function parseOpenFoodFactsResponseAdvanced(data: any, barcode: string): any | n
     const product = data.product;
 
     return {
-      product_name: product.product_name ||
-        product.product_name_es ||
-        product.product_name_en ||
-        `Producto ${barcode}`,
-      brands: product.brands || product.brand_owner || 'Marca desconocida',
-      quantity: product.quantity || '',
-      image_url: product.image_front_url ||
-        product.image_url ||
-        generateEnhancedProductImage(barcode, product.product_name),
+      product_name: product.product_name || product.product_name_es || product.product_name_en || `Producto ${barcode}`,
+      brands: product.brands || product.brand_owner || "Marca desconocida",
+      quantity: product.quantity || "",
+      image_url: product.image_front_url || product.image_url || generateEnhancedProductImage(barcode, product.product_name),
       nutriments: {
-        'energy-kcal_100g': Math.round(
-          product.nutriments?.['energy-kcal_100g'] ||
-          product.nutriments?.['energy-kcal'] ||
-          product.nutriments?.['energy_100g'] / 4.184 || // Convert from kJ if needed
-          0
+        "energy-kcal_100g": Math.round(
+          product.nutriments?.["energy-kcal_100g"] ||
+            product.nutriments?.["energy-kcal"] ||
+            product.nutriments?.["energy_100g"] / 4.184 || // Convert from kJ if needed
+            0
         ),
-        'proteins_100g': Math.round(
-          (product.nutriments?.['proteins_100g'] ||
-            product.nutriments?.['proteins'] || 0
-          ) * 10
+        "proteins_100g": Math.round(
+          (product.nutriments?.["proteins_100g"] || product.nutriments?.["proteins"] || 0) * 10
         ) / 10,
-        'carbohydrates_100g': Math.round(
-          (product.nutriments?.['carbohydrates_100g'] ||
-            product.nutriments?.['carbohydrates'] || 0
-          ) * 10
+        "carbohydrates_100g": Math.round(
+          (product.nutriments?.["carbohydrates_100g"] || product.nutriments?.["carbohydrates"] || 0) * 10
         ) / 10,
-        'fat_100g': Math.round(
-          (product.nutriments?.['fat_100g'] ||
-            product.nutriments?.['fat'] || 0
-          ) * 10
-        ) / 10,
-        'fiber_100g': Math.round(
-          (product.nutriments?.['fiber_100g'] ||
-            product.nutriments?.['fiber'] || 0
-          ) * 10
-        ) / 10,
-        'sugars_100g': Math.round(
-          (product.nutriments?.['sugars_100g'] ||
-            product.nutriments?.['sugars'] || 0
-          ) * 10
-        ) / 10,
-        'salt_100g': Math.round(
-          (product.nutriments?.['salt_100g'] ||
-            product.nutriments?.['salt'] ||
-            product.nutriments?.['sodium_100g'] * 2.54 || 0
-          ) * 100
-        ) / 100
+        "fat_100g": Math.round((product.nutriments?.["fat_100g"] || product.nutriments?.["fat"] || 0) * 10) / 10,
+        "fiber_100g": Math.round((product.nutriments?.["fiber_100g"] || product.nutriments?.["fiber"] || 0) * 10) / 10,
+        "sugars_100g": Math.round((product.nutriments?.["sugars_100g"] || product.nutriments?.["sugars"] || 0) * 10) / 10,
+        "salt_100g": Math.round(
+          (product.nutriments?.["salt_100g"] ||
+            product.nutriments?.["salt"] ||
+            product.nutriments?.["sodium_100g"] * 2.54 || // Convert from sodium
+            0) * 100
+        ) / 100,
       },
-      categories: product.categories || product.categories_tags?.join(', ') || '',
-      ingredients_text: product.ingredients_text ||
-        product.ingredients_text_es ||
-        product.ingredients_text_en ||
-        '',
-      nutrition_score: product.nutrition_grades || product.nutriscore_grade || '',
-      eco_score: product.ecoscore_grade || '',
-      labels: product.labels || product.labels_tags?.join(', ') || '',
-      allergens: product.allergens || product.allergens_tags?.join(', ') || '',
-      source: 'OpenFoodFacts Enhanced'
+      categories: product.categories || product.categories_tags?.join(", ") || "",
+      ingredients_text: product.ingredients_text || product.ingredients_text_es || product.ingredients_text_en || "",
+      nutrition_score: product.nutrition_grades || product.nutriscore_grade || "",
+      eco_score: product.ecoscore_grade || "",
+      labels: product.labels || product.labels_tags?.join(", ") || "",
+      allergens: product.allergens || product.allergens_tags?.join(", ") || "",
+      source: "OpenFoodFacts Enhanced",
     };
   }
   return null;
@@ -1056,20 +1439,18 @@ function parseOpenFoodFactsResponseAdvanced(data: any, barcode: string): any | n
 
 // Parser mejorado para UPCDatabase
 function parseUPCDatabaseResponseAdvanced(data: any, barcode: string): any | null {
-  if (data.code === 'OK' && data.items && data.items.length > 0) {
+  if (data.code === "OK" && data.items && data.items.length > 0) {
     const item = data.items[0];
 
     return {
       product_name: item.title || item.description || `Producto ${barcode}`,
-      brands: item.brand || item.manufacturer || 'Marca desconocida',
-      quantity: item.size || '',
-      image_url: (item.images && item.images.length > 0) ?
-        item.images[0] :
-        generateEnhancedProductImage(barcode, item.title),
+      brands: item.brand || item.manufacturer || "Marca desconocida",
+      quantity: item.size || "",
+      image_url: (item.images && item.images.length > 0) ? item.images[0] : generateEnhancedProductImage(barcode, item.title),
       nutriments: estimateNutritionFromCategory(item.category, item.title),
-      categories: item.category || '',
-      ingredients_text: item.description || 'Información no disponible',
-      source: 'UPCDatabase Enhanced'
+      categories: item.category || "",
+      ingredients_text: item.description || "Información no disponible",
+      source: "UPCDatabase Enhanced",
     };
   }
   return null;
@@ -1082,15 +1463,13 @@ function parseBarcodeLookupResponse(data: any, barcode: string): any | null {
 
     return {
       product_name: product.product_name || product.title || `Producto ${barcode}`,
-      brands: product.brand || product.manufacturer || 'Marca desconocida',
-      quantity: product.size || '',
-      image_url: product.images && product.images.length > 0 ?
-        product.images[0] :
-        generateEnhancedProductImage(barcode, product.product_name),
+      brands: product.brand || product.manufacturer || "Marca desconocida",
+      quantity: product.size || "",
+      image_url: product.images && product.images.length > 0 ? product.images[0] : generateEnhancedProductImage(barcode, product.product_name),
       nutriments: estimateNutritionFromCategory(product.category, product.product_name),
-      categories: product.category || '',
-      ingredients_text: product.description || 'Información no disponible',
-      source: 'Barcode Lookup'
+      categories: product.category || "",
+      ingredients_text: product.description || "Información no disponible",
+      source: "Barcode Lookup",
     };
   }
   return null;
@@ -1098,8 +1477,8 @@ function parseBarcodeLookupResponse(data: any, barcode: string): any | null {
 
 // Función mejorada para estimar nutrición desde categoría
 function estimateNutritionFromCategory(category: string, productName: string): any {
-  const categoryLower = (category || '').toLowerCase();
-  const nameLower = (productName || '').toLowerCase();
+  const categoryLower = (category || "").toLowerCase();
+  const nameLower = (productName || "").toLowerCase();
 
   // Patrones de categorías más específicos
   const nutritionPatterns = {
@@ -1131,33 +1510,33 @@ function estimateNutritionFromCategory(category: string, productName: string): a
     // Snacks
     snack: { calories: 450, proteins: 8, carbohydrates: 55, fat: 22, fiber: 3, sugars: 8, salt: 1.2 },
     candy: { calories: 400, proteins: 2, carbohydrates: 85, fat: 8, fiber: 1, sugars: 80, salt: 0.1 },
-    chocolate: { calories: 535, proteins: 8, carbohydrates: 60, fat: 30, fiber: 7, sugars: 55, salt: 0.02 }
+    chocolate: { calories: 535, proteins: 8, carbohydrates: 60, fat: 30, fiber: 7, sugars: 55, salt: 0.02 },
   };
 
   // Buscar patrón más específico primero
   for (const [pattern, nutrition] of Object.entries(nutritionPatterns)) {
     if (categoryLower.includes(pattern) || nameLower.includes(pattern)) {
       return {
-        'energy-kcal_100g': nutrition.calories,
-        'proteins_100g': nutrition.proteins,
-        'carbohydrates_100g': nutrition.carbohydrates,
-        'fat_100g': nutrition.fat,
-        'fiber_100g': nutrition.fiber,
-        'sugars_100g': nutrition.sugars,
-        'salt_100g': nutrition.salt
+        "energy-kcal_100g": nutrition.calories,
+        "proteins_100g": nutrition.proteins,
+        "carbohydrates_100g": nutrition.carbohydrates,
+        "fat_100g": nutrition.fat,
+        "fiber_100g": nutrition.fiber,
+        "sugars_100g": nutrition.sugars,
+        "salt_100g": nutrition.salt,
       };
     }
   }
 
   // Fallback genérico
   return {
-    'energy-kcal_100g': 150,
-    'proteins_100g': 5,
-    'carbohydrates_100g': 20,
-    'fat_100g': 5,
-    'fiber_100g': 2,
-    'sugars_100g': 8,
-    'salt_100g': 0.5
+    "energy-kcal_100g": 150,
+    "proteins_100g": 5,
+    "carbohydrates_100g": 20,
+    "fat_100g": 5,
+    "fiber_100g": 2,
+    "sugars_100g": 8,
+    "salt_100g": 0.5,
   };
 }
 
@@ -1168,56 +1547,56 @@ function createAdvancedGenericProduct(barcode: string): any {
 
   return {
     product_name: `Producto ${barcode}`,
-    brands: countryInfo.country ? `Producto de ${countryInfo.country}` : 'Marca desconocida',
-    quantity: '',
+    brands: countryInfo.country ? `Producto de ${countryInfo.country}` : "Marca desconocida",
+    quantity: "",
     image_url: generateEnhancedProductImage(barcode, `Producto ${barcode}`),
     nutriments: {
-      'energy-kcal_100g': 150,
-      'proteins_100g': 5,
-      'carbohydrates_100g': 20,
-      'fat_100g': 5,
-      'fiber_100g': 2,
-      'sugars_100g': 8,
-      'salt_100g': 0.5
+      "energy-kcal_100g": 150,
+      "proteins_100g": 5,
+      "carbohydrates_100g": 20,
+      "fat_100g": 5,
+      "fiber_100g": 2,
+      "sugars_100g": 8,
+      "salt_100g": 0.5,
     },
-    categories: 'Producto alimenticio',
-    ingredients_text: 'Información no disponible. Escaneo exitoso pero producto no encontrado en bases de datos.',
+    categories: "Producto alimenticio",
+    ingredients_text: "Información no disponible. Escaneo exitoso pero producto no encontrado en bases de datos.",
     barcode_info: countryInfo,
-    source: 'Generic Enhanced',
-    note: 'Producto genérico. Puedes editar la información nutricional manualmente.'
+    source: "Generic Enhanced",
+    note: "Producto genérico. Puedes editar la información nutricional manualmente.",
   };
 }
 
 // Función para obtener información del país desde código de barras
 function getBarcodeCountryInfo(barcode: string): { country: string; region: string } {
-  if (barcode.length < 3) return { country: 'Desconocido', region: 'Desconocido' };
+  if (barcode.length < 3) return { country: "Desconocido", region: "Desconocido" };
 
   const countryCode = barcode.substring(0, 3);
   const countryMap: { [key: string]: { country: string; region: string } } = {
-    '000': { country: 'Estados Unidos', region: 'América del Norte' },
-    '001': { country: 'Estados Unidos', region: 'América del Norte' },
-    '020': { country: 'Reino Unido', region: 'Europa' },
-    '050': { country: 'Reino Unido', region: 'Europa' },
-    '070': { country: 'Noruega', region: 'Europa' },
-    '100': { country: 'Estados Unidos', region: 'América del Norte' },
-    '380': { country: 'Bulgaria', region: 'Europa' },
-    '400': { country: 'Alemania', region: 'Europa' },
-    '450': { country: 'Japón', region: 'Asia' },
-    '460': { country: 'Rusia', region: 'Europa/Asia' },
-    '500': { country: 'Reino Unido', region: 'Europa' },
-    '520': { country: 'Grecia', region: 'Europa' },
-    '560': { country: 'Portugal', region: 'Europa' },
-    '590': { country: 'Polonia', region: 'Europa' },
-    '690': { country: 'China', region: 'Asia' },
-    '750': { country: 'México', region: 'América del Norte' },
-    '770': { country: 'Colombia', region: 'América del Sur' },
-    '773': { country: 'Uruguay', region: 'América del Sur' },
-    '775': { country: 'Perú', region: 'América del Sur' },
-    '778': { country: 'Argentina', region: 'América del Sur' },
-    '780': { country: 'Chile', region: 'América del Sur' },
-    '789': { country: 'Brasil', region: 'América del Sur' },
-    '880': { country: 'Corea del Sur', region: 'Asia' },
-    '890': { country: 'India', region: 'Asia' }
+    "000": { country: "Estados Unidos", region: "América del Norte" },
+    "001": { country: "Estados Unidos", region: "América del Norte" },
+    "020": { country: "Reino Unido", region: "Europa" },
+    "050": { country: "Reino Unido", region: "Europa" },
+    "070": { country: "Noruega", region: "Europa" },
+    "100": { country: "Estados Unidos", region: "América del Norte" },
+    "380": { country: "Bulgaria", region: "Europa" },
+    "400": { country: "Alemania", region: "Europa" },
+    "450": { country: "Japón", region: "Asia" },
+    "460": { country: "Rusia", region: "Europa/Asia" },
+    "500": { country: "Reino Unido", region: "Europa" },
+    "520": { country: "Grecia", region: "Europa" },
+    "560": { country: "Portugal", region: "Europa" },
+    "590": { country: "Polonia", region: "Europa" },
+    "690": { country: "China", region: "Asia" },
+    "750": { country: "México", region: "América del Norte" },
+    "770": { country: "Colombia", region: "América del Sur" },
+    "773": { country: "Uruguay", region: "América del Sur" },
+    "775": { country: "Perú", region: "América del Sur" },
+    "778": { country: "Argentina", region: "América del Sur" },
+    "780": { country: "Chile", region: "América del Sur" },
+    "789": { country: "Brasil", region: "América del Sur" },
+    "880": { country: "Corea del Sur", region: "Asia" },
+    "890": { country: "India", region: "Asia" },
   };
 
   // Buscar coincidencia exacta o por rango
@@ -1227,41 +1606,41 @@ function getBarcodeCountryInfo(barcode: string): { country: string; region: stri
     }
   }
 
-  return { country: 'Desconocido', region: 'Desconocido' };
+  return { country: "Desconocido", region: "Desconocido" };
 }
 
 // Función mejorada para generar imagen de producto
 function generateEnhancedProductImage(barcode: string, productName?: string): string {
-  const productType = productName ? detectProductType(productName) : 'generic';
+  const productType = productName ? detectProductType(productName) : "generic";
   const queries = {
-    beverage: 'beverage bottle product commercial realistic food photography',
-    dairy: 'dairy product milk cheese yogurt commercial packaging realistic',
-    meat: 'meat protein food product commercial packaging realistic',
-    cereal: 'cereal breakfast food box packaging commercial realistic',
-    snack: 'snack food package commercial realistic product photography',
-    fruit: 'fresh fruit healthy food commercial realistic photography',
-    vegetable: 'fresh vegetables healthy food commercial realistic photography',
-    generic: 'food product package commercial realistic product photography'
+    beverage: "beverage bottle product commercial realistic food photography",
+    dairy: "dairy product milk cheese yogurt commercial packaging realistic",
+    meat: "meat protein food product commercial packaging realistic",
+    cereal: "cereal breakfast food box packaging commercial realistic",
+    snack: "snack food package commercial realistic product photography",
+    fruit: "fresh fruit healthy food commercial realistic photography",
+    vegetable: "fresh vegetables healthy food commercial realistic photography",
+    generic: "food product package commercial realistic product photography",
   };
 
   const query = queries[productType as keyof typeof queries] || queries.generic;
 
-  return `https://readdy.ai/api/search-image?query=%7BencodeURIComponent(${query})%7D&width=200&height=200&seq=barcode_${barcode}&orientation=squarish`;
+  return `https://readdy.ai/api/search-image?query=${encodeURIComponent(query)}&width=200&height=200&seq=barcode_${barcode}&orientation=squarish`;
 }
 
 // Función para detectar tipo de producto
 function detectProductType(productName: string): string {
   const name = productName.toLowerCase();
 
-  if (name.includes('juice') || name.includes('soda') || name.includes('drink') || name.includes('bebida')) return 'beverage';
-  if (name.includes('milk') || name.includes('cheese') || name.includes('yogurt') || name.includes('leche') || name.includes('queso')) return 'dairy';
-  if (name.includes('meat') || name.includes('chicken') || name.includes('beef') || name.includes('carne') || name.includes('pollo')) return 'meat';
-  if (name.includes('cereal') || name.includes('bread') || name.includes('pasta') || name.includes('pan') || name.includes('cereal')) return 'cereal';
-  if (name.includes('snack') || name.includes('chip') || name.includes('cookie') || name.includes('galleta')) return 'snack';
-  if (name.includes('fruit') || name.includes('apple') || name.includes('banana') || name.includes('fruta') || name.includes('manzana')) return 'fruit';
-  if (name.includes('vegetable') || name.includes('carrot') || name.includes('broccoli') || name.includes('verdura')) return 'vegetable';
+  if (name.includes("juice") || name.includes("soda") || name.includes("drink") || name.includes("bebida")) return "beverage";
+  if (name.includes("milk") || name.includes("cheese") || name.includes("yogurt") || name.includes("leche") || name.includes("queso")) return "dairy";
+  if (name.includes("meat") || name.includes("chicken") || name.includes("beef") || name.includes("carne") || name.includes("pollo")) return "meat";
+  if (name.includes("cereal") || name.includes("bread") || name.includes("pasta") || name.includes("pan") || name.includes("cereal")) return "cereal";
+  if (name.includes("snack") || name.includes("chip") || name.includes("cookie") || name.includes("galleta")) return "snack";
+  if (name.includes("fruit") || name.includes("apple") || name.includes("banana") || name.includes("fruta") || name.includes("manzana")) return "fruit";
+  if (name.includes("vegetable") || name.includes("carrot") || name.includes("broccoli") || name.includes("verdura")) return "vegetable";
 
-  return 'generic';
+  return "generic";
 }
 
 // Función mejorada para validar código de barras
@@ -1271,7 +1650,7 @@ export function isValidBarcode(code: string): boolean {
   }
 
   // Limpiar código (remover espacios y guiones)
-  const cleanCode = code.replace(/[\s\-]/g, '');
+  const cleanCode = code.replace(/[\\s\\-]/g, "");
 
   // Validar que contenga principalmente números
   if (!/^\d+$/.test(cleanCode)) {
@@ -1300,16 +1679,14 @@ export function isValidBarcode(code: string): boolean {
 function validateEANUPCChecksum(code: string): boolean {
   if (code.length !== 13 && code.length !== 12) return false;
 
-  const digits = code.split('').map(Number);
+  const digits = code.split("").map(Number);
   const checkDigit = digits.pop()!;
 
   let sum = 0;
   for (let i = 0; i < digits.length; i++) {
     // Para UPC-A (12 dígitos), el primer dígito se multiplica por 3
     // Para EAN-13, se alterna empezando por 1
-    const multiplier = (code.length === 12) ?
-      (i % 2 === 0 ? 1 : 3) :
-      (i % 2 === 0 ? 1 : 3);
+    const multiplier = code.length === 12 ? (i % 2 === 0 ? 1 : 3) : i % 2 === 0 ? 1 : 3;
     sum += digits[i] * multiplier;
   }
 
@@ -1321,7 +1698,7 @@ function validateEANUPCChecksum(code: string): boolean {
 function validateEAN8Checksum(code: string): boolean {
   if (code.length !== 8) return false;
 
-  const digits = code.split('').map(Number);
+  const digits = code.split("").map(Number);
   const checkDigit = digits.pop()!;
 
   let sum = 0;
@@ -1343,4 +1720,4 @@ setInterval(() => {
   }
 }, 5 * 60 * 1000); // Cada 5 minutos
 
-console.log(' Ultra Barcode Scanner Pro inicializado con mejoras avanzadas');
+console.log("Ultra Barcode Scanner Pro con AutoFocus Avanzado inicializado");

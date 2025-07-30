@@ -12,6 +12,7 @@ import {
   getProductByBarcode, 
   BarcodeResult 
 } from '../../lib/simple-barcode-scanner';
+import { detectFoodInImage, captureImageFromVideo } from '../../lib/vision-api';
 
 interface FoodItem {
   id: string;
@@ -35,6 +36,18 @@ interface NutritionInfo {
   fiber: number;
 }
 
+interface DetectedFoodItem {
+  name: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+  fiber: number;
+  confidence: number;
+  detected: boolean;
+  source: string;
+}
+
 export default function AddFood() {
   const [mounted, setMounted] = useState(false);
   const [language, setLanguage] = useState('es');
@@ -52,16 +65,31 @@ export default function AddFood() {
     fats: 0,
     fiber: 0
   });
+
+  // Estados para escáner de códigos
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [scannerError, setScannerError] = useState<string>('');
   const [lastScannedCode, setLastScannedCode] = useState<string>('');
   const [isLoadingProduct, setIsLoadingProduct] = useState(false);
 
-  // Referencias para el escáner - MEJORADAS
+  // NUEVOS Estados para cámara de fotos de comida
+  const [showFoodCamera, setShowFoodCamera] = useState(false);
+  const [isTakingPhoto, setIsTakingPhoto] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [detectedFoods, setDetectedFoods] = useState<DetectedFoodItem[]>([]);
+  const [showFoodResults, setShowFoodResults] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string>('');
+  const [capturedImage, setCapturedImage] = useState<string>('');
+
+  // Referencias para escáner y cámara
   const videoRef = useRef<HTMLVideoElement>(null);
   const scannerRef = useRef<any>(null);
   const streamRef = useRef<MediaStream | null>(null);
+
+  // NUEVA referencia para cámara de comida
+  const foodVideoRef = useRef<HTMLVideoElement>(null);
+  const foodStreamRef = useRef<MediaStream | null>(null);
 
   const router = useRouter();
 
@@ -103,7 +131,6 @@ export default function AddFood() {
       }
     } catch (error) {
       console.warn('Error detectando hora del dispositivo para meal type:', error);
-      // Mantener valor por defecto si hay error
     }
 
     // Limpiar recursos al desmontar el componente
@@ -114,6 +141,9 @@ export default function AddFood() {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
       }
+      if (foodStreamRef.current) {
+        foodStreamRef.current.getTracks().forEach(track => track.stop());
+      }
     };
   }, [router]);
 
@@ -123,6 +153,8 @@ export default function AddFood() {
       searchFood: 'Buscar alimento',
       searchPlaceholder: 'Escribe el nombre del alimento...',
       scanBarcode: 'Escanear código',
+      takePhoto: 'Fotografiar comida',
+      photoFood: 'Foto del plato',
       quantity: 'Cantidad',
       grams: 'gramos',
       mealType: 'Tipo de comida',
@@ -150,25 +182,35 @@ export default function AddFood() {
       errorAdding: 'Error al agregar alimento',
       popular: 'Alimentos populares',
       recent: 'Agregados recientemente',
-      // Nuevas traducciones para el escáner
+      // Nuevas traducciones para análisis de fotos
+      takingPhoto: 'Tomando foto...',
+      analyzingFood: 'Analizando alimentos...',
+      foodDetected: 'Alimentos detectados',
+      noFoodDetected: 'No se detectaron alimentos',
+      retryPhoto: 'Tomar otra foto',
+      capturePhoto: 'Capturar foto',
       startCamera: 'Iniciar cámara',
-      stopScanning: 'Detener escaneo',
+      stopCamera: 'Detener cámara',
+      photoInstructions: 'Apunta la cámara hacia tu plato de comida',
+      photoTips: 'Asegúrate de tener buena iluminación y que los alimentos sean visibles',
+      analysisError: 'Error al analizar la imagen',
+      selectFood: 'Seleccionar alimento',
+      confidence: 'Confianza',
+      detected: 'Detectado',
+      suggested: 'Sugerido',
+      addSelected: 'Agregar seleccionados',
+      selectAll: 'Seleccionar todos',
+      deselectAll: 'Deseleccionar todos',
       cameraError: 'Error al acceder a la cámara',
-      scannerNotSupported: 'Escáner no soportado en este dispositivo',
-      productNotFound: 'Producto no encontrado',
-      productFound: 'Producto encontrado',
-      loadingProduct: 'Buscando producto...',
-      retryScanning: 'Reintentar escaneo',
-      scannerInstructions: 'Mantén el código centrado y espera a que se detecte automáticamente',
-      lastScanned: 'Último código escaneado',
-      allowCamera: 'Por favor permite el acceso a la cámara para escanear códigos',
-      invalidBarcode: 'Código de barras inválido'
+      allowCameraFood: 'Por favor permite el acceso a la cámara para fotografiar comida'
     },
     en: {
       addFood: 'Add Food',
       searchFood: 'Search food',
       searchPlaceholder: 'Type food name...',
       scanBarcode: 'Scan barcode',
+      takePhoto: 'Take food photo',
+      photoFood: 'Photo dish',
       quantity: 'Quantity',
       grams: 'grams',
       mealType: 'Meal type',
@@ -196,32 +238,213 @@ export default function AddFood() {
       errorAdding: 'Error adding food',
       popular: 'Popular foods',
       recent: 'Recently added',
-      // New translations for scanner
+      // New translations for photo analysis
+      takingPhoto: 'Taking photo...',
+      analyzingFood: 'Analyzing food...',
+      foodDetected: 'Food detected',
+      noFoodDetected: 'No food detected',
+      retryPhoto: 'Take another photo',
+      capturePhoto: 'Capture photo',
       startCamera: 'Start camera',
-      stopScanning: 'Stop scanning',
+      stopCamera: 'Stop camera',
+      photoInstructions: 'Point the camera at your food plate',
+      photoTips: 'Make sure you have good lighting and food is clearly visible',
+      analysisError: 'Error analyzing image',
+      selectFood: 'Select food',
+      confidence: 'Confidence',
+      detected: 'Detected',
+      suggested: 'Suggested',
+      addSelected: 'Add selected',
+      selectAll: 'Select all',
+      deselectAll: 'Deselect all',
       cameraError: 'Error accessing camera',
-      scannerNotSupported: 'Scanner not supported on this device',
-      productNotFound: 'Product not found',
-      productFound: 'Product found',
-      loadingProduct: 'Searching product...',
-      retryScanning: 'Retry scanning',
-      scannerInstructions: 'Keep the code centered and wait for automatic detection',
-      lastScanned: 'Last scanned code',
-      allowCamera: 'Please allow camera access to scan barcodes',
-      invalidBarcode: 'Invalid barcode'
+      allowCameraFood: 'Please allow camera access to take food photos'
     }
   };
 
   const t = translations[language as keyof typeof translations] || translations.es;
 
-  // Función para manejar errores del escáner - AGREGAR
+  // NUEVA función para iniciar cámara de comida
+  const startFoodCamera = async () => {
+    if (!foodVideoRef.current) return;
+
+    try {
+      setIsTakingPhoto(false);
+      setAnalysisError('');
+      setCapturedImage('');
+
+      // Solicitar acceso a la cámara con configuración optimizada para fotos de comida
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: 'environment', // Cámara trasera preferida
+          width: { ideal: 1920, min: 1280 },
+          height: { ideal: 1080, min: 720 },
+          frameRate: { ideal: 30, min: 15 },
+          focusMode: 'continuous' // Enfoque continuo para comida
+        }
+      });
+
+      foodStreamRef.current = stream;
+      foodVideoRef.current.srcObject = stream;
+
+      await new Promise<void>((resolve) => {
+        if (foodVideoRef.current) {
+          foodVideoRef.current.onloadedmetadata = () => resolve();
+        }
+      });
+
+      await foodVideoRef.current.play();
+
+      console.log('Cámara de comida iniciada correctamente');
+    } catch (error) {
+      console.error('Error starting food camera:', error);
+
+      if (error instanceof Error) {
+        if (error.name === 'NotAllowedError') {
+          setAnalysisError(t.allowCameraFood);
+        } else if (error.name === 'NotFoundError') {
+          setAnalysisError('No se encontró cámara disponible');
+        } else {
+          setAnalysisError(t.cameraError);
+        }
+      }
+    }
+  };
+
+  // NUEVA función para detener cámara de comida
+  const stopFoodCamera = () => {
+    if (foodStreamRef.current) {
+      foodStreamRef.current.getTracks().forEach(track => track.stop());
+      foodStreamRef.current = null;
+    }
+    if (foodVideoRef.current) {
+      foodVideoRef.current.srcObject = null;
+    }
+  };
+
+  // NUEVA función para capturar y analizar foto de comida
+  const captureAndAnalyzeFood = async () => {
+    if (!foodVideoRef.current || !foodStreamRef.current) return;
+
+    try {
+      setIsTakingPhoto(true);
+      setAnalysisError('');
+
+      // Capturar imagen desde el video
+      const imageFile = await captureImageFromVideo(foodVideoRef.current);
+
+      // Crear URL para vista previa
+      const imageUrl = URL.createObjectURL(imageFile);
+      setCapturedImage(imageUrl);
+
+      setIsTakingPhoto(false);
+      setIsAnalyzing(true);
+
+      // Analizar la imagen con Google Vision API
+      console.log('Analizando imagen de comida...');
+      const detectedFoodItems = await detectFoodInImage(imageFile);
+
+      if (detectedFoodItems && detectedFoodItems.length > 0) {
+        // Convertir a formato DetectedFoodItem
+        const foodItems: DetectedFoodItem[] = detectedFoodItems.map(item => ({
+          name: item.name || 'Alimento detectado',
+          calories: item.calories || 0,
+          protein: item.protein || 0,
+          carbs: item.carbs || 0,
+          fats: item.fats || 0,
+          fiber: item.fiber || 0,
+          confidence: item.confidence || 0.5,
+          detected: item.detected !== false,
+          source: item.source || 'vision_api'
+        }));
+
+        setDetectedFoods(foodItems);
+        setShowFoodResults(true);
+
+        console.log(`Se detectaron ${foodItems.length} alimentos:`, foodItems);
+      } else {
+        setAnalysisError(t.noFoodDetected);
+        setDetectedFoods([]);
+      }
+
+      setIsAnalyzing(false);
+    } catch (error) {
+      console.error('Error capturing and analyzing food:', error);
+      setAnalysisError(t.analysisError);
+      setIsTakingPhoto(false);
+      setIsAnalyzing(false);
+    }
+  };
+
+  // NUEVA función para agregar alimentos detectados
+  const addDetectedFoodToLog = async (foodItem: DetectedFoodItem, customQuantity: number = 100) => {
+    try {
+      const today = deviceTime.getCurrentDate();
+      const nutritionKey = `nutrition_${today}`;
+
+      const existingData = localStorage.getItem(nutritionKey);
+      let dayData = existingData ? JSON.parse(existingData) : {
+        calories: 0,
+        protein: 0,
+        carbs: 0,
+        fats: 0,
+        fiber: 0,
+        water: 0,
+        meals: []
+      };
+
+      // Calcular nutrición basada en cantidad
+      const factor = customQuantity / 100;
+      const calculatedCalories = Math.round(foodItem.calories * factor);
+      const calculatedProtein = Math.round(foodItem.protein * factor * 10) / 10;
+      const calculatedCarbs = Math.round(foodItem.carbs * factor * 10) / 10;
+      const calculatedFats = Math.round(foodItem.fats * factor * 10) / 10;
+      const calculatedFiber = Math.round(foodItem.fiber * factor * 10) / 10;
+
+      const newMeal = {
+        id: Date.now().toString(),
+        name: foodItem.name,
+        brand: `Detectado (${Math.round(foodItem.confidence * 100)}% confianza)`,
+        mealType: mealType,
+        quantity: customQuantity,
+        calories: calculatedCalories,
+        protein: calculatedProtein,
+        carbs: calculatedCarbs,
+        fats: calculatedFats,
+        fiber: calculatedFiber,
+        source: 'food_photo_analysis',
+        confidence: foodItem.confidence,
+        timestamp: deviceTime.createTimestamp()
+      };
+
+      dayData.calories += calculatedCalories;
+      dayData.protein += calculatedProtein;
+      dayData.carbs += calculatedCarbs;
+      dayData.fats += calculatedFats;
+      dayData.fiber += calculatedFiber;
+      dayData.meals.push(newMeal);
+
+      localStorage.setItem(nutritionKey, JSON.stringify(dayData));
+
+      window.dispatchEvent(new CustomEvent('nutritionDataUpdated', {
+        detail: { date: today, data: dayData }
+      }));
+
+      return true;
+    } catch (error) {
+      console.error('Error adding detected food:', error);
+      return false;
+    }
+  };
+
+  // Función para manejar errores del escáner - MEJORADA
   const handleScannerError = (error: Error) => {
-    console.error('❌ Error del escáner:', error);
+    console.error('Error del escáner:', error);
     setScannerError(error.message || t.cameraError);
     setIsScanning(false);
   };
 
-  // Función para detener el escáner - AGREGAR
+  // Función para detener el escáner - MEJORADA
   const stopScanning = () => {
     setIsScanning(false);
     if (scannerRef.current) {
@@ -281,17 +504,17 @@ export default function AddFood() {
         }
       );
 
-      console.log('✅ Escáner de códigos Ultra Pro iniciado correctamente');
+      console.log('Escáner de códigos Ultra Pro iniciado correctamente');
     } catch (error) {
-      console.error('❌ Error starting barcode scanner:', error);
+      console.error('Error starting barcode scanner:', error);
       setScannerError(t.cameraError);
       setIsScanning(false);
 
       if (error instanceof Error) {
         if (error.name === 'NotAllowedError') {
-          setScannerError(t.allowCamera);
+          setScannerError('Por favor permite el acceso a la cámara para escanear códigos');
         } else if (error.name === 'NotSupportedError') {
-          setScannerError(t.scannerNotSupported);
+          setScannerError('Escáner no soportado en este dispositivo');
         } else if (error.name === 'NotFoundError') {
           setScannerError('No se encontró cámara disponible');
         } else if (error.name === 'NotReadableError') {
@@ -303,7 +526,7 @@ export default function AddFood() {
 
   // Manejar código detectado - MEJORADO
   const handleBarcodeDetected = async (result: BarcodeResult) => {
-    console.log('📱 Código detectado:', result);
+    console.log('Código detectado:', result);
     setLastScannedCode(result.code);
     setIsLoadingProduct(true);
 
@@ -328,15 +551,13 @@ export default function AddFood() {
         };
 
         // Mostrar información adicional del producto si está disponible
-        let successMessage = `${t.productFound}: ${foodItem.name}`;
+        let successMessage = `Producto encontrado: ${foodItem.name}`;
         if (product.brands) {
           successMessage += ` - ${product.brands}`;
         }
         if (product.source) {
-          console.log(`📊 Fuente de datos: ${product.source}`);
+          console.log(`Fuente de datos: ${product.source}`);
         }
-
-        showSuccessMessage(successMessage);
 
         // Cerrar escáner y abrir modal de nutrición
         setShowBarcodeScanner(false);
@@ -344,23 +565,19 @@ export default function AddFood() {
 
         // Seleccionar el producto encontrado
         handleFoodSelect(foodItem);
-      } else {
-        showErrorMessage(`${t.productNotFound}: ${result.code}`);
-        // No cerrar el escáner para permitir escanear otro código
       }
     } catch (error) {
-      console.error('❌ Error fetching product:', error);
-      let errorMessage = `${t.productNotFound}: ${result.code}`;
+      console.error('Error fetching product:', error);
+      let errorMessage = `Producto no encontrado: ${result.code}`;
 
       if (error instanceof Error) {
         if (error.message.includes('inválido')) {
-          errorMessage = `${t.invalidBarcode}: ${result.code}`;
+          errorMessage = `Código de barras inválido: ${result.code}`;
         } else if (error.message.includes('límite')) {
           errorMessage = 'Límite de consultas alcanzado. Intenta más tarde.';
         }
       }
 
-      showErrorMessage(errorMessage);
       // No cerrar el escáner para permitir reintentar
     } finally {
       setIsLoadingProduct(false);
@@ -426,26 +643,6 @@ export default function AddFood() {
       protein_per_100g: 3.2,
       carbs_per_100g: 4.8,
       fats_per_100g: 3.3,
-      fiber_per_100g: 0
-    },
-    {
-      id: '7',
-      name: 'Pan integral',
-      brand: 'Genérico',
-      calories_per_100g: 247,
-      protein_per_100g: 13,
-      carbs_per_100g: 41,
-      fats_per_100g: 4.2,
-      fiber_per_100g: 7
-    },
-    {
-      id: '8',
-      name: 'Yogur griego natural',
-      brand: 'Genérico',
-      calories_per_100g: 59,
-      protein_per_100g: 10,
-      carbs_per_100g: 3.6,
-      fats_per_100g: 0.4,
       fiber_per_100g: 0
     }
   ];
@@ -555,13 +752,14 @@ export default function AddFood() {
         detail: { date: today, data: dayData }
       }));
 
-      showSuccessMessage();
-
       setShowNutritionModal(false);
       setSelectedFood(null);
       setQuantity('100');
       setSearchQuery('');
       setSearchResults([]);
+
+      // Mostrar mensaje de éxito
+      showSuccessMessage();
     } catch (error) {
       console.error('Error adding food:', error);
       showErrorMessage();
@@ -794,35 +992,68 @@ export default function AddFood() {
             )}
           </div>
 
-          {/* Barcode Scanner Button */}
-          <button
-            onClick={() => {
-              setShowBarcodeScanner(true);
-              // Iniciar el escáner después de un pequeño delay para que el modal se renderice
-              setTimeout(() => {
-                startBarcodeScanner();
-              }, 100);
-            }}
-            className="!rounded-button"
-            style={{
-              width: '100%',
-              padding: '12px 16px',
-              background: '#f0f9ff',
-              border: '1px solid #e0e7ff',
-              borderRadius: '12px',
-              color: '#3b82f6',
-              fontSize: '14px',
-              fontWeight: '500',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px'
-            }}
-          >
-            <i className="ri-barcode-line" style={{ fontSize: '18px' }}></i>
-            {t.scanBarcode}
-          </button>
+          {/* Action Buttons - MEJORADO con botón de foto */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '12px'
+          }}>
+            <button
+              onClick={() => {
+                setShowBarcodeScanner(true);
+                setTimeout(() => {
+                  startBarcodeScanner();
+                }, 100);
+              }}
+              className="!rounded-button"
+              style={{
+                padding: '12px 16px',
+                background: '#f0f9ff',
+                border: '1px solid #e0e7ff',
+                borderRadius: '12px',
+                color: '#3b82f6',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}
+            >
+              <i className="ri-barcode-line" style={{ fontSize: '18px' }}></i>
+              {t.scanBarcode}
+            </button>
+
+            {/* NUEVO: Botón para tomar foto de comida */}
+            <button
+              onClick={() => {
+                setShowFoodCamera(true);
+                setTimeout(() => {
+                  startFoodCamera();
+                }, 100);
+              }}
+              className="!rounded-button"
+              style={{
+                padding: '12px 16px',
+                background: 'linear-gradient(135deg, #16a34a 0%, #10b981 100%)',
+                border: 'none',
+                borderRadius: '12px',
+                color: 'white',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+              }}
+            >
+              <i className="ri-camera-line" style={{ fontSize: '18px' }}></i>
+              {t.takePhoto}
+            </button>
+          </div>
         </div>
 
         {/* Search Results */}
@@ -1030,6 +1261,733 @@ export default function AddFood() {
         )}
       </main>
 
+      {/* NUEVO: Food Camera Modal */}
+      {showFoodCamera && (
+        <>
+          <div
+            onClick={() => {
+              stopFoodCamera();
+              setShowFoodCamera(false);
+              setAnalysisError('');
+              setCapturedImage('');
+            }}
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(0,0,0,0.9)',
+              zIndex: 2000
+            }}
+          />
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: '#000',
+            zIndex: 2001,
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
+            {/* Camera Header */}
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              background: 'linear-gradient(180deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%)',
+              padding: '20px 16px',
+              zIndex: 2002,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <h3 style={{
+                color: 'white',
+                fontSize: '18px',
+                fontWeight: '600',
+                margin: 0
+              }}>
+                {t.takePhoto}
+              </h3>
+              <button
+                onClick={() => {
+                  stopFoodCamera();
+                  setShowFoodCamera(false);
+                  setAnalysisError('');
+                  setCapturedImage('');
+                }}
+                className="!rounded-button"
+                style={{
+                  width: '40px',
+                  height: '40px',
+                  background: 'rgba(255,255,255,0.1)',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  borderRadius: '50%',
+                  color: 'white',
+                  fontSize: '20px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Video Stream o Imagen Capturada */}
+            {capturedImage ? (
+              <div style={{
+                width: '100%',
+                height: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: '#000'
+              }}>
+                <img
+                  src={capturedImage}
+                  alt="Comida capturada"
+                  style={{
+                    maxWidth: '100%',
+                    maxHeight: '100%',
+                    objectFit: 'contain'
+                  }}
+                />
+              </div>
+            ) : (
+              <video
+                ref={foodVideoRef}
+                autoPlay
+                playsInline
+                muted
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover'
+                }}
+              />
+            )}
+
+            {/* Camera Overlay */}
+            {!capturedImage && (
+              <div style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: '300px',
+                height: '200px',
+                zIndex: 2002,
+                pointerEvents: 'none'
+              }}>
+                {/* Área de enfoque para comida */}
+                <div style={{
+                  width: '100%',
+                  height: '100%',
+                  border: '3px solid #16a34a',
+                  borderRadius: '16px',
+                  position: 'relative',
+                  background: 'rgba(16, 185, 129, 0.1)',
+                  backdropFilter: 'blur(1px)'
+                }}>
+                  {/* Esquinas de enfoque */}
+                  {[{
+                    top: '-3px',
+                    left: '-3px',
+                    borderTop: '6px solid #16a34a',
+                    borderLeft: '6px solid #16a34a'
+                  },
+                  {
+                    top: '-3px',
+                    right: '-3px',
+                    borderTop: '6px solid #16a34a',
+                    borderRight: '6px solid #16a34a'
+                  },
+                  {
+                    bottom: '-3px',
+                    left: '-3px',
+                    borderBottom: '6px solid #16a34a',
+                    borderLeft: '6px solid #16a34a'
+                  },
+                  {
+                    bottom: '-3px',
+                    right: '-3px',
+                    borderBottom: '6px solid #16a34a',
+                    borderRight: '6px solid #16a34a'
+                  }
+                  ].map((corner, index) => (
+                    <div
+                      key={index}
+                      style={{
+                        position: 'absolute',
+                        width: '32px',
+                        height: '32px',
+                        ...corner,
+                        borderRadius: '8px'
+                      }}
+                    />
+                  ))}
+                  {/* Indicador para comida */}
+                  <div style={{
+                    position: 'absolute',
+                    bottom: '-50px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    color: 'white',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    textAlign: 'center',
+                    background: 'rgba(0,0,0,0.7)',
+                    padding: '6px 12px',
+                    borderRadius: '20px',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    Centra tu plato de comida
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Camera Controls */}
+            <div style={{
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              background: 'linear-gradient(0deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.7) 50%, rgba(0,0,0,0) 100%)',
+              padding: '60px 16px 20px 16px',
+              zIndex: 2002,
+              textAlign: 'center'
+            }}>
+              {analysisError ? (
+                <div style={{ marginBottom: '20px' }}>
+                  <div style={{
+                    background: 'rgba(239, 68, 68, 0.15)',
+                    border: '1px solid rgba(239, 68, 68, 0.4)',
+                    borderRadius: '12px',
+                    padding: '16px',
+                    marginBottom: '16px',
+                    backdropFilter: 'blur(10px)'
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '12px',
+                      marginBottom: '8px'
+                    }}>
+                      <i className="ri-error-warning-line" style={{ color: '#ef4444', fontSize: '24px' }}></i>
+                      <p style={{
+                        color: '#ef4444',
+                        fontSize: '16px',
+                        fontWeight: '600',
+                        margin: 0
+                      }}>
+                        Error de Cámara
+                      </p>
+                    </div>
+                    <p style={{
+                      color: '#fca5a5',
+                      fontSize: '14px',
+                      margin: 0,
+                      lineHeight: '1.4'
+                    }}>
+                      {analysisError}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setAnalysisError('');
+                      startFoodCamera();
+                    }}
+                    className="!rounded-button"
+                    style={{
+                      background: 'linear-gradient(135deg, #16a34a 0%, #10b981 100%)',
+                      border: 'none',
+                      borderRadius: '12px',
+                      color: 'white',
+                      fontSize: '16px',
+                      fontWeight: '500',
+                      padding: '12px 24px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      margin: '0 auto',
+                      boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+                    }}
+                  >
+                    <i className="ri-refresh-line" style={{ fontSize: '18px' }}></i>
+                    Reintentar
+                  </button>
+                </div>
+              ) : isAnalyzing ? (
+                <div style={{ marginBottom: '20px' }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '16px',
+                    background: 'rgba(16, 185, 129, 0.15)',
+                    border: '1px solid rgba(16, 185, 129, 0.4)',
+                    borderRadius: '12px',
+                    padding: '20px',
+                    backdropFilter: 'blur(10px)'
+                  }}>
+                    <div style={{
+                      width: '24px',
+                      height: '24px',
+                      border: '3px solid rgba(16, 185, 129, 0.3)',
+                      borderTop: '3px solid #16a34a',
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite'
+                    }}></div>
+                    <div>
+                      <p style={{
+                        color: '#16a34a',
+                        fontSize: '16px',
+                        fontWeight: '600',
+                        margin: '0 0 4px 0'
+                      }}>
+                        {t.analyzingFood}
+                      </p>
+                      <p style={{
+                        color: '#10b981',
+                        fontSize: '14px',
+                        margin: 0
+                      }}>
+                        Usando inteligencia artificial...
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : isTakingPhoto ? (
+                <div style={{ marginBottom: '20px' }}>
+                  <div style={{
+                    background: 'rgba(59, 130, 246, 0.15)',
+                    border: '1px solid rgba(59, 130, 246, 0.4)',
+                    borderRadius: '12px',
+                    padding: '20px',
+                    backdropFilter: 'blur(10px)'
+                  }}>
+                    <p style={{
+                      color: '#3b82f6',
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      margin: 0
+                    }}>
+                      {t.takingPhoto}
+                    </p>
+                  </div>
+                </div>
+              ) : capturedImage ? (
+                <div style={{ marginBottom: '20px' }}>
+                  <div style={{
+                    display: 'flex',
+                    gap: '12px',
+                    justifyContent: 'center'
+                  }}>
+                    <button
+                      onClick={() => {
+                        setCapturedImage('');
+                        URL.revokeObjectURL(capturedImage);
+                        startFoodCamera();
+                      }}
+                      className="!rounded-button"
+                      style={{
+                        background: 'rgba(255,255,255,0.1)',
+                        border: '1px solid rgba(255,255,255,0.3)',
+                        borderRadius: '12px',
+                        color: 'white',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        padding: '12px 24px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        backdropFilter: 'blur(10px)'
+                      }}
+                    >
+                      <i className="ri-camera-line" style={{ fontSize: '16px' }}></i>
+                      {t.retryPhoto}
+                    </button>
+                    <button
+                      onClick={captureAndAnalyzeFood}
+                      className="!rounded-button"
+                      style={{
+                        background: 'linear-gradient(135deg, #16a34a 0%, #10b981 100%)',
+                        border: 'none',
+                        borderRadius: '12px',
+                        color: 'white',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        padding: '12px 24px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+                      }}
+                    >
+                      <i className="ri-search-eye-line" style={{ fontSize: '16px' }}></i>
+                      Analizar comida
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ marginBottom: '20px' }}>
+                  <div style={{
+                    background: 'rgba(16, 185, 129, 0.15)',
+                    border: '1px solid rgba(16, 185, 129, 0.4)',
+                    borderRadius: '12px',
+                    padding: '20px',
+                    marginBottom: '16px',
+                    backdropFilter: 'blur(10px)'
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '12px',
+                      marginBottom: '12px'
+                    }}>
+                      <i className="ri-camera-line" style={{ color: '#16a34a', fontSize: '24px' }}></i>
+                      <p style={{
+                        color: '#16a34a',
+                        fontSize: '16px',
+                        fontWeight: '600',
+                        margin: 0
+                      }}>
+                        Cámara Lista
+                      </p>
+                    </div>
+                    <p style={{
+                      color: 'white',
+                      fontSize: '15px',
+                      fontWeight: '500',
+                      margin: '0 0 8px 0'
+                    }}>
+                      {t.photoInstructions}
+                    </p>
+                    <p style={{
+                      color: 'rgba(255,255,255,0.8)',
+                      fontSize: '13px',
+                      margin: 0,
+                      lineHeight: '1.4'
+                    }}>
+                      {t.photoTips}
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={captureAndAnalyzeFood}
+                    className="!rounded-button"
+                    style={{
+                      background: 'linear-gradient(135deg, #16a34a 0%, #10b981 100%)',
+                      border: 'none',
+                      borderRadius: '50%',
+                      color: 'white',
+                      fontSize: '24px',
+                      cursor: 'pointer',
+                      width: '80px',
+                      height: '80px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      margin: '0 auto',
+                      boxShadow: '0 6px 20px rgba(16, 185, 129, 0.4)',
+                      transform: 'translateY(0)',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.boxShadow = '0 8px 25px rgba(16, 185, 129, 0.5)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = '0 6px 20px rgba(16, 185, 129, 0.4)';
+                    }}
+                  >
+                    <i className="ri-camera-fill" style={{ fontSize: '32px' }}></i>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* NUEVO: Food Results Modal */}
+      {showFoodResults && (
+        <>
+          <div
+            onClick={() => setShowFoodResults(false)}
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(0,0,0,0.5)',
+              zIndex: 1000
+            }}
+          />
+          <div style={{
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            background: 'white',
+            borderRadius: '20px',
+            padding: '24px',
+            width: '90%',
+            maxWidth: '500px',
+            maxHeight: '80vh',
+            overflowY: 'auto',
+            zIndex: 1001
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '20px'
+            }}>
+              <h3 style={{
+                fontSize: '18px',
+                fontWeight: '600',
+                color: '#1f2937',
+                margin: 0
+              }}>
+                {t.foodDetected} ({detectedFoods.length})
+              </h3>
+              <button
+                onClick={() => setShowFoodResults(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '24px',
+                  color: '#6b7280',
+                  cursor: 'pointer'
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            {capturedImage && (
+              <div style={{
+                marginBottom: '20px',
+                textAlign: 'center'
+              }}>
+                <img
+                  src={capturedImage}
+                  alt="Imagen analizada"
+                  style={{
+                    maxWidth: '100%',
+                    height: '120px',
+                    objectFit: 'cover',
+                    borderRadius: '12px',
+                    border: '1px solid #e5e7eb'
+                  }}
+                />
+              </div>
+            )}
+
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px',
+              marginBottom: '20px'
+            }}>
+              {detectedFoods.map((food, index) => (
+                <div
+                  key={index}
+                  style={{
+                    padding: '16px',
+                    background: '#f8fafc',
+                    borderRadius: '12px',
+                    border: `2px solid ${food.detected ? '#16a34a' : '#f59e0b'}`,
+                    position: 'relative'
+                  }}
+                >
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '8px'
+                  }}>
+                    <h4 style={{
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      color: '#1f2937',
+                      margin: 0
+                    }}>
+                      {food.name}
+                    </h4>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      <span style={{
+                        fontSize: '12px',
+                        padding: '4px 8px',
+                        borderRadius: '20px',
+                        background: food.detected ? '#dcfce7' : '#fef3c7',
+                        color: food.detected ? '#16a34a' : '#f59e0b',
+                        fontWeight: '500'
+                      }}>
+                        {food.detected ? t.detected : t.suggested}
+                      </span>
+                      <span style={{
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        color: '#3b82f6'
+                      }}>
+                        {Math.round(food.confidence * 100)}%
+                      </span>
+                    </div>
+                  </div>
+
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(4, 1fr)',
+                    gap: '8px',
+                    fontSize: '12px',
+                    color: '#374151',
+                    marginBottom: '12px'
+                  }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <span style={{ color: '#6b7280' }}>Cal:</span><br />
+                      <strong>{food.calories}</strong>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <span style={{ color: '#6b7280' }}>P:</span><br />
+                      <strong>{formatNumber(food.protein)}g</strong>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <span style={{ color: '#6b7280' }}>C:</span><br />
+                      <strong>{formatNumber(food.carbs)}g</strong>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <span style={{ color: '#6b7280' }}>G:</span><br />
+                      <strong>{formatNumber(food.fats)}g</strong>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      // Convertir DetectedFoodItem a FoodItem
+                      const foodItem: FoodItem = {
+                        id: `detected_${index}`,
+                        name: food.name,
+                        brand: `IA Detectado (${Math.round(food.confidence * 100)}% confianza)`,
+                        calories_per_100g: food.calories,
+                        protein_per_100g: food.protein,
+                        carbs_per_100g: food.carbs,
+                        fats_per_100g: food.fats,
+                        fiber_per_100g: food.fiber
+                      };
+
+                      setShowFoodResults(false);
+                      setShowFoodCamera(false);
+                      stopFoodCamera();
+                      if (capturedImage) {
+                        URL.revokeObjectURL(capturedImage);
+                        setCapturedImage('');
+                      }
+                      handleFoodSelect(foodItem);
+                    }}
+                    className="!rounded-button"
+                    style={{
+                      width: '100%',
+                      padding: '10px 16px',
+                      background: 'linear-gradient(135deg, #16a34a 0%, #10b981 100%)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px'
+                    }}
+                  >
+                    <i className="ri-add-line" style={{ fontSize: '16px' }}></i>
+                    {t.selectFood}
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                onClick={() => {
+                  setShowFoodResults(false);
+                  setCapturedImage('');
+                  startFoodCamera();
+                }}
+                className="!rounded-button"
+                style={{
+                  flex: 1,
+                  padding: '12px 16px',
+                  background: '#f8fafc',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '12px',
+                  color: '#6b7280',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
+                }}
+              >
+                <i className="ri-camera-line" style={{ fontSize: '16px' }}></i>
+                {t.retryPhoto}
+              </button>
+              <button
+                onClick={() => {
+                  setShowFoodResults(false);
+                  setShowFoodCamera(false);
+                  stopFoodCamera();
+                  if (capturedImage) {
+                    URL.revokeObjectURL(capturedImage);
+                    setCapturedImage('');
+                  }
+                }}
+                className="!rounded-button"
+                style={{
+                  flex: 1,
+                  padding: '12px 16px',
+                  background: '#f8fafc',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '12px',
+                  color: '#6b7280',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer'
+                }}
+              >
+                {t.cancel}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
       {/* Barcode Scanner Modal */}
       {showBarcodeScanner && (
         <>
@@ -1154,11 +2112,30 @@ export default function AddFood() {
                   borderRadius: '1px'
                 }} />
                 {/* Esquinas de enfoque */}
-                {[
-                  { top: '-3px', left: '-3px', borderTop: '6px solid #3b82f6', borderLeft: '6px solid #3b82f6' },
-                  { top: '-3px', right: '-3px', borderTop: '6px solid #3b82f6', borderRight: '6px solid #3b82f6' },
-                  { bottom: '-3px', left: '-3px', borderBottom: '6px solid #3b82f6', borderLeft: '6px solid #3b82f6' },
-                  { bottom: '-3px', right: '-3px', borderBottom: '6px solid #3b82f6', borderRight: '6px solid #3b82f6' }
+                {[{
+                  top: '-3px',
+                  left: '-3px',
+                  borderTop: '6px solid #3b82f6',
+                  borderLeft: '6px solid #3b82f6'
+                },
+                {
+                  top: '-3px',
+                  right: '-3px',
+                  borderTop: '6px solid #3b82f6',
+                  borderRight: '6px solid #3b82f6'
+                },
+                {
+                  bottom: '-3px',
+                  left: '-3px',
+                  borderBottom: '6px solid #3b82f6',
+                  borderLeft: '6px solid #3b82f6'
+                },
+                {
+                  bottom: '-3px',
+                  right: '-3px',
+                  borderBottom: '6px solid #3b82f6',
+                  borderRight: '6px solid #3b82f6'
+                }
                 ].map((corner, index) => (
                   <div
                     key={index}
@@ -1186,7 +2163,7 @@ export default function AddFood() {
                   borderRadius: '20px',
                   whiteSpace: 'nowrap'
                 }}>
-                  📱 Área óptima de escaneo
+                  Área óptima de escaneo
                 </div>
               </div>
             </div>
@@ -1262,7 +2239,7 @@ export default function AddFood() {
                     }}
                   >
                     <i className="ri-refresh-line" style={{ fontSize: '18px' }}></i>
-                    {t.retryScanning}
+                    Reintentar escaneo
                   </button>
                 </div>
               ) : isLoadingProduct ? (
@@ -1293,7 +2270,7 @@ export default function AddFood() {
                         fontWeight: '600',
                         margin: '0 0 4px 0'
                       }}>
-                        {t.loadingProduct}
+                        Buscando producto...
                       </p>
                       <p style={{
                         color: '#93c5fd',
@@ -1352,7 +2329,7 @@ export default function AddFood() {
                       margin: 0,
                       lineHeight: '1.4'
                     }}>
-                      {t.scannerInstructions}
+                      Mantén el código centrado y espera a que se detecte automáticamente
                     </p>
                   </div>
 
@@ -1377,7 +2354,7 @@ export default function AddFood() {
                     }}
                   >
                     <i className="ri-stop-line" style={{ fontSize: '16px' }}></i>
-                    {t.stopScanning}
+                    Detener escaneo
                   </button>
                 </div>
               ) : (
@@ -1413,7 +2390,7 @@ export default function AddFood() {
                     }}
                   >
                     <i className="ri-camera-line" style={{ fontSize: '24px' }}></i>
-                    {t.startCamera}
+                    Iniciar cámara
                   </button>
 
                   <div style={{
@@ -1430,7 +2407,7 @@ export default function AddFood() {
                       textAlign: 'center',
                       lineHeight: '1.4'
                     }}>
-                      💡 Tip: Asegúrate de tener buena iluminación para mejores resultados
+                      Tip: Asegúrate de tener buena iluminación para mejores resultados
                     </p>
                   </div>
                 </div>
@@ -1457,7 +2434,7 @@ export default function AddFood() {
                       fontSize: '12px',
                       margin: 0
                     }}>
-                      {t.lastScanned}:
+                      Último código escaneado:
                     </p>
                   </div>
                   <p style={{
@@ -1474,8 +2451,8 @@ export default function AddFood() {
               )}
             </div>
           </div>
-        </>)
-      }
+        </>
+      )}
 
       {/* Nutrition Modal */}
       {showNutritionModal && selectedFood && (
@@ -1819,8 +2796,8 @@ export default function AddFood() {
               </button>
             </div>
           </div>
-        </>)
-      }
+        </>
+      )}
 
       <BottomNavigation />
 
