@@ -1,15 +1,15 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { getCurrentUser } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
+import type { User } from '@supabase/supabase-js';
 
 export default function Home() {
   const [currentTime, setCurrentTime] = useState('');
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<User | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -65,7 +65,7 @@ export default function Home() {
             <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
               <i className="ri-leaf-fill text-white text-lg"></i>
             </div>
-            <h1 className="text-xl font-['Pacifico'] text-green-600">ProFitness</h1>
+            <h1 className="text-xl font-[\'Pacifico\'] text-green-600">ProFitness</h1>
           </div>
           <div className="text-sm font-medium text-gray-600" suppressHydrationWarning={true}>
             {currentTime}
