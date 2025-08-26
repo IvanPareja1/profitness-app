@@ -3,10 +3,28 @@
 import { useState } from 'react';
 import Link from 'next/link';
 
+interface Food {
+  id: number;
+  name: string;
+  category: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  serving: string;
+}
+
+interface NutrientCalculation {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+}
+
 export default function FoodSearchPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [selectedFood, setSelectedFood] = useState(null);
+  const [selectedFood, setSelectedFood] = useState<Food | null>(null);
   const [quantity, setQuantity] = useState(100);
 
   const categories = [
@@ -18,7 +36,7 @@ export default function FoodSearchPage() {
     { id: 'dairy', name: 'Lácteos', icon: 'ri-cup-line' }
   ];
 
-  const foods = [
+  const foods: Food[] = [
     { id: 1, name: 'Manzana', category: 'fruits', calories: 52, protein: 0.3, carbs: 14, fat: 0.2, serving: '100g' },
     { id: 2, name: 'Plátano', category: 'fruits', calories: 89, protein: 1.1, carbs: 23, fat: 0.3, serving: '100g' },
     { id: 3, name: 'Pollo pechuga', category: 'proteins', calories: 165, protein: 31, carbs: 0, fat: 3.6, serving: '100g' },
@@ -35,7 +53,7 @@ export default function FoodSearchPage() {
     return matchesSearch && matchesCategory;
   });
 
-  const calculateNutrients = (food, qty) => {
+  const calculateNutrients = (food: Food, qty: number): NutrientCalculation => {
     const multiplier = qty / 100;
     return {
       calories: Math.round(food.calories * multiplier),
@@ -46,9 +64,7 @@ export default function FoodSearchPage() {
   };
 
   const handleAddFood = () => {
-    // Aquí se agregaría la lógica para guardar el alimento
     console.log('Agregando alimento:', selectedFood, quantity);
-    // Redireccionar a la página de nutrición
   };
 
   return (

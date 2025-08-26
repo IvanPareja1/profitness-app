@@ -34,7 +34,7 @@ export async function callEdgeFunction(functionName: string, data: any, token?: 
   }
 }
 
-// Google Auth
+// Google Auth - ÚNICO método de autenticación
 export async function signInWithGoogle() {
   try {
     const { data, error } = await supabase.auth.signInWithOAuth({
@@ -69,7 +69,7 @@ export async function signOut() {
   }
 }
 
-// Obtener usuario actual - solo usuarios de Google
+// Obtener usuario actual - SOLO usuarios de Google
 export async function getCurrentUser() {
   try {
     const { data: { user }, error } = await supabase.auth.getUser()
@@ -85,33 +85,4 @@ export async function getCurrentUser() {
 export async function getSessionToken() {
   const { data: { session } } = await supabase.auth.getSession()
   return session?.access_token
-}
-
-// Función para crear/obtener usuario anónimo (para compatibilidad)
-export async function signInAnonymously() {
-  try {
-    // Para esta app, redirigir al login con Google en lugar de usuario anónimo
-    const currentUser = await getCurrentUser()
-    if (!currentUser) {
-      throw new Error('Usuario no autenticado')
-    }
-    return { user: currentUser }
-  } catch (error) {
-    console.error('Error with anonymous sign in:', error)
-    throw error
-  }
-}
-
-// Función alternativa para crear/obtener usuario
-export async function signInOrCreateUser() {
-  try {
-    const currentUser = await getCurrentUser()
-    if (!currentUser) {
-      throw new Error('Usuario no autenticado')
-    }
-    return { user: currentUser }
-  } catch (error) {
-    console.error('Error with sign in or create user:', error)
-    throw error
-  }
 }

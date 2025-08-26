@@ -3,7 +3,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { supabase, callEdgeFunction, signInOrCreateUser, getCurrentUser } from '@/lib/supabase';
+import { supabase, callEdgeFunction, getCurrentUser } from '@/lib/supabase';
 
 export default function ScanPage() {
   const [scanMode, setScanMode] = useState('barcode');
@@ -27,12 +27,10 @@ export default function ScanPage() {
 
   const initializeUser = async () => {
     try {
-      let currentUser = await getCurrentUser();
-      if (!currentUser) {
-        const { user: newUser } = await signInOrCreateUser();
-        currentUser = newUser;
+      const currentUser = await getCurrentUser();
+      if (currentUser) {
+        setUser(currentUser);
       }
-      setUser(currentUser);
     } catch (error) {
       console.error('Error initializing user:', error);
     }
