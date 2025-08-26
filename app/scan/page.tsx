@@ -1,8 +1,9 @@
+"use client";
+
 // Type guard para BarcodeScannedData
 function isBarcodeScannedData(data: ScannedData): data is BarcodeScannedData {
   return data !== null && typeof data === 'object' && ('barcode' in data || 'error' in data);
 }
-"use client";
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
