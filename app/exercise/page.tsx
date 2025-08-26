@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -5,7 +6,7 @@ import Link from 'next/link';
 
 export default function ExercisePage() {
   const [selectedTab, setSelectedTab] = useState('workouts');
-  const [todayWorkout, setTodayWorkout] = useState(null);
+  const [todayWorkout, setTodayWorkout] = useState<string | null>(null);
 
   const workoutCategories = [
     { id: 'cardio', name: 'Cardio', icon: 'ri-heart-pulse-line', color: 'bg-red-100 text-red-500' },
