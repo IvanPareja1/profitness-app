@@ -3,15 +3,23 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { supabase, callEdgeFunction, signInWithGoogle, getCurrentUser } from '@/lib/supabase';
+import { useRouter } from 'next/navigation';
 
+interface HydrationEntry {
+  id: string;
+  amount: number;
+  logged_at: string;
+}
 
 export default function HydrationPage() {
-  const [dailyIntake, setDailyIntake] = useState(0);
-  const [dailyGoal, setDailyGoal] = useState(2500);
-  const [selectedAmount, setSelectedAmount] = useState(250);
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState(null);
-  const [todayEntries, setTodayEntries] = useState([]);
+  const [dailyIntake, setDailyIntake] = useState<number>(0);
+  const [dailyGoal, setDailyGoal] = useState<number>(2500);
+  const [selectedAmount, setSelectedAmount] = useState<number>(250);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [user, setUser] = useState<any>(null);
+  const [todayEntries, setTodayEntries] = useState<HydrationEntry[]>([]);
+  const router = useRouter();
 
   const waterAmounts = [
     { amount: 100, label: '100ml', icon: 'ri-drop-line' },
@@ -20,7 +28,7 @@ export default function HydrationPage() {
     { amount: 750, label: '750ml', icon: 'ri-bottle-line' }
   ];
 
-  const addWater = async (amount) => {
+  const addWater = async (amount: number) => {
     if (!user) return;
 
     try {
@@ -78,20 +86,19 @@ export default function HydrationPage() {
 
   const initializeUser = async () => {
     try {
-      let currentUser = await getCurrentUser();
+      const currentUser = await getCurrentUser();
 
       if (!currentUser) {
-        const { user: newUser } = await signInAnonymously();
-        currentUser = newUser;
+        // Redirigir a autenticación si no hay usuario
+        router.push('/auth');
+        return;
       }
 
       setUser(currentUser);
-
-      if (currentUser) {
-        await loadTodayHydration(currentUser.id);
-      }
+      await loadTodayHydration(currentUser.id);
     } catch (error) {
       console.error('Error initializing user:', error);
+      router.push('/auth');
     } finally {
       setLoading(false);
     }
