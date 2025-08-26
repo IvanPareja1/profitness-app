@@ -2,8 +2,7 @@
 function isBarcodeScannedData(data: ScannedData): data is BarcodeScannedData {
   return data !== null && typeof data === 'object' && ('barcode' in data || 'error' in data);
 }
-
-'use client';
+"use client";
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
