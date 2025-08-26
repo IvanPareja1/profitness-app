@@ -1,3 +1,7 @@
+// Type guard para BarcodeScannedData
+function isBarcodeScannedData(data: ScannedData): data is BarcodeScannedData {
+  return data !== null && typeof data === 'object' && ('barcode' in data || 'error' in data);
+}
 
 'use client';
 
@@ -5,18 +9,52 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { supabase, callEdgeFunction, getCurrentUser } from '@/lib/supabase';
 
-export default function ScanPage() {
-  const [scanMode, setScanMode] = useState('barcode');
-  const [isScanning, setIsScanning] = useState(false);
-  const [scannedData, setScannedData] = useState(null);
-  const [cameraError, setCameraError] = useState(null);
-  const [user, setUser] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
+// Define a minimal User type if not imported from elsewhere
+type User = {
+  id: string;
+  // Add other fields as needed
+};
 
-  const videoRef = useRef(null);
-  const canvasRef = useRef(null);
-  const fileInputRef = useRef(null);
-  const scanInterval = useRef(null);
+// Tipos para los datos escaneados
+type BarcodeScannedData = {
+  name: string;
+  brand?: string;
+  calories?: number;
+  protein?: number;
+  carbs?: number;
+  fat?: number;
+  fiber?: number;
+  sugar?: number;
+  sodium?: number;
+  barcode?: string;
+  image_url?: string;
+  ingredients?: string;
+  serving_size?: string;
+  categories?: string;
+  error?: boolean;
+};
+type AIScannedData = {
+  name: string;
+  items: string[];
+  totalCalories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+};
+type ScannedData = BarcodeScannedData | AIScannedData | null;
+
+export default function ScanPage() {
+  const [scanMode, setScanMode] = useState<'barcode' | 'ai'>('barcode');
+  const [isScanning, setIsScanning] = useState<boolean>(false);
+  const [scannedData, setScannedData] = useState<ScannedData>(null);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const scanInterval = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     initializeUser();
@@ -68,7 +106,7 @@ export default function ScanPage() {
 
   const stopCamera = () => {
     if (videoRef.current && videoRef.current.srcObject) {
-      const stream = videoRef.current.srcObject;
+      const stream = videoRef.current.srcObject as MediaStream;
       const tracks = stream.getTracks();
       tracks.forEach(track => track.stop());
       videoRef.current.srcObject = null;
@@ -90,7 +128,7 @@ export default function ScanPage() {
     const ctx = canvas.getContext('2d');
 
     scanInterval.current = setInterval(() => {
-      if (video.readyState === video.HAVE_ENOUGH_DATA) {
+      if (video.readyState === video.HAVE_ENOUGH_DATA && ctx) {
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -120,7 +158,7 @@ export default function ScanPage() {
     }, 3000);
   };
 
-  const handleBarcodeDetected = async (barcode) => {
+  const handleBarcodeDetected = async (barcode: string) => {
     stopCamera();
     setIsLoading(true);
 
@@ -144,7 +182,7 @@ export default function ScanPage() {
     }
   };
 
-  const fetchProductFromOpenFoodFacts = async (barcode) => {
+  const fetchProductFromOpenFoodFacts = async (barcode: string): Promise<BarcodeScannedData> => {
     try {
       const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
       const data = await response.json();
@@ -179,9 +217,9 @@ export default function ScanPage() {
     }
   };
 
-  const handleImageUpload = async (event) => {
-    const file = event.target.files[0];
-    if (file) {
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files && files[0]) {
       setScanMode('ai');
       setIsScanning(true);
       setIsLoading(true);
@@ -210,19 +248,19 @@ export default function ScanPage() {
 
       const foodData = {
         food_name: scannedData.name,
-        brand: scannedData.brand,
-        calories: scannedData.calories || scannedData.totalCalories,
+        brand: 'brand' in scannedData ? scannedData.brand : undefined,
+        calories: 'calories' in scannedData ? scannedData.calories : ('totalCalories' in scannedData ? scannedData.totalCalories : undefined),
         protein: scannedData.protein,
         carbs: scannedData.carbs,
         fat: scannedData.fat,
         quantity: 100,
         meal_type: 'snacks',
         scan_method: scanMode,
-        barcode: scannedData.barcode,
-        ingredients: scannedData.ingredients,
-        fiber: scannedData.fiber,
-        sugar: scannedData.sugar,
-        sodium: scannedData.sodium
+        barcode: 'barcode' in scannedData ? scannedData.barcode : undefined,
+        ingredients: 'ingredients' in scannedData ? scannedData.ingredients : undefined,
+        fiber: 'fiber' in scannedData ? scannedData.fiber : undefined,
+        sugar: 'sugar' in scannedData ? scannedData.sugar : undefined,
+        sodium: 'sodium' in scannedData ? scannedData.sodium : undefined
       };
 
       await callEdgeFunction('nutrition-tracker', {
@@ -458,124 +496,176 @@ export default function ScanPage() {
 
           {scannedData && (
             <div className="space-y-4">
-              <div className={`border rounded-xl p-4 ${
-                scannedData.error ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'
-              }`}>
-                <div className="flex items-start space-x-3 mb-3">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    scannedData.error ? 'bg-red-100' : 'bg-green-100'
-                  }`}>
-                    <i className={`text-lg ${
-                      scannedData.error ? 'ri-close-line text-red-500' : 'ri-check-line text-green-500'
-                    }`}></i>
-                  </div>
-                  <div className="flex-1">
-                    <h3 className={`font-semibold ${
-                      scannedData.error ? 'text-red-800' : 'text-green-800'
-                    }`}>{scannedData.name}</h3>
-                    {scannedData.brand && <p className={`text-sm ${
-                      scannedData.error ? 'text-red-600' : 'text-green-600'
-                    }`}>{scannedData.brand}</p>}
-                    {scannedData.barcode && (
-                      <p className="text-xs text-gray-500 mt-1">
-                        Código: {scannedData.barcode}
-                      </p>
-                    )}
-                  </div>
-                  {scannedData.image_url && (
-                    <img
-                      src={scannedData.image_url}
-                      alt={scannedData.name}
-                      className="w-12 h-12 rounded-lg object-cover"
-                      onError={(e) => e.target.style.display = 'none'}
-                    />
-                  )}
-                </div>
-
-                {scannedData.items && (
-                  <div className="mb-4">
-                    <p className="font-medium text-gray-800 mb-2">Alimentos detectados:</p>
-                    <ul className="space-y-1">
-                      {scannedData.items.map((item, index) => (
-                        <li key={index} className="text-sm text-gray-600 flex items-center space-x-2">
-                          <i className="ri-arrow-right-s-line text-xs"></i>
-                          <span>{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {!scannedData.error && (
-                  <>
-                    <div className="grid grid-cols-4 gap-3 mb-4">
-                      <div className="text-center">
-                        <div className="text-lg font-bold text-gray-800">{scannedData.calories || scannedData.totalCalories}</div>
-                        <div className="text-xs text-gray-500">kcal</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-lg font-bold text-blue-500">{scannedData.protein}g</div>
-                        <div className="text-xs text-gray-500">Proteína</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-lg font-bold text-green-500">{scannedData.carbs}g</div>
-                        <div className="text-xs text-gray-500">Carbohidratos</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-lg font-bold text-yellow-500">{scannedData.fat}g</div>
-                        <div className="text-xs text-gray-500">Grasas</div>
-                      </div>
+              {/* Type guard para BarcodeScannedData */}
+              {isBarcodeScannedData(scannedData) ? (
+                <div className={`border rounded-xl p-4 ${
+                  (scannedData as BarcodeScannedData).error ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'
+                }`}>
+                  <div className="flex items-start space-x-3 mb-3">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      (scannedData as BarcodeScannedData).error ? 'bg-red-100' : 'bg-green-100'
+                    }`}>
+                      <i className={`text-lg ${
+                        (scannedData as BarcodeScannedData).error ? 'ri-close-line text-red-500' : 'ri-check-line text-green-500'
+                      }`}></i>
                     </div>
-
-                    {(scannedData.fiber || scannedData.sugar || scannedData.sodium) && (
-                      <div className="grid grid-cols-3 gap-3 mb-4 pt-3 border-t border-gray-200">
-                        {scannedData.fiber > 0 && (
-                          <div className="text-center">
-                            <div className="text-sm font-bold text-green-600">{scannedData.fiber}g</div>
-                            <div className="text-xs text-gray-500">Fibra</div>
-                          </div>
-                        )}
-                        {scannedData.sugar > 0 && (
-                          <div className="text-center">
-                            <div className="text-sm font-bold text-red-500">{scannedData.sugar}g</div>
-                            <div className="text-xs text-gray-500">Azúcar</div>
-                          </div>
-                        )}
-                        {scannedData.sodium > 0 && (
-                          <div className="text-center">
-                            <div className="text-sm font-bold text-purple-500">{scannedData.sodium}g</div>
-                            <div className="text-xs text-gray-500">Sodio</div>
-                          </div>
-                        )}
-                      </div>
+                    <div className="flex-1">
+                      <h3 className={`font-semibold ${
+                        (scannedData as BarcodeScannedData).error ? 'text-red-800' : 'text-green-800'
+                      }`}>{scannedData.name}</h3>
+                      {(scannedData as BarcodeScannedData).brand && <p className={`text-sm ${
+                        (scannedData as BarcodeScannedData).error ? 'text-red-600' : 'text-green-600'
+                      }`}>{(scannedData as BarcodeScannedData).brand}</p>}
+                      {(scannedData as BarcodeScannedData).barcode && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          Código: {(scannedData as BarcodeScannedData).barcode}
+                        </p>
+                      )}
+                    </div>
+                    {(scannedData as BarcodeScannedData).image_url && (
+                      <img
+                        src={(scannedData as BarcodeScannedData).image_url}
+                        alt={scannedData.name}
+                        className="w-12 h-12 rounded-lg object-cover"
+                        onError={e => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                        }}
+                      />
                     )}
+                  </div>
 
-                    {scannedData.ingredients && (
-                      <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-                        <p className="text-xs font-medium text-gray-700 mb-1">Ingredientes:</p>
-                        <p className="text-xs text-gray-600 line-clamp-3">{scannedData.ingredients}</p>
+                  {/* Nutrición */}
+                  {!(scannedData as BarcodeScannedData).error && (
+                    <>
+                      <div className="grid grid-cols-4 gap-3 mb-4">
+                        <div className="text-center">
+                          <div className="text-lg font-bold text-gray-800">{(scannedData as BarcodeScannedData).calories}</div>
+                          <div className="text-xs text-gray-500">kcal</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-lg font-bold text-blue-500">{(scannedData as BarcodeScannedData).protein}g</div>
+                          <div className="text-xs text-gray-500">Proteína</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-lg font-bold text-green-500">{(scannedData as BarcodeScannedData).carbs}g</div>
+                          <div className="text-xs text-gray-500">Carbohidratos</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-lg font-bold text-yellow-500">{(scannedData as BarcodeScannedData).fat}g</div>
+                          <div className="text-xs text-gray-500">Grasas</div>
+                        </div>
                       </div>
-                    )}
-                  </>
-                )}
 
-                <div className="flex space-x-3">
-                  <button
-                    onClick={() => setScannedData(null)}
-                    className="flex-1 border border-gray-300 text-gray-700 py-3 rounded-xl font-medium"
-                  >
-                    Escanear Otro
-                  </button>
-                  {!scannedData.error && (
+                      {(typeof scannedData.fiber === 'number' && scannedData.fiber > 0) ||
+                       (typeof scannedData.sugar === 'number' && scannedData.sugar > 0) ||
+                       (typeof scannedData.sodium === 'number' && scannedData.sodium > 0) ? (
+                        <div className="grid grid-cols-3 gap-3 mb-4 pt-3 border-t border-gray-200">
+                          {typeof scannedData.fiber === 'number' && scannedData.fiber > 0 && (
+                            <div className="text-center">
+                              <div className="text-sm font-bold text-green-600">{scannedData.fiber}g</div>
+                              <div className="text-xs text-gray-500">Fibra</div>
+                            </div>
+                          )}
+                          {typeof scannedData.sugar === 'number' && scannedData.sugar > 0 && (
+                            <div className="text-center">
+                              <div className="text-sm font-bold text-red-500">{scannedData.sugar}g</div>
+                              <div className="text-xs text-gray-500">Azúcar</div>
+                            </div>
+                          )}
+                          {typeof scannedData.sodium === 'number' && scannedData.sodium > 0 && (
+                            <div className="text-center">
+                              <div className="text-sm font-bold text-purple-500">{scannedData.sodium}g</div>
+                              <div className="text-xs text-gray-500">Sodio</div>
+                            </div>
+                          )}
+                        </div>
+                      ) : null}
+
+                      {(scannedData as BarcodeScannedData).ingredients && (
+                        <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                          <p className="text-xs font-medium text-gray-700 mb-1">Ingredientes:</p>
+                          <p className="text-xs text-gray-600 line-clamp-3">{(scannedData as BarcodeScannedData).ingredients}</p>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  <div className="flex space-x-3">
+                    <button
+                      onClick={() => setScannedData(null)}
+                      className="flex-1 border border-gray-300 text-gray-700 py-3 rounded-xl font-medium"
+                    >
+                      Escanear Otro
+                    </button>
+                    {!((scannedData as BarcodeScannedData).error) && (
+                      <button
+                        onClick={saveScannedFood}
+                        className="flex-1 bg-green-500 text-white py-3 rounded-xl font-medium"
+                      >
+                        Agregar a Diario
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                // IA Visual
+                <div className="border rounded-xl p-4 bg-purple-50 border-purple-200">
+                  <div className="flex items-start space-x-3 mb-3">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 bg-purple-100">
+                      <i className="text-lg ri-camera-ai-line text-purple-500"></i>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-purple-800">{scannedData.name}</h3>
+                    </div>
+                  </div>
+                  {'items' in scannedData && (
+                    <div className="mb-4">
+                      <p className="font-medium text-gray-800 mb-2">Alimentos detectados:</p>
+                      <ul className="space-y-1">
+                        {scannedData.items.map((item: string, index: number) => (
+                          <li key={index} className="text-sm text-gray-600 flex items-center space-x-2">
+                            <i className="ri-arrow-right-s-line text-xs"></i>
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  <div className="grid grid-cols-4 gap-3 mb-4">
+                    <div className="text-center">
+                      <div className="text-lg font-bold text-gray-800">{('totalCalories' in scannedData ? scannedData.totalCalories : '')}</div>
+                      <div className="text-xs text-gray-500">kcal</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-lg font-bold text-blue-500">{scannedData.protein}g</div>
+                      <div className="text-xs text-gray-500">Proteína</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-lg font-bold text-green-500">{scannedData.carbs}g</div>
+                      <div className="text-xs text-gray-500">Carbohidratos</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-lg font-bold text-yellow-500">{scannedData.fat}g</div>
+                      <div className="text-xs text-gray-500">Grasas</div>
+                    </div>
+                  </div>
+                  <div className="flex space-x-3">
+                    <button
+                      onClick={() => setScannedData(null)}
+                      className="flex-1 border border-gray-300 text-gray-700 py-3 rounded-xl font-medium"
+                    >
+                      Escanear Otro
+                    </button>
                     <button
                       onClick={saveScannedFood}
                       className="flex-1 bg-green-500 text-white py-3 rounded-xl font-medium"
                     >
                       Agregar a Diario
                     </button>
-                  )}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
 
@@ -583,6 +673,7 @@ export default function ScanPage() {
             ref={fileInputRef}
             type="file"
             accept="image/*"
+            // @ts-ignore
             capture="camera"
             className="hidden"
             onChange={handleImageUpload}
