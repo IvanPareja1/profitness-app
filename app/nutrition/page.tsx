@@ -49,8 +49,7 @@ export default function NutritionPage() {
 
   const initializeUser = async () => {
     try {
-      const currentUser = await getCurrentUser();
-
+      const currentUser = await getCurrentUser();  
       if (!currentUser) {
         // Redirigir a autenticación si no hay usuario
         router.push('/auth');
