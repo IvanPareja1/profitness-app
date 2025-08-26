@@ -1,17 +1,28 @@
+
 'use client';
 
 import { useState } from 'react';
 import Link from 'next/link';
 
+type CyclePhase = 'menstrual' | 'follicular' | 'ovulation' | 'luteal';
+
+interface CycleRecommendation {
+  title: string;
+  nutrition: string;
+  exercise: string;
+  calories: number;
+  notes: string;
+}
+
 export default function ManualMacrosPage() {
-  const [calories, setCalories] = useState(2200);
-  const [protein, setProtein] = useState(165);
-  const [carbs, setCarbs] = useState(248);
-  const [fats, setFats] = useState(73);
-  const [customMode, setCustomMode] = useState(false);
-  const [gender, setGender] = useState('');
-  const [trackCycle, setTrackCycle] = useState(false);
-  const [cyclePhase, setCyclePhase] = useState('follicular');
+  const [calories, setCalories] = useState<number>(2200);
+  const [protein, setProtein] = useState<number>(165);
+  const [carbs, setCarbs] = useState<number>(248);
+  const [fats, setFats] = useState<number>(73);
+  const [customMode, setCustomMode] = useState<boolean>(false);
+  const [gender, setGender] = useState<string>('');
+  const [trackCycle, setTrackCycle] = useState<boolean>(false);
+  const [cyclePhase, setCyclePhase] = useState<CyclePhase>('follicular');
 
   const calculateFromCalories = () => {
     const proteinCals = calories * 0.3;
@@ -24,14 +35,14 @@ export default function ManualMacrosPage() {
   };
 
   const cyclePhases = [
-    { id: 'menstrual', name: 'Menstruación (Días 1-5)', color: 'red' },
-    { id: 'follicular', name: 'Fase Folicular (Días 6-14)', color: 'green' },
-    { id: 'ovulation', name: 'Ovulación (Días 14-16)', color: 'yellow' },
-    { id: 'luteal', name: 'Fase Lútea (Días 17-28)', color: 'purple' }
+    { id: 'menstrual' as CyclePhase, name: 'Menstruación (Días 1-5)', color: 'red' },
+    { id: 'follicular' as CyclePhase, name: 'Fase Folicular (Días 6-14)', color: 'green' },
+    { id: 'ovulation' as CyclePhase, name: 'Ovulación (Días 14-16)', color: 'yellow' },
+    { id: 'luteal' as CyclePhase, name: 'Fase Lútea (Días 17-28)', color: 'purple' }
   ];
 
-  const getCycleRecommendations = (phase: string) => {
-    const recommendations = {
+  const getCycleRecommendations = (phase: CyclePhase): CycleRecommendation => {
+    const recommendations: Record<CyclePhase, CycleRecommendation> = {
       menstrual: {
         title: 'Días de Menstruación',
         nutrition: 'Aumenta hierro y magnesio. Reduce intensidad del ejercicio.',
@@ -61,7 +72,7 @@ export default function ManualMacrosPage() {
         notes: 'Posibles antojos y retención de líquidos. Normal aumentar 1-2kg temporalmente.'
       }
     };
-    return recommendations[phase] || recommendations.follicular;
+    return recommendations[phase];
   };
 
   const currentRecommendations = getCycleRecommendations(cyclePhase);
@@ -141,7 +152,7 @@ export default function ManualMacrosPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">Fase actual del ciclo</label>
                     <select
                       value={cyclePhase}
-                      onChange={(e) => setCyclePhase(e.target.value)}
+                      onChange={(e) => setCyclePhase(e.target.value as CyclePhase)}
                       className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 text-sm appearance-none"
                     >
                       {cyclePhases.map((phase) => (

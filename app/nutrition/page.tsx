@@ -1,21 +1,40 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { supabase, callEdgeFunction, signInAnonymously, getCurrentUser } from '@/lib/supabase';
+import { supabase, callEdgeFunction, getCurrentUser } from '@/lib/supabase';
+import { useRouter } from 'next/navigation';
+
+interface NutritionData {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  target_calories: number;
+}
+
+interface FoodEntry {
+  id: string;
+  food_name: string;
+  calories: number;
+  meal_type: string;
+  consumed_at: string;
+}
 
 export default function NutritionPage() {
-  const [selectedMeal, setSelectedMeal] = useState('desayuno');
-  const [nutritionData, setNutritionData] = useState({
+  const [selectedMeal, setSelectedMeal] = useState<string>('desayuno');
+  const [nutritionData, setNutritionData] = useState<NutritionData>({
     calories: 0,
     protein: 0,
     carbs: 0,
     fat: 0,
     target_calories: 2200
   });
-  const [todayFoods, setTodayFoods] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState(null);
+  const [todayFoods, setTodayFoods] = useState<FoodEntry[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [user, setUser] = useState<any>(null);
+  const router = useRouter();
 
   const meals = [
     { id: 'desayuno', name: 'Desayuno', icon: 'ri-sun-line', calories: 450 },
@@ -30,20 +49,19 @@ export default function NutritionPage() {
 
   const initializeUser = async () => {
     try {
-      let currentUser = await getCurrentUser();
+      const currentUser = await getCurrentUser();
 
       if (!currentUser) {
-        const { user: newUser } = await signInAnonymously();
-        currentUser = newUser;
+        // Redirigir a autenticación si no hay usuario
+        router.push('/auth');
+        return;
       }
 
       setUser(currentUser);
-
-      if (currentUser) {
-        await loadTodayNutrition(currentUser.id);
-      }
+      await loadTodayNutrition(currentUser.id);
     } catch (error) {
       console.error('Error initializing user:', error);
+      router.push('/auth');
     } finally {
       setLoading(false);
     }
@@ -72,7 +90,7 @@ export default function NutritionPage() {
     }
   };
 
-  const addFood = async (foodData) => {
+  const addFood = async (foodData: any) => {
     if (!user) return;
 
     try {
@@ -94,8 +112,6 @@ export default function NutritionPage() {
       console.error('Error adding food:', error);
     }
   };
-
-  const recentFoods = todayFoods;
 
   const progressPercentage = (nutritionData.calories / nutritionData.target_calories) * 100;
 
