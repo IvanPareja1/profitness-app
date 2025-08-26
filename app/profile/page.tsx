@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { supabase, callEdgeFunction, getCurrentUser, signOut } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
+import type { User } from '@supabase/supabase-js';
+
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState({
@@ -18,7 +20,7 @@ export default function ProfilePage() {
   const [bmi, setBmi] = useState(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<User | null>(null);
   const [message, setMessage] = useState('');
   const [cycleData, setCycleData] = useState({
     last_period: '',
@@ -26,8 +28,8 @@ export default function ProfilePage() {
     period_length: 5,
     tracking_enabled: false
   });
-  const [restDays, setRestDays] = useState([]);
-  const [selectedRestDays, setSelectedRestDays] = useState([]);
+  const [restDays, setRestDays] = useState<any[]>([]);
+  const [selectedRestDays, setSelectedRestDays] = useState<string[]>([]);
   const router = useRouter();
 
   const activityLevels = [
