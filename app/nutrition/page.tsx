@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { supabase, callEdgeFunction, signInAnonymously, getCurrentUser } from '@/lib/supabase';
+
 
 export default function NutritionPage() {
   const [selectedMeal, setSelectedMeal] = useState('desayuno');

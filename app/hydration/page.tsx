@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { supabase, callEdgeFunction, signInAnonymously, getCurrentUser } from '@/lib/supabase';
+
 
 export default function HydrationPage() {
   const [dailyIntake, setDailyIntake] = useState(0);
