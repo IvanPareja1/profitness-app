@@ -255,7 +255,7 @@ export default function ScanPage() {
             <button
               onClick={() => {
                 setScanMode('ai');
-                if (html5QrCode) stopScanning();
+                if (isScanning) stopBarcodeScanner();
               }}
               className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${
                 scanMode === 'ai'
