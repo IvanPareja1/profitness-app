@@ -1,8 +1,10 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { supabase, callEdgeFunction, getCurrentUser } from '@/lib/supabase';
+import { useRouter } from 'next/navigation';
 
 type CyclePhase = 'menstrual' | 'follicular' | 'ovulation' | 'luteal';
 
@@ -23,6 +25,54 @@ export default function ManualMacrosPage() {
   const [gender, setGender] = useState<string>('');
   const [trackCycle, setTrackCycle] = useState<boolean>(false);
   const [cyclePhase, setCyclePhase] = useState<CyclePhase>('follicular');
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [user, setUser] = useState<any>(null);
+  const [saveMessage, setSaveMessage] = useState<string>('');
+
+  const router = useRouter();
+
+  useEffect(() => {
+    initializeUser();
+  }, []);
+
+  const initializeUser = async () => {
+    try {
+      const currentUser = await getCurrentUser();
+      if (!currentUser) {
+        router.push('/auth');
+        return;
+      }
+      setUser(currentUser);
+      await loadUserMacros();
+    } catch (error) {
+      console.error('Error initializing user:', error);
+      router.push('/auth');
+    }
+  };
+
+  const loadUserMacros = async () => {
+    try {
+      const token = (await supabase.auth.getSession()).data.session?.access_token;
+      const response = await callEdgeFunction('user-macros-manager', {}, token);
+      
+      if (response.macros) {
+        setCalories(response.macros.calories);
+        setProtein(response.macros.protein);
+        setCarbs(response.macros.carbs);
+        setFats(response.macros.fat);
+      }
+      
+      if (response.profile) {
+        setGender(response.profile.gender || '');
+      }
+      
+      setIsLoading(false);
+    } catch (error) {
+      console.error('Error loading user macros:', error);
+      setIsLoading(false);
+    }
+  };
 
   const calculateFromCalories = () => {
     const proteinCals = calories * 0.3;
@@ -32,6 +82,38 @@ export default function ManualMacrosPage() {
     setProtein(Math.round(proteinCals / 4));
     setCarbs(Math.round(carbsCals / 4));
     setFats(Math.round(fatsCals / 9));
+  };
+
+  const saveUserMacros = async () => {
+    if (!user) return;
+    
+    setIsSaving(true);
+    setSaveMessage('');
+    
+    try {
+      const token = (await supabase.auth.getSession()).data.session?.access_token;
+      
+      const response = await callEdgeFunction('user-macros-manager', {
+        calories: adjustedCalories,
+        protein,
+        carbs,
+        fat: fats,
+        gender,
+        trackCycle,
+        cyclePhase: trackCycle ? cyclePhase : null
+      }, token);
+      
+      if (response.success) {
+        setSaveMessage('✅ Metas guardadas correctamente');
+        setTimeout(() => setSaveMessage(''), 3000);
+      }
+    } catch (error) {
+      console.error('Error saving macros:', error);
+      setSaveMessage('❌ Error al guardar las metas');
+      setTimeout(() => setSaveMessage(''), 3000);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const cyclePhases = [
@@ -78,20 +160,49 @@ export default function ManualMacrosPage() {
   const currentRecommendations = getCycleRecommendations(cyclePhase);
   const adjustedCalories = trackCycle && gender === 'female' ? calories + currentRecommendations.calories : calories;
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full border-4 border-purple-500 border-t-transparent animate-spin"></div>
+          <p className="text-purple-600 font-medium">Cargando configuración...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50">
       <div className="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-sm shadow-sm z-10">
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center space-x-3">
-            <Link href="/rest-days" className="w-8 h-8 flex items-center justify-center">
+            <Link href="/profile" className="w-8 h-8 flex items-center justify-center">
               <i className="ri-arrow-left-line text-gray-600 text-xl"></i>
             </Link>
-            <h1 className="text-xl font-semibold text-gray-800">Ajuste Manual</h1>
+            <h1 className="text-xl font-semibold text-gray-800">Ajuste de Metas</h1>
           </div>
-          <button className="text-sm font-medium text-purple-500 hover:text-purple-600">
-            Guardar
+          <button 
+            onClick={saveUserMacros}
+            disabled={isSaving}
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+              isSaving 
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : 'bg-purple-500 text-white hover:bg-purple-600'
+            }`}
+          >
+            {isSaving ? 'Guardando...' : 'Guardar'}
           </button>
         </div>
+        
+        {saveMessage && (
+          <div className={`mx-4 mb-2 p-3 rounded-xl text-sm font-medium ${
+            saveMessage.includes('✅') 
+              ? 'bg-green-100 text-green-700 border border-green-200'
+              : 'bg-red-100 text-red-700 border border-red-200'
+          }`}>
+            {saveMessage}
+          </div>
+        )}
       </div>
 
       <div className="pt-20 pb-20 px-4">
