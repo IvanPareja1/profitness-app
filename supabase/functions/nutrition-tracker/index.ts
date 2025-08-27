@@ -1,4 +1,4 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { serve } from "https://deno.land/std/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
@@ -81,37 +81,76 @@ serve(async (req) => {
     }
 
     if (method === 'POST') {
-      const body = await req.json()
-      
+      let body: any = null;
+      try {
+        body = await req.json();
+        // Log completo del body recibido
+        console.log('[nutrition-tracker] POST body recibido:', JSON.stringify(body));
+      } catch (err) {
+        console.error('[nutrition-tracker] Error parseando body JSON:', err);
+        return new Response(
+          JSON.stringify({ error: 'Body inválido o no es JSON', details: String(err) }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Validar campos requeridos
+      const requiredFields = ['foodData', 'userId'];
+      for (const field of requiredFields) {
+        if (!(field in body)) {
+          console.error(`[nutrition-tracker] Faltan campos requeridos: ${field}`);
+          return new Response(
+            JSON.stringify({ error: `Falta el campo requerido: ${field}` }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      }
+
+      // Desestructurar foodData
+      const fd = body.foodData;
+      // Log de foodData
+      console.log('[nutrition-tracker] foodData:', JSON.stringify(fd));
+
       // Agregar entrada de comida
       const { data: foodEntry, error: foodError } = await supabaseClient
         .from('food_entries')
         .insert({
           user_id: user.id,
-          date: body.date || date,
-          meal_type: body.meal_type,
-          food_name: body.food_name,
-          brand: body.brand,
-          quantity: body.quantity || 1,
-          unit: body.unit || 'porción',
-          calories: body.calories || 0,
-          protein: body.protein || 0,
-          carbs: body.carbs || 0,
-          fat: body.fat || 0,
-          scan_method: body.scan_method || 'manual'
+          date: fd.date || body.date || date,
+          meal_type: fd.meal_type || body.meal_type,
+          food_name: fd.food_name || fd.name,
+          brand: fd.brand,
+          quantity: fd.quantity || 1,
+          unit: fd.unit || 'porción',
+          calories: fd.calories || 0,
+          protein: fd.protein || 0,
+          carbs: fd.carbs || 0,
+          fat: fd.fat || 0,
+          fiber: fd.fiber,
+          sugar: fd.sugar,
+          sodium: fd.sodium,
+          scan_method: fd.scan_method || body.scan_method || 'manual',
+          barcode: fd.barcode,
+          ingredients: fd.ingredients
         })
         .select()
-        .single()
+        .single();
 
-      if (foodError) throw foodError
+      if (foodError) {
+        console.error('[nutrition-tracker] Error insertando foodEntry:', foodError);
+        return new Response(
+          JSON.stringify({ error: 'Error insertando entrada de comida', details: foodError.message }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
 
       // Actualizar totales diarios
-      await updateDailyTotals(supabaseClient, user.id, body.date || date)
+      await updateDailyTotals(supabaseClient, user.id, fd.date || body.date || date);
 
       return new Response(
         JSON.stringify({ foodEntry }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      );
     }
 
     if (method === 'DELETE') {

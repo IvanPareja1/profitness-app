@@ -92,17 +92,22 @@ export default function NutritionPage() {
   const addFood = async (foodData: any) => {
     if (!user) return;
 
+    // Validar campos requeridos antes de enviar al edge function
+    const requiredFields = ['food_name', 'calories', 'protein', 'carbs', 'fat', 'meal_type'];
+    const fd = { ...foodData, meal_type: selectedMeal, consumed_at: new Date().toISOString() };
+    const missing = requiredFields.filter(field => !(field in fd) || fd[field] === undefined || fd[field] === null || fd[field] === '');
+    if (missing.length > 0) {
+      alert('Faltan campos requeridos: ' + missing.join(', '));
+      return;
+    }
+
     try {
       const token = (await supabase.auth.getSession()).data.session?.access_token;
 
       await callEdgeFunction('nutrition-tracker', {
         action: 'add_food',
         userId: user.id,
-        foodData: {
-          ...foodData,
-          meal_type: selectedMeal,
-          consumed_at: new Date().toISOString()
-        }
+        foodData: fd
       }, token);
 
       // Recargar datos
