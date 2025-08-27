@@ -27,8 +27,9 @@ export default function ProfilePage() {
     period_length: 5,
     tracking_enabled: false
   });
-  const [restDays, setRestDays] = useState([]);
-  const [selectedRestDays, setSelectedRestDays] = useState([]);
+  type RestDay = { day_of_week: string; [key: string]: any };
+  const [restDays, setRestDays] = useState<RestDay[]>([]);
+  const [selectedRestDays, setSelectedRestDays] = useState<string[]>([]);
   const router = useRouter();
 
   const activityLevels = [

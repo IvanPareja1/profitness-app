@@ -6,6 +6,10 @@ import Link from 'next/link';
 import { supabase, callEdgeFunction, getCurrentUser } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 
+declare global {
+  interface Window { Quagga: any; }
+}
+
 type BarcodeScannedData = {
   name: string;
   brand?: string;
@@ -41,132 +45,131 @@ export default function ScanPage() {
   const [scannedData, setScannedData] = useState<BarcodeScannedData | AIScannedData | null>(null);
   const [selectedMeal, setSelectedMeal] = useState<string>('desayuno');
   const [cameraError, setCameraError] = useState<string>('');
-  const [scannerLibraryLoaded, setScannerLibraryLoaded] = useState(false);
-  const [user, setUser] = useState<any>(null);
-  const [html5QrCode, setHtml5QrCode] = useState<any>(null);
-
+  const [quaggaLoaded, setQuaggaLoaded] = useState(false);
+  const [user, setUser] = useState<{ id: string } | null>(null);
   const scannerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+  const mealTypes = ['desayuno', 'almuerzo', 'cena', 'snacks'] as const;
 
-  const mealTypes = ['desayuno', 'almuerzo', 'cena', 'snacks'];
 
   useEffect(() => {
-    initializeUser();
-    loadScannerLibrary();
-    
-    return () => {
-      // Cleanup scanner on unmount
-      if (html5QrCode && html5QrCode.isScanning) {
-        html5QrCode.stop().catch(console.error);
+    const initializeUser = async () => {
+      try {
+        const currentUser = await getCurrentUser();
+        if (!currentUser) {
+          router.push('/auth');
+          return;
+        }
+        setUser(currentUser);
+      } catch (error) {
+        console.error('Error initializing user:', error);
+        router.push('/auth');
       }
     };
+
+    const loadQuagga = () => {
+      if (typeof window !== 'undefined' && !window.Quagga) {
+        const script = document.createElement('script');
+        script.src = 'https://unpkg.com/quagga@0.12.1/dist/quagga.min.js';
+        script.onload = () => setQuaggaLoaded(true);
+        script.onerror = () => setCameraError('Error cargando QuaggaJS');
+        document.head.appendChild(script);
+      } else if (window.Quagga) {
+        setQuaggaLoaded(true);
+      }
+    };
+
+    initializeUser();
+    loadQuagga();
+    return () => { stopBarcodeScanner(); };
   }, []);
 
-  const initializeUser = async () => {
-    try {
-      const currentUser = await getCurrentUser();
-      if (!currentUser) {
-        router.push('/auth');
-        return;
-      }
-      setUser(currentUser);
-    } catch (error) {
-      console.error('Error initializing user:', error);
-      router.push('/auth');
-    }
-  };
 
-  const loadScannerLibrary = async () => {
-    try {
-      // Dynamically import html5-qrcode
-      const { Html5QrcodeScanner } = await import('html5-qrcode');
-      setScannerLibraryLoaded(true);
-    } catch (error) {
-      console.error('Error loading scanner library:', error);
-      setCameraError('Error al cargar el escáner. Por favor, recarga la página.');
-    }
-  };
-
-  const isBarcodeScannedData = (data: any): data is BarcodeScannedData => {
-    return data && typeof data === 'object' && ('barcode' in data || 'error' in data);
-  };
+  function isBarcodeScannedData(data: BarcodeScannedData | AIScannedData | null): data is BarcodeScannedData {
+    return data !== null && typeof data === 'object' && 'barcode' in data;
+  }
 
   const startBarcodeScanner = async () => {
-    if (!scannerLibraryLoaded || !scannerRef.current) return;
-    
+    if (!quaggaLoaded || !scannerRef.current) {
+      setCameraError('El escáner aún no está listo. Espera un momento.');
+      return;
+    }
     setIsScanning(true);
     setCameraError('');
-
     try {
-      const { Html5QrcodeScanner } = await import('html5-qrcode');
-      
-      const scanner = new Html5QrcodeScanner(
-        "scanner-container",
-        { 
-          fps: 10,
-          qrbox: { width: 250, height: 100 },
-          rememberLastUsedCamera: true,
-          aspectRatio: 1.0
+      window.Quagga.init({
+        inputStream: {
+          name: 'Live',
+          type: 'LiveStream',
+          target: scannerRef.current,
+          constraints: { width: 640, height: 480, facingMode: 'environment' }
         },
-        false
-      );
-
-      setHtml5QrCode(scanner);
-
-      scanner.render(
-        async (decodedText: string) => {
-          // Successfully scanned
-          setIsLoading(true);
-          scanner.clear();
+        decoder: { readers: ['ean_reader', 'upc_reader', 'code_128_reader'] },
+        locate: true
+      }, (err: any) => {
+        if (err) {
+          setCameraError('No se pudo inicializar el escáner. Verifica los permisos de cámara.');
           setIsScanning(false);
-          
-          await lookupBarcodeInOpenFoodFacts(decodedText);
-        },
-        (error: any) => {
-          // Scanning error (can be ignored for continuous scanning)
-          console.log('Scanning...', error);
+          return;
         }
-      );
-
-    } catch (error) {
-      console.error('Error starting barcode scanner:', error);
-      setCameraError('No se pudo acceder a la cámara. Verifica los permisos.');
-      setIsScanning(false);
-    }
-  };
-
-  const lookupBarcodeInOpenFoodFacts = async (barcode: string) => {
-    try {
-      const token = (await supabase.auth.getSession()).data.session?.access_token;
-      
-      const result = await callEdgeFunction('openfoodfacts-lookup', { barcode }, token);
-      
-      setScannedData(result);
-      setIsLoading(false);
-    } catch (error) {
-      console.error('Error looking up barcode:', error);
-      setScannedData({
-        name: 'Error al buscar producto',
-        error: true,
-        message: 'No se pudo obtener información del producto. Intenta de nuevo.',
-        barcode
+        window.Quagga.start();
+        window.Quagga.onDetected((result: any) => {
+          const code = result.codeResult.code;
+          if (code && code.length >= 8) {
+            handleBarcodeDetected(code);
+          }
+        });
       });
+    } catch (error) {
+      setCameraError('Error al acceder a la cámara. Verifica los permisos.');
+      setIsScanning(false);
+    }
+  };
+
+  const stopBarcodeScanner = () => {
+    if (window.Quagga) {
+      window.Quagga.stop();
+      window.Quagga.offDetected();
+    }
+    setIsScanning(false);
+  };
+
+
+  const handleBarcodeDetected = async (barcode: string) => {
+    stopBarcodeScanner();
+    setIsLoading(true);
+    try {
+      const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
+      const data = await response.json();
+      if (!response.ok || data.status === 0) throw new Error('Producto no encontrado');
+      const product = data.product;
+      setScannedData({
+        name: product.product_name || 'Producto sin nombre',
+        brand: product.brands,
+        calories: product.nutriments?.['energy-kcal_100g'] || 0,
+        protein: product.nutriments?.['proteins_100g'] || 0,
+        carbs: product.nutriments?.['carbohydrates_100g'] || 0,
+        fat: product.nutriments?.['fat_100g'] || 0,
+        barcode,
+        image_url: product.image_front_url,
+        ingredients: product.ingredients_text,
+        serving_size: product.serving_size,
+        categories: product.categories
+      });
+    } catch (error) {
+      setScannedData({
+        name: 'Producto no encontrado',
+        error: true,
+        barcode,
+        message: (error as Error).message
+      });
+    } finally {
       setIsLoading(false);
     }
   };
 
-  const stopScanning = () => {
-    if (html5QrCode && html5QrCode.isScanning) {
-      html5QrCode.stop().then(() => {
-        html5QrCode.clear();
-        setIsScanning(false);
-        setHtml5QrCode(null);
-      }).catch(console.error);
-    } else {
-      setIsScanning(false);
-    }
-  };
+  // Eliminar stopScanning, ya no se usa html5QrCode
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -239,7 +242,7 @@ export default function ScanPage() {
             <button
               onClick={() => {
                 setScanMode('barcode');
-                if (html5QrCode) stopScanning();
+                if (isScanning) stopBarcodeScanner();
               }}
               className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${
                 scanMode === 'barcode'
@@ -287,7 +290,7 @@ export default function ScanPage() {
                 ? 'Información nutricional de OpenFoodFacts'
                 : 'La IA identificará automáticamente los alimentos'}
             </p>
-            {!scannerLibraryLoaded && scanMode === 'barcode' && (
+            {!quaggaLoaded && scanMode === 'barcode' && (
               <p className="text-xs text-yellow-600 mt-2">
                 Cargando escáner...
               </p>
@@ -301,7 +304,7 @@ export default function ScanPage() {
             <div id="scanner-container" ref={scannerRef} className="w-full max-w-md mx-auto"></div>
             <div className="text-center mt-4">
               <button
-                onClick={stopScanning}
+                onClick={stopBarcodeScanner}
                 className="bg-red-500 text-white px-6 py-2 rounded-xl font-medium"
               >
                 Detener Escáner
@@ -315,15 +318,15 @@ export default function ScanPage() {
             {scanMode === 'barcode' ? (
               <button
                 onClick={startBarcodeScanner}
-                disabled={!scannerLibraryLoaded}
+                disabled={!quaggaLoaded}
                 className={`w-full py-4 rounded-xl font-semibold ${
-                  scannerLibraryLoaded
+                  quaggaLoaded
                     ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
                     : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 }`}
               >
                 <i className="ri-camera-line mr-2"></i>
-                {scannerLibraryLoaded ? 'Iniciar Escáner de Cámara' : 'Cargando...'}
+                {quaggaLoaded ? 'Iniciar Escáner de Cámara' : 'Cargando...'}
               </button>
             ) : (
               <>
