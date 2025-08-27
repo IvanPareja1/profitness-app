@@ -35,9 +35,9 @@ export async function callEdgeFunction(functionName: string, data: any, token?: 
 }
 
 // Google Auth - ÚNICO método de autenticación
-export async function signInWithGoogle() {
+export async function signInWithGoogle(): Promise<boolean> {
   try {
-    const { data, error } = await supabase.auth.signInWithOAuth({
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: `${window.location.origin}/profile`,
@@ -46,14 +46,16 @@ export async function signInWithGoogle() {
           prompt: 'consent',
         }
       }
-    })
-
-    if (error) throw error
-    return data
-
+    });
+    if (error) {
+      console.error('Error signing in with Google:', error);
+      return false;
+    }
+    // Si no hay error, la redirección se inicia automáticamente
+    return true;
   } catch (error) {
-    console.error('Error signing in with Google:', error)
-    throw error
+    console.error('Error signing in with Google:', error);
+    return false;
   }
 }
 
@@ -72,12 +74,19 @@ export async function signOut() {
 // Obtener usuario actual - SOLO usuarios de Google
 export async function getCurrentUser() {
   try {
-    const { data: { user }, error } = await supabase.auth.getUser()
-    if (error) throw error
-    return user
+    const { data, error } = await supabase.auth.getUser();
+    if (error) {
+      if (error.message && error.message.toLowerCase().includes('auth session missing')) {
+        return null;
+      }
+      // Solo loguea errores inesperados
+      console.error('Error getting current user:', error);
+      return null;
+    }
+    return data?.user ?? null;
   } catch (error) {
-    console.error('Error getting current user:', error)
-    return null
+    console.error('Unexpected error getting current user:', error);
+    return null;
   }
 }
 
