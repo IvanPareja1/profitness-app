@@ -6,7 +6,6 @@ import { supabase, callEdgeFunction, getCurrentUser, signOut } from '@/lib/supab
 import { useRouter } from 'next/navigation';
 import type { User } from '@supabase/supabase-js';
 
-
 export default function ProfilePage() {
   const [profile, setProfile] = useState({
     name: '',
@@ -28,8 +27,8 @@ export default function ProfilePage() {
     period_length: 5,
     tracking_enabled: false
   });
-  const [restDays, setRestDays] = useState<any[]>([]);
-  const [selectedRestDays, setSelectedRestDays] = useState<string[]>([]);
+  const [restDays, setRestDays] = useState([]);
+  const [selectedRestDays, setSelectedRestDays] = useState([]);
   const router = useRouter();
 
   const activityLevels = [
@@ -258,7 +257,7 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center p-4">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-purple-200 border-t-purple-500 rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600">Cargando perfil...</p>
@@ -269,7 +268,8 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50">
-      <div className="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-sm shadow-sm z-10">
+      {/* Header */}
+      <div className="fixed top-0 left-0 right-0 glass z-20 safe-top">
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center space-x-3">
             <Link href="/" className="w-8 h-8 flex items-center justify-center">
@@ -280,14 +280,14 @@ export default function ProfilePage() {
           <button 
             onClick={handleSave}
             disabled={saving}
-            className="bg-purple-500 text-white px-4 py-2 rounded-lg font-medium disabled:opacity-50"
+            className="btn-primary text-sm"
           >
             {saving ? 'Guardando...' : 'Guardar'}
           </button>
         </div>
       </div>
 
-      <div className="pt-20 pb-20 px-4">
+      <div className="pt-24 pb-24 px-4">
         {message && (
           <div className={`mb-4 p-3 rounded-xl text-center font-medium ${
             message.includes('✓') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
@@ -298,7 +298,7 @@ export default function ProfilePage() {
 
         {/* User Info Section */}
         {user && (
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6">
+          <div className="card mb-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
@@ -306,14 +306,14 @@ export default function ProfilePage() {
                 </div>
                 <div>
                   <div className="font-semibold text-gray-800">
-                    {user.user_metadata?.full_name || user.email}
+                    {user.user_metadata?.full_name || profile.name || user.email}
                   </div>
                   <div className="text-sm text-gray-500">Cuenta sincronizada</div>
                 </div>
               </div>
               <button
                 onClick={handleSignOut}
-                className="text-sm text-red-600 hover:text-red-700"
+                className="text-sm text-red-600 hover:text-red-700 font-medium"
               >
                 Cerrar sesión
               </button>
@@ -322,7 +322,7 @@ export default function ProfilePage() {
         )}
 
         {/* Profile Form */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6">
+        <div className="card mb-6">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">Información Personal</h2>
           
           <div className="space-y-4">
@@ -332,7 +332,7 @@ export default function ProfilePage() {
                 type="text"
                 value={profile.name}
                 onChange={(e) => setProfile({...profile, name: e.target.value})}
-                className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="form-input"
                 placeholder="Tu nombre"
               />
             </div>
@@ -344,7 +344,7 @@ export default function ProfilePage() {
                   type="number"
                   value={profile.age}
                   onChange={(e) => setProfile({...profile, age: e.target.value})}
-                  className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="form-input"
                   placeholder="25"
                 />
               </div>
@@ -354,7 +354,7 @@ export default function ProfilePage() {
                 <select
                   value={profile.gender}
                   onChange={(e) => setProfile({...profile, gender: e.target.value})}
-                  className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="form-input"
                 >
                   <option value="female">Femenino</option>
                   <option value="male">Masculino</option>
@@ -370,7 +370,7 @@ export default function ProfilePage() {
                   type="number"
                   value={profile.height}
                   onChange={(e) => setProfile({...profile, height: e.target.value})}
-                  className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="form-input"
                   placeholder="165"
                 />
               </div>
@@ -381,7 +381,7 @@ export default function ProfilePage() {
                   type="number"
                   value={profile.weight}
                   onChange={(e) => setProfile({...profile, weight: e.target.value})}
-                  className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="form-input"
                   placeholder="65"
                 />
               </div>
@@ -404,7 +404,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Goals */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6">
+        <div className="card mb-6">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">Objetivo</h2>
           <div className="grid grid-cols-3 gap-3">
             {goals.map((goal) => (
@@ -433,7 +433,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Activity Level */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6">
+        <div className="card mb-6">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">Nivel de Actividad</h2>
           <div className="space-y-3">
             {activityLevels.map((level) => (
@@ -458,7 +458,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Rest Days */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6">
+        <div className="card mb-6">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">Días de Descanso</h2>
           <p className="text-sm text-gray-600 mb-4">Selecciona los días que prefieres descansar del ejercicio</p>
           <div className="grid grid-cols-7 gap-2">
@@ -480,7 +480,7 @@ export default function ProfilePage() {
 
         {/* Menstrual Cycle Tracking - Solo para mujeres */}
         {profile.gender === 'female' && (
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <div className="card">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-800">Seguimiento del Ciclo Menstrual</h2>
               <button
@@ -507,7 +507,7 @@ export default function ProfilePage() {
                     type="date"
                     value={cycleData.last_period}
                     onChange={(e) => setCycleData({...cycleData, last_period: e.target.value})}
-                    className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                    className="form-input"
                   />
                 </div>
 
@@ -520,7 +520,7 @@ export default function ProfilePage() {
                       type="number"
                       value={cycleData.cycle_length}
                       onChange={(e) => setCycleData({...cycleData, cycle_length: parseInt(e.target.value) || 28})}
-                      className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                      className="form-input"
                       min="21"
                       max="35"
                     />
@@ -534,7 +534,7 @@ export default function ProfilePage() {
                       type="number"
                       value={cycleData.period_length}
                       onChange={(e) => setCycleData({...cycleData, period_length: parseInt(e.target.value) || 5})}
-                      className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                      className="form-input"
                       min="3"
                       max="8"
                     />
@@ -563,42 +563,71 @@ export default function ProfilePage() {
             )}
           </div>
         )}
+
+        {/* Quick Actions */}
+        <div className="card mt-6">
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">Acciones Rápidas</h2>
+          <div className="grid grid-cols-2 gap-3">
+            <Link 
+              href="/manual-macros"
+              className="p-4 rounded-xl bg-green-50 border border-green-200 hover:bg-green-100 transition-colors"
+            >
+              <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mb-2">
+                <i className="ri-edit-line text-green-500"></i>
+              </div>
+              <div className="text-sm font-medium text-green-700">Ajustar Metas</div>
+              <div className="text-xs text-green-600">Personalizar macronutrientes</div>
+            </Link>
+            
+            <Link 
+              href="/reports"
+              className="p-4 rounded-xl bg-blue-50 border border-blue-200 hover:bg-blue-100 transition-colors"
+            >
+              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mb-2">
+                <i className="ri-bar-chart-line text-blue-500"></i>
+              </div>
+              <div className="text-sm font-medium text-blue-700">Ver Reportes</div>
+              <div className="text-xs text-blue-600">Progreso y estadísticas</div>
+            </Link>
+          </div>
+        </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200">
+      {/* Bottom Navigation */}
+      <div className="fixed bottom-0 left-0 right-0 glass border-t border-gray-200/50 safe-bottom">
         <div className="grid grid-cols-5 py-2">
           <Link href="/" className="flex flex-col items-center justify-center py-2">
             <div className="w-6 h-6 flex items-center justify-center">
-              <i className="ri-home-line text-gray-400 text-lg"></i>
+              <i className="ri-home-line nav-inactive text-lg"></i>
             </div>
-            <span className="text-xs text-gray-400 mt-1">Inicio</span>
+            <span className="text-xs nav-inactive mt-1">Inicio</span>
           </Link>
 
           <Link href="/nutrition" className="flex flex-col items-center justify-center py-2">
             <div className="w-6 h-6 flex items-center justify-center">
-              <i className="ri-restaurant-line text-gray-400 text-lg"></i>
+              <i className="ri-restaurant-line nav-inactive text-lg"></i>
             </div>
-            <span className="text-xs text-gray-400 mt-1">Comida</span>
+            <span className="text-xs nav-inactive mt-1">Comida</span>
           </Link>
 
           <Link href="/scan" className="flex flex-col items-center justify-center py-2">
-            <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+            <div className="w-10 h-10 gradient-green rounded-full flex items-center justify-center shadow-medium">
               <i className="ri-qr-scan-2-line text-white text-lg"></i>
             </div>
           </Link>
 
           <Link href="/reports" className="flex flex-col items-center justify-center py-2">
             <div className="w-6 h-6 flex items-center justify-center">
-              <i className="ri-bar-chart-line text-gray-400 text-lg"></i>
+              <i className="ri-bar-chart-line nav-inactive text-lg"></i>
             </div>
-            <span className="text-xs text-gray-400 mt-1">Reportes</span>
+            <span className="text-xs nav-inactive mt-1">Reportes</span>
           </Link>
 
           <Link href="/profile" className="flex flex-col items-center justify-center py-2">
             <div className="w-6 h-6 flex items-center justify-center">
-              <i className="ri-user-fill text-purple-500 text-lg"></i>
+              <i className="ri-user-fill nav-active text-lg"></i>
             </div>
-            <span className="text-xs text-purple-500 mt-1">Perfil</span>
+            <span className="text-xs nav-active mt-1">Perfil</span>
           </Link>
         </div>
       </div>

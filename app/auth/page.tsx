@@ -1,14 +1,13 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { signInWithGoogle, getCurrentUser } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 
 export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [checkingAuth, setCheckingAuth] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
@@ -19,11 +18,13 @@ export default function AuthPage() {
     try {
       const currentUser = await getCurrentUser();
       if (currentUser) {
-        // Usuario ya autenticado, redirigir
         router.push('/profile');
+        return;
       }
     } catch (error) {
       console.error('Error checking user:', error);
+    } finally {
+      setCheckingAuth(false);
     }
   };
 
@@ -43,28 +44,45 @@ export default function AuthPage() {
     }
   };
 
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-green-200 border-t-green-500 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Verificando sesión...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
+        {/* Logo y título */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
-            <i className="ri-leaf-fill text-white text-2xl"></i>
+          <div className="w-20 h-20 gradient-green rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-medium">
+            <i className="ri-leaf-fill text-white text-3xl"></i>
           </div>
-          <h1 className="text-2xl font-['Pacifico'] text-green-600 mb-2">ProFitness</h1>
-          <p className="text-gray-600">Inicia sesión con Google para continuar</p>
+          <h1 className="text-3xl font-pacifico text-green-600 mb-2">ProFitness</h1>
+          <p className="text-gray-600 leading-relaxed">Tu compañero personal de nutrición y fitness</p>
         </div>
 
+        {/* Mensaje de estado */}
         {message && (
-          <div className="mb-4 p-3 rounded-xl text-center text-sm bg-blue-100 text-blue-700">
-            {message}
+          <div className="mb-6 p-4 rounded-xl text-center text-sm bg-blue-100 text-blue-700 border border-blue-200">
+            <div className="flex items-center justify-center space-x-2">
+              <i className="ri-information-line"></i>
+              <span>{message}</span>
+            </div>
           </div>
         )}
 
+        {/* Botón de login */}
         <div className="space-y-4">
           <button
             onClick={handleGoogleSignIn}
             disabled={loading}
-            className="w-full bg-white border border-gray-300 rounded-xl p-4 flex items-center justify-center space-x-3 hover:bg-gray-50 transition-colors disabled:opacity-50"
+            className="w-full bg-white border border-gray-300 rounded-xl p-4 flex items-center justify-center space-x-3 hover:bg-gray-50 transition-all duration-200 disabled:opacity-50 shadow-soft hover:shadow-medium"
           >
             <div className="w-5 h-5 flex items-center justify-center">
               <svg viewBox="0 0 24 24" className="w-5 h-5">
@@ -75,14 +93,45 @@ export default function AuthPage() {
               </svg>
             </div>
             <span className="font-medium text-gray-700">
-              {loading ? 'Conectando...' : 'Continuar con Google'}
+              {loading ? (
+                <div className="flex items-center space-x-2">
+                  <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
+                  <span>Conectando...</span>
+                </div>
+              ) : (
+                'Continuar con Google'
+              )}
             </span>
           </button>
         </div>
 
+        {/* Características de la app */}
+        <div className="mt-8 space-y-3">
+          <div className="flex items-center space-x-3 text-sm text-gray-600">
+            <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
+              <i className="ri-qr-scan-2-line text-green-500 text-xs"></i>
+            </div>
+            <span>Escaneo real de códigos de barras</span>
+          </div>
+          <div className="flex items-center space-x-3 text-sm text-gray-600">
+            <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
+              <i className="ri-database-2-line text-blue-500 text-xs"></i>
+            </div>
+            <span>Base de datos OpenFoodFacts</span>
+          </div>
+          <div className="flex items-center space-x-3 text-sm text-gray-600">
+            <div className="w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center">
+              <i className="ri-bar-chart-line text-purple-500 text-xs"></i>
+            </div>
+            <span>Seguimiento personalizado de metas</span>
+          </div>
+        </div>
+
+        {/* Términos */}
         <div className="mt-8 text-center">
-          <p className="text-xs text-gray-500">
-            Al continuar, aceptas nuestros términos y condiciones
+          <p className="text-xs text-gray-500 leading-relaxed">
+            Al continuar, aceptas nuestros términos de servicio y política de privacidad. 
+            Todos tus datos están protegidos y sincronizados de forma segura.
           </p>
         </div>
       </div>
