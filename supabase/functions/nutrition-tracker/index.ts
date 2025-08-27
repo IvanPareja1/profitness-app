@@ -210,7 +210,7 @@ async function updateDailyTotals(supabaseClient: any, userId: string, date: stri
     total_protein: 0,
     total_carbs: 0,
     total_fat: 0
-  }
+  };
 
   // Actualizar o crear registro diario
   await supabaseClient
