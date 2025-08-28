@@ -117,7 +117,7 @@ export default function AuthPage() {
             <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
               <i className="ri-database-2-line text-blue-500 text-xs"></i>
             </div>
-            <span>Base de datos OpenFoodFacts</span>
+            <span>Mejor calidad de vida</span>
           </div>
           <div className="flex items-center space-x-3 text-sm text-gray-600">
             <div className="w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center">

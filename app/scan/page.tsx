@@ -574,37 +574,7 @@ export default function ScanPage() {
           onChange={handleImageUpload}
         />
 
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mt-8">
-          <h3 className="font-semibold text-gray-800 mb-4">Información OpenFoodFacts</h3>
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-            <div className="flex items-center space-x-3 mb-2">
-              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                <i className="ri-database-2-line text-blue-500 text-sm"></i>
-              </div>
-              <div>
-                <h4 className="font-medium text-blue-800">Base de Datos Global</h4>
-                <p className="text-sm text-blue-600">Más de 2 millones de productos</p>
-              </div>
-            </div>
-            <p className="text-xs text-blue-700">
-              Los datos nutricionales se obtienen automáticamente de OpenFoodFacts, 
-              una base de datos colaborativa y gratuita de productos alimentarios de todo el mundo.
-            </p>
-          </div>
-          
-          <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-xl">
-            <div className="flex items-center space-x-2 mb-2">
-              <i className="ri-camera-line text-green-500"></i>
-              <h4 className="font-medium text-green-800">Escáner Real Activado</h4>
-            </div>
-            <p className="text-xs text-green-700">
-              ✅ Cámara funcional<br/>
-              ✅ Detección de códigos reales<br/>
-              ✅ Datos nutricionales automáticos<br/>
-              ✅ Integración con OpenFoodFacts
-            </p>
-          </div>
-        </div>
+        {/* ...el resto del código permanece igual, bloque informativo eliminado... */}
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200">
