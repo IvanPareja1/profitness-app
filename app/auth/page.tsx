@@ -60,7 +60,7 @@ export default function AuthPage() {
       <div className="w-full max-w-sm">
         {/* Logo y título */}
         <div className="text-center mb-8">
-          <div className="w-20 h-20 gradient-green rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-medium">
+          <div className="w-20 h-20 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
             <i className="ri-leaf-fill text-white text-3xl"></i>
           </div>
           <h1 className="text-3xl font-pacifico text-green-600 mb-2">ProFitness</h1>

@@ -612,7 +612,7 @@ export default function ProfilePage() {
           </Link>
 
           <Link href="/scan" className="flex flex-col items-center justify-center py-2">
-            <div className="w-10 h-10 gradient-green rounded-full flex items-center justify-center shadow-medium">
+            <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center shadow-lg">
               <i className="ri-qr-scan-2-line text-white text-lg"></i>
             </div>
           </Link>
