@@ -1,0 +1,65 @@
+/* Clases de componentes personalizadas */
+
+.card {
+  @apply bg-white rounded-2xl p-6 shadow-sm border border-gray-100;
+}
+
+.btn-primary {
+  @apply bg-green-500 hover:bg-green-600 text-white font-medium px-4 py-2 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+.form-input {
+  @apply w-full p-3 border border-gray-200 rounded-xl bg-white text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent;
+}
+
+.glass {
+  @apply bg-white/95 backdrop-blur-sm;
+}
+
+.nav-active {
+  @apply text-green-500;
+}
+
+.nav-inactive {
+  @apply text-gray-400;
+}
+
+.safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Estilos para inputs tipo range */
+input[type="range"] {
+  @apply appearance-none bg-transparent cursor-pointer;
+}
+
+input[type="range"]::-webkit-slider-track {
+  @apply h-2 bg-gray-200 rounded-lg;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  @apply appearance-none h-5 w-5 bg-green-500 rounded-full shadow-md cursor-pointer;
+}
+
+input[type="range"]::-moz-range-track {
+  @apply h-2 bg-gray-200 rounded-lg border-none;
+}
+
+input[type="range"]::-moz-range-thumb {
+  @apply h-5 w-5 bg-green-500 rounded-full border-none cursor-pointer;
+}
+
+/* Ocultar flechas en inputs de número */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
