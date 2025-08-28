@@ -19,6 +19,11 @@
     "recharts": "^2.8.0"
   },
   "devDependencies": {
+    "@types/eslint": "^9.6.1",
+    "@types/eslint-scope": "^8.3.2",
+    "@types/estree": "^1.0.8",
+    "@types/glob": "^8.1.0",
+    "@types/minimatch": "^5.1.2",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
