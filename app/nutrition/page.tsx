@@ -34,6 +34,7 @@ export default function NutritionPage() {
   const [todayFoods, setTodayFoods] = useState<FoodEntry[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [user, setUser] = useState<any>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
   const router = useRouter();
 
   const meals = [
@@ -45,13 +46,22 @@ export default function NutritionPage() {
 
   useEffect(() => {
     initializeUser();
+    
+    // Verificar si se agregó un alimento exitosamente
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('added') === 'success') {
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
+      // Limpiar URL
+      window.history.replaceState({}, '', '/nutrition');
+    }
   }, []);
 
   const initializeUser = async () => {
     try {
-      const currentUser = await getCurrentUser();  
+      const currentUser = await getCurrentUser();
+
       if (!currentUser) {
-        // Redirigir a autenticación si no hay usuario
         router.push('/auth');
         return;
       }
@@ -71,18 +81,37 @@ export default function NutritionPage() {
       const token = (await supabase.auth.getSession()).data.session?.access_token;
       const today = new Date().toISOString().split('T')[0];
 
-      const response = await callEdgeFunction('nutrition-tracker', {
-        action: 'get_daily_nutrition',
-        userId,
-        date: today
-      }, token);
+      // Llamar a la función edge con método GET
+      const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/nutrition-tracker?date=${today}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
 
-      if (response.nutrition) {
-        setNutritionData(response.nutrition);
+      if (!response.ok) throw new Error('Error loading nutrition data');
+
+      const data = await response.json();
+
+      if (data.dailyNutrition) {
+        setNutritionData({
+          calories: data.dailyNutrition.total_calories || 0,
+          protein: data.dailyNutrition.total_protein || 0,
+          carbs: data.dailyNutrition.total_carbs || 0,
+          fat: data.dailyNutrition.total_fat || 0,
+          target_calories: data.targets?.target_calories || 2200
+        });
       }
 
-      if (response.foods) {
-        setTodayFoods(response.foods);
+      if (data.foodEntries) {
+        setTodayFoods(data.foodEntries.map((entry: any) => ({
+          id: entry.id,
+          food_name: entry.food_name,
+          calories: entry.calories,
+          meal_type: entry.meal_type,
+          consumed_at: entry.created_at
+        })));
       }
     } catch (error) {
       console.error('Error loading nutrition:', error);
@@ -92,22 +121,17 @@ export default function NutritionPage() {
   const addFood = async (foodData: any) => {
     if (!user) return;
 
-    // Validar campos requeridos antes de enviar al edge function
-    const requiredFields = ['food_name', 'calories', 'protein', 'carbs', 'fat', 'meal_type'];
-    const fd = { ...foodData, meal_type: selectedMeal, consumed_at: new Date().toISOString() };
-    const missing = requiredFields.filter(field => !(field in fd) || fd[field] === undefined || fd[field] === null || fd[field] === '');
-    if (missing.length > 0) {
-      alert('Faltan campos requeridos: ' + missing.join(', '));
-      return;
-    }
-
     try {
       const token = (await supabase.auth.getSession()).data.session?.access_token;
 
       await callEdgeFunction('nutrition-tracker', {
         action: 'add_food',
         userId: user.id,
-        foodData: fd
+        foodData: {
+          ...foodData,
+          meal_type: selectedMeal,
+          consumed_at: new Date().toISOString()
+        }
       }, token);
 
       // Recargar datos
@@ -132,6 +156,14 @@ export default function NutritionPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
+      {/* Mensaje de éxito */}
+      {showSuccess && (
+        <div className="fixed top-20 left-4 right-4 bg-green-500 text-white px-4 py-3 rounded-lg shadow-lg z-50 flex items-center space-x-2">
+          <i className="ri-check-line text-lg"></i>
+          <span>¡Alimento agregado exitosamente!</span>
+        </div>
+      )}
+
       <div className="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-sm shadow-sm z-10">
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center space-x-3">

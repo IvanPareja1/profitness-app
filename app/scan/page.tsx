@@ -6,10 +6,6 @@ import Link from 'next/link';
 import { supabase, callEdgeFunction, getCurrentUser } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 
-declare global {
-  interface Window { Quagga: any; }
-}
-
 type BarcodeScannedData = {
   name: string;
   brand?: string;
@@ -31,7 +27,14 @@ type BarcodeScannedData = {
 
 type AIScannedData = {
   name: string;
-  items: string[];
+  items: Array<{
+    name: string;
+    confidence: number;
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+  }>;
   totalCalories: number;
   protein: number;
   carbs: number;
@@ -45,159 +48,196 @@ export default function ScanPage() {
   const [scannedData, setScannedData] = useState<BarcodeScannedData | AIScannedData | null>(null);
   const [selectedMeal, setSelectedMeal] = useState<string>('desayuno');
   const [cameraError, setCameraError] = useState<string>('');
-  const [quaggaLoaded, setQuaggaLoaded] = useState(false);
-  const [user, setUser] = useState<{ id: string } | null>(null);
+  const [scannerLibraryLoaded, setScannerLibraryLoaded] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [html5QrCode, setHtml5QrCode] = useState<any>(null);
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
+  const [openaiApiKey, setOpenaiApiKey] = useState<string>('');
+
   const scannerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
-  const mealTypes = ['desayuno', 'almuerzo', 'cena', 'snacks'] as const;
 
+  const mealTypes = ['desayuno', 'almuerzo', 'cena', 'snacks'];
 
   useEffect(() => {
-    const initializeUser = async () => {
-      try {
-        const currentUser = await getCurrentUser();
-        if (!currentUser) {
-          router.push('/auth');
-          return;
-        }
-        setUser(currentUser);
-      } catch (error) {
-        console.error('Error initializing user:', error);
-        router.push('/auth');
-      }
-    };
-
-    const loadQuagga = () => {
-      if (typeof window !== 'undefined' && !window.Quagga) {
-        const script = document.createElement('script');
-        script.src = 'https://unpkg.com/quagga@0.12.1/dist/quagga.min.js';
-        script.onload = () => setQuaggaLoaded(true);
-        script.onerror = () => setCameraError('Error cargando QuaggaJS');
-        document.head.appendChild(script);
-      } else if (window.Quagga) {
-        setQuaggaLoaded(true);
-      }
-    };
-
     initializeUser();
-    loadQuagga();
-    return () => { stopBarcodeScanner(); };
+    loadScannerLibrary();
+    loadStoredApiKey();
+    
+    return () => {
+      // Cleanup scanner on unmount
+      if (html5QrCode && html5QrCode.isScanning) {
+        html5QrCode.stop().catch(console.error);
+      }
+    };
   }, []);
 
+  const loadStoredApiKey = () => {
+    const storedKey = localStorage.getItem('openai_api_key');
+    if (storedKey) {
+      setOpenaiApiKey(storedKey);
+    }
+  };
 
-  function isBarcodeScannedData(data: BarcodeScannedData | AIScannedData | null): data is BarcodeScannedData {
-    return data !== null && typeof data === 'object' && 'barcode' in data;
-  }
+  const saveApiKey = () => {
+    if (openaiApiKey.trim()) {
+      localStorage.setItem('openai_api_key', openaiApiKey.trim());
+      setShowApiKeyModal(false);
+    }
+  };
+
+  const initializeUser = async () => {
+    try {
+      const currentUser = await getCurrentUser();
+      if (!currentUser) {
+        router.push('/auth');
+        return;
+      }
+      setUser(currentUser);
+    } catch (error) {
+      console.error('Error initializing user:', error);
+      router.push('/auth');
+    }
+  };
+
+  const loadScannerLibrary = async () => {
+    try {
+      // Dynamically import html5-qrcode
+      const { Html5QrcodeScanner } = await import('html5-qrcode');
+      setScannerLibraryLoaded(true);
+    } catch (error) {
+      console.error('Error loading scanner library:', error);
+      setCameraError('Error al cargar el escáner. Por favor, recarga la página.');
+    }
+  };
+
+  const isBarcodeScannedData = (data: any): data is BarcodeScannedData => {
+    return data && typeof data === 'object' && ('barcode' in data || 'error' in data);
+  };
 
   const startBarcodeScanner = async () => {
-    if (!quaggaLoaded || !scannerRef.current) {
-      setCameraError('El escáner aún no está listo. Espera un momento.');
-      return;
-    }
+    if (!scannerLibraryLoaded || !scannerRef.current) return;
+    
     setIsScanning(true);
     setCameraError('');
+
     try {
-      window.Quagga.init({
-        inputStream: {
-          name: 'Live',
-          type: 'LiveStream',
-          target: scannerRef.current,
-          constraints: { width: 640, height: 480, facingMode: 'environment' }
+      const { Html5QrcodeScanner } = await import('html5-qrcode');
+      
+      const scanner = new Html5QrcodeScanner(
+        "scanner-container",
+        { 
+          fps: 10,
+          qrbox: { width: 250, height: 100 },
+          rememberLastUsedCamera: true,
+          aspectRatio: 1.0
         },
-        decoder: { readers: ['ean_reader', 'upc_reader', 'code_128_reader'] },
-        locate: true
-      }, (err: any) => {
-        if (err) {
-          setCameraError('No se pudo inicializar el escáner. Verifica los permisos de cámara.');
+        false
+      );
+
+      setHtml5QrCode(scanner);
+
+      scanner.render(
+        async (decodedText: string) => {
+          // Successfully scanned
+          setIsLoading(true);
+          scanner.clear();
           setIsScanning(false);
-          return;
+          
+          await lookupBarcodeInOpenFoodFacts(decodedText);
+        },
+        (error: any) => {
+          // Scanning error (can be ignored for continuous scanning)
+          console.log('Scanning...', error);
         }
-        window.Quagga.start();
-        window.Quagga.onDetected((result: any) => {
-          const code = result.codeResult.code;
-          if (code && code.length >= 8) {
-            handleBarcodeDetected(code);
-          }
-        });
-      });
+      );
+
     } catch (error) {
-      setCameraError('Error al acceder a la cámara. Verifica los permisos.');
+      console.error('Error starting barcode scanner:', error);
+      setCameraError('No se pudo acceder a la cámara. Verifica los permisos.');
       setIsScanning(false);
     }
   };
 
-  const stopBarcodeScanner = () => {
-    if (window.Quagga) {
-      window.Quagga.stop();
-      window.Quagga.offDetected();
-    }
-    setIsScanning(false);
-  };
-
-
-  const handleBarcodeDetected = async (barcode: string) => {
-    stopBarcodeScanner();
-    setIsLoading(true);
+  const lookupBarcodeInOpenFoodFacts = async (barcode: string) => {
     try {
-      const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
-      const data = await response.json();
-      if (!response.ok || data.status === 0) throw new Error('Producto no encontrado');
-      const product = data.product;
-      setScannedData({
-        name: product.product_name || 'Producto sin nombre',
-        brand: product.brands,
-        calories: product.nutriments?.['energy-kcal_100g'] || 0,
-        protein: product.nutriments?.['proteins_100g'] || 0,
-        carbs: product.nutriments?.['carbohydrates_100g'] || 0,
-        fat: product.nutriments?.['fat_100g'] || 0,
-        barcode,
-        image_url: product.image_front_url,
-        ingredients: product.ingredients_text,
-        serving_size: product.serving_size,
-        categories: product.categories
-      });
+      const token = (await supabase.auth.getSession()).data.session?.access_token;
+      
+      const result = await callEdgeFunction('openfoodfacts-lookup', { barcode }, token);
+      
+      setScannedData(result);
+      setIsLoading(false);
     } catch (error) {
+      console.error('Error looking up barcode:', error);
       setScannedData({
-        name: 'Producto no encontrado',
+        name: 'Error al buscar producto',
         error: true,
-        barcode,
-        message: (error as Error).message
+        message: 'No se pudo obtener información del producto. Intenta de nuevo.',
+        barcode
       });
-    } finally {
       setIsLoading(false);
     }
   };
 
-  // Eliminar stopScanning, ya no se usa html5QrCode
+  const stopScanning = () => {
+    if (html5QrCode && html5QrCode.isScanning) {
+      html5QrCode.stop().then(() => {
+        html5QrCode.clear();
+        setIsScanning(false);
+        setHtml5QrCode(null);
+      }).catch(console.error);
+    } else {
+      setIsScanning(false);
+    }
+  };
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || !user) return;
 
+    // Verificar si tenemos API key de OpenAI
+    if (!openaiApiKey) {
+      setShowApiKeyModal(true);
+      return;
+    }
+
     setIsLoading(true);
     setCameraError('');
 
     try {
-      // Simular análisis de IA para detección de alimentos
-      setTimeout(() => {
-        const mockAIData: AIScannedData = {
-          name: "Comida Detectada por IA",
-          items: ["Manzana", "Pan integral", "Queso"],
-          totalCalories: 320,
-          protein: 12,
-          carbs: 45,
-          fat: 8
-        };
-        
-        setScannedData(mockAIData);
-        setIsLoading(false);
-      }, 3000);
+      const token = (await supabase.auth.getSession()).data.session?.access_token;
+      
+      // Convertir imagen a base64
+      const base64Image = await convertToBase64(file);
+      
+      // Llamar a la Edge Function de IA
+      const result = await callEdgeFunction('ai-food-detection', {
+        image: base64Image,
+        apiKey: openaiApiKey
+      }, token);
+      
+      setScannedData(result);
+      setIsLoading(false);
     } catch (error) {
       console.error('Error processing image:', error);
-      setCameraError('Error al procesar la imagen');
+      setCameraError('Error al procesar la imagen. Verifica tu conexión y la API key.');
       setIsLoading(false);
     }
+  };
+
+  const convertToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const base64String = reader.result as string;
+        // Remover el prefijo data:image/...;base64,
+        const base64Data = base64String.split(',')[1];
+        resolve(base64Data);
+      };
+      reader.onerror = error => reject(error);
+    });
   };
 
   const saveScannedFood = async () => {
@@ -206,19 +246,39 @@ export default function ScanPage() {
     try {
       const token = (await supabase.auth.getSession()).data.session?.access_token;
       
-      const foodData = {
-        food_name: scannedData.name,
-        brand: isBarcodeScannedData(scannedData) ? scannedData.brand : '',
-        meal_type: selectedMeal,
-        calories: isBarcodeScannedData(scannedData) ? scannedData.calories : scannedData.totalCalories,
-        protein: scannedData.protein || 0,
-        carbs: scannedData.carbs || 0,
-        fat: scannedData.fat || 0,
-        scan_method: scanMode === 'barcode' ? 'barcode' : 'ai_vision',
-        date: new Date().toISOString().split('T')[0]
-      };
+      if (isBarcodeScannedData(scannedData)) {
+        // Guardar producto escaneado por código de barras
+        const foodData = {
+          food_name: scannedData.name,
+          brand: scannedData.brand || '',
+          meal_type: selectedMeal,
+          calories: scannedData.calories || 0,
+          protein: scannedData.protein || 0,
+          carbs: scannedData.carbs || 0,
+          fat: scannedData.fat || 0,
+          scan_method: 'barcode',
+          date: new Date().toISOString().split('T')[0]
+        };
 
-      await callEdgeFunction('nutrition-tracker', foodData, token);
+        await callEdgeFunction('nutrition-tracker', foodData, token);
+      } else {
+        // Guardar alimentos detectados por IA
+        for (const item of scannedData.items) {
+          const foodData = {
+            food_name: item.name,
+            brand: '',
+            meal_type: selectedMeal,
+            calories: item.calories,
+            protein: item.protein,
+            carbs: item.carbs,
+            fat: item.fat,
+            scan_method: 'ai_vision',
+            date: new Date().toISOString().split('T')[0]
+          };
+
+          await callEdgeFunction('nutrition-tracker', foodData, token);
+        }
+      }
       
       // Redirigir a nutrition con mensaje de éxito
       router.push('/nutrition?added=success');
@@ -242,7 +302,7 @@ export default function ScanPage() {
             <button
               onClick={() => {
                 setScanMode('barcode');
-                if (isScanning) stopBarcodeScanner();
+                if (html5QrCode) stopScanning();
               }}
               className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${
                 scanMode === 'barcode'
@@ -255,7 +315,7 @@ export default function ScanPage() {
             <button
               onClick={() => {
                 setScanMode('ai');
-                if (isScanning) stopBarcodeScanner();
+                if (html5QrCode) stopScanning();
               }}
               className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${
                 scanMode === 'ai'
@@ -265,6 +325,14 @@ export default function ScanPage() {
             >
               IA
             </button>
+            {scanMode === 'ai' && (
+              <button
+                onClick={() => setShowApiKeyModal(true)}
+                className="w-8 h-8 flex items-center justify-center bg-purple-100 rounded-full"
+              >
+                <i className={`ri-key-line text-sm ${openaiApiKey ? 'text-green-500' : 'text-gray-400'}`}></i>
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -280,20 +348,28 @@ export default function ScanPage() {
               }`}></i>
             </div>
             <h2 className="text-xl font-semibold text-gray-800 mb-2">
-              {scanMode === 'barcode' ? 'Escáner de Código de Barras' : 'Escáner IA Visual'}
+              {scanMode === 'barcode' ? 'Escáner de Código de Barras' : 'Detección IA de Alimentos'}
             </h2>
             <p className="text-gray-600">
-              {scanMode === 'barcode' ? 'Escanea un código de barras' : 'Toma una foto de tu comida'}
+              {scanMode === 'barcode' ? 'Escanea un código de barras' : 'IA avanzada con GPT-4 Vision'}
             </p>
             <p className="text-sm text-gray-500">
               {scanMode === 'barcode'
                 ? 'Información nutricional de OpenFoodFacts'
-                : 'La IA identificará automáticamente los alimentos'}
+                : 'Detección automática de múltiples alimentos'}
             </p>
-            {!quaggaLoaded && scanMode === 'barcode' && (
+            {!scannerLibraryLoaded && scanMode === 'barcode' && (
               <p className="text-xs text-yellow-600 mt-2">
                 Cargando escáner...
               </p>
+            )}
+            {scanMode === 'ai' && !openaiApiKey && (
+              <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-xl">
+                <p className="text-sm text-orange-700 font-medium">⚠️ API Key requerida</p>
+                <p className="text-xs text-orange-600 mt-1">
+                  Necesitas una API key de OpenAI para usar la detección IA
+                </p>
+              </div>
             )}
           </div>
         )}
@@ -304,7 +380,7 @@ export default function ScanPage() {
             <div id="scanner-container" ref={scannerRef} className="w-full max-w-md mx-auto"></div>
             <div className="text-center mt-4">
               <button
-                onClick={stopBarcodeScanner}
+                onClick={stopScanning}
                 className="bg-red-500 text-white px-6 py-2 rounded-xl font-medium"
               >
                 Detener Escáner
@@ -318,28 +394,38 @@ export default function ScanPage() {
             {scanMode === 'barcode' ? (
               <button
                 onClick={startBarcodeScanner}
-                disabled={!quaggaLoaded}
+                disabled={!scannerLibraryLoaded}
                 className={`w-full py-4 rounded-xl font-semibold ${
-                  quaggaLoaded
+                  scannerLibraryLoaded
                     ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
                     : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 }`}
               >
                 <i className="ri-camera-line mr-2"></i>
-                {quaggaLoaded ? 'Iniciar Escáner de Cámara' : 'Cargando...'}
+                {scannerLibraryLoaded ? 'Iniciar Escáner de Cámara' : 'Cargando...'}
               </button>
             ) : (
               <>
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-full bg-gradient-to-r from-purple-500 to-purple-600 text-white py-4 rounded-xl font-semibold"
+                  disabled={!openaiApiKey}
+                  className={`w-full py-4 rounded-xl font-semibold ${
+                    openaiApiKey
+                      ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white'
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  }`}
                 >
                   <i className="ri-camera-line mr-2"></i>
-                  Tomar Foto
+                  Tomar Foto con IA
                 </button>
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-full border-2 border-purple-300 text-purple-600 py-4 rounded-xl font-semibold"
+                  disabled={!openaiApiKey}
+                  className={`w-full py-4 rounded-xl font-semibold ${
+                    openaiApiKey
+                      ? 'border-2 border-purple-300 text-purple-600'
+                      : 'border-2 border-gray-300 text-gray-500 cursor-not-allowed'
+                  }`}
                 >
                   <i className="ri-image-line mr-2"></i>
                   Subir desde Galería
@@ -362,7 +448,7 @@ export default function ScanPage() {
                   <p className={`font-medium ${
                     scanMode === 'barcode' ? 'text-blue-600' : 'text-purple-600'
                   }`}>
-                    {scanMode === 'barcode' ? 'Consultando OpenFoodFacts...' : 'Analizando imagen...'}
+                    {scanMode === 'barcode' ? 'Consultando OpenFoodFacts...' : 'Analizando con GPT-4 Vision...'}
                   </p>
                 </div>
               </div>
@@ -377,7 +463,7 @@ export default function ScanPage() {
             <p className="text-gray-600 font-medium">
               {scanMode === 'barcode'
                 ? 'Obteniendo información nutricional...'
-                : 'Procesando imagen...'}
+                : 'Procesando imagen con IA...'}
             </p>
           </div>
         )}
@@ -468,15 +554,40 @@ export default function ScanPage() {
               {/* Mostrar alimentos detectados para IA */}
               {!isBarcodeScannedData(scannedData) && 'items' in scannedData && (
                 <div className="mb-4">
-                  <p className="font-medium text-gray-800 mb-2">Alimentos detectados:</p>
-                  <ul className="space-y-1">
-                    {scannedData.items.map((item: string, index: number) => (
-                      <li key={index} className="text-sm text-gray-600 flex items-center space-x-2">
-                        <i className="ri-arrow-right-s-line text-xs"></i>
-                        <span>{item}</span>
-                      </li>
+                  <p className="font-medium text-gray-800 mb-3">Alimentos detectados por IA:</p>
+                  <div className="space-y-2">
+                    {scannedData.items.map((item, index) => (
+                      <div key={index} className="bg-white rounded-lg p-3 border border-purple-200">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center space-x-2">
+                            <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                            <span className="font-medium text-gray-800">{item.name}</span>
+                          </div>
+                          <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
+                            {Math.round(item.confidence * 100)}% confianza
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-4 gap-2 text-xs">
+                          <div className="text-center">
+                            <div className="font-bold text-gray-800">{item.calories}</div>
+                            <div className="text-gray-500">kcal</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="font-bold text-blue-500">{item.protein}g</div>
+                            <div className="text-gray-500">Proteína</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="font-bold text-green-500">{item.carbs}g</div>
+                            <div className="text-gray-500">Carbohidratos</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="font-bold text-yellow-500">{item.fat}g</div>
+                            <div className="text-gray-500">Grasas</div>
+                          </div>
+                        </div>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 </div>
               )}
 
@@ -565,6 +676,65 @@ export default function ScanPage() {
           </div>
         )}
 
+        {/* API Key Modal */}
+        {showApiKeyModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-md">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-800">Configurar OpenAI API</h3>
+                <button
+                  onClick={() => setShowApiKeyModal(false)}
+                  className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-full"
+                >
+                  <i className="ri-close-line text-gray-600"></i>
+                </button>
+              </div>
+              
+              <div className="mb-4">
+                <p className="text-sm text-gray-600 mb-3">
+                  Para usar la detección IA necesitas una API key de OpenAI:
+                </p>
+                <ol className="text-xs text-gray-500 space-y-1 mb-4">
+                  <li>1. Visita <span className="font-mono bg-gray-100 px-1 rounded">platform.openai.com</span></li>
+                  <li>2. Crea una cuenta o inicia sesión</li>
+                  <li>3. Ve a API Keys y crea una nueva</li>
+                  <li>4. Copia y pega la key aquí</li>
+                </ol>
+                <input
+                  type="password"
+                  value={openaiApiKey}
+                  onChange={(e) => setOpenaiApiKey(e.target.value)}
+                  placeholder="sk-..."
+                  className="w-full p-3 border border-gray-300 rounded-xl text-sm font-mono"
+                />
+              </div>
+              
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setShowApiKeyModal(false)}
+                  className="flex-1 border border-gray-300 text-gray-700 py-3 rounded-xl font-medium"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={saveApiKey}
+                  disabled={!openaiApiKey.trim()}
+                  className="flex-1 bg-purple-500 text-white py-3 rounded-xl font-medium disabled:bg-gray-300"
+                >
+                  Guardar
+                </button>
+              </div>
+              
+              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-xl">
+                <p className="text-xs text-blue-700">
+                  <i className="ri-shield-check-line mr-1"></i>
+                  Tu API key se guarda localmente en tu dispositivo y nunca se comparte.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <input
           ref={fileInputRef}
           type="file"
@@ -574,7 +744,47 @@ export default function ScanPage() {
           onChange={handleImageUpload}
         />
 
-        {/* ...el resto del código permanece igual, bloque informativo eliminado... */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mt-8">
+          <h3 className="font-semibold text-gray-800 mb-4">Tecnologías Integradas</h3>
+          
+          <div className="space-y-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+              <div className="flex items-center space-x-3 mb-2">
+                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                  <i className="ri-database-2-line text-blue-500 text-sm"></i>
+                </div>
+                <div>
+                  <h4 className="font-medium text-blue-800">OpenFoodFacts</h4>
+                  <p className="text-sm text-blue-600">Más de 2 millones de productos</p>
+                </div>
+              </div>
+              <p className="text-xs text-blue-700">
+                Base de datos colaborativa mundial de productos alimentarios con información nutricional completa.
+              </p>
+            </div>
+
+            <div className="bg-purple-50 border border-purple-200 rounded-xl p-4">
+              <div className="flex items-center space-x-3 mb-2">
+                <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                  <i className="ri-camera-ai-line text-purple-500 text-sm"></i>
+                </div>
+                <div>
+                  <h4 className="font-medium text-purple-800">GPT-4 Vision</h4>
+                  <p className="text-sm text-purple-600">IA avanzada para imágenes</p>
+                </div>
+              </div>
+              <p className="text-xs text-purple-700">
+                Tecnología de visión por computadora que identifica automáticamente múltiples alimentos en una imagen con alta precisión.
+              </p>
+              <div className="mt-2 flex items-center space-x-2">
+                <div className={`w-2 h-2 rounded-full ${openaiApiKey ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                <span className="text-xs text-purple-700">
+                  {openaiApiKey ? 'Configurado y listo' : 'Requiere configuración'}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200">

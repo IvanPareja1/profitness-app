@@ -1,17 +1,22 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-@import url('https://fonts.googleapis.com/css2?family=Pacifico&display=swap');
-@import url("https://cdn.jsdelivr.net/npm/remixicon@4.3.0/fonts/remixicon.css");
+
+@import url('https://fonts.googleapis.com/css2?family=Pacifico:wght@400&display=swap');
+@import url('https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.5.0/remixicon.min.css');
 
 /* Clases de componentes personalizadas */
-
 .card {
   @apply bg-white rounded-2xl p-6 shadow-sm border border-gray-100;
 }
 
 .btn-primary {
-  @apply bg-green-500 hover:bg-green-600 text-white font-medium px-4 py-2 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  @apply bg-green-500 hover:bg-green-600 text-white font-medium px-4 py-2 rounded-xl transition-colors;
+}
+
+.btn-primary:disabled {
+  @apply opacity-50 cursor-not-allowed;
 }
 
 .form-input {
@@ -19,7 +24,8 @@
 }
 
 .glass {
-  @apply bg-white/95 backdrop-blur-sm;
+  @apply bg-white backdrop-blur-sm;
+  background-color: rgba(255, 255, 255, 0.95);
 }
 
 .nav-active {
@@ -40,23 +46,45 @@
 
 /* Estilos para inputs tipo range */
 input[type="range"] {
-  @apply appearance-none bg-transparent cursor-pointer;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
 }
 
 input[type="range"]::-webkit-slider-track {
-  @apply h-2 bg-gray-200 rounded-lg;
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 8px;
 }
 
 input[type="range"]::-webkit-slider-thumb {
-  @apply appearance-none h-5 w-5 bg-green-500 rounded-full shadow-md cursor-pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 20px;
+  width: 20px;
+  background: #10b981;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
 }
 
 input[type="range"]::-moz-range-track {
-  @apply h-2 bg-gray-200 rounded-lg border-none;
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 8px;
+  border: none;
 }
 
 input[type="range"]::-moz-range-thumb {
-  @apply h-5 w-5 bg-green-500 rounded-full border-none cursor-pointer;
+  height: 20px;
+  width: 20px;
+  background: #10b981;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 /* Ocultar flechas en inputs de número */
@@ -68,4 +96,34 @@ input[type="number"]::-webkit-inner-spin-button {
 
 input[type="number"] {
   -moz-appearance: textfield;
+}
+
+/* Fuente Pacifico para logo */
+.font-pacifico {
+  font-family: 'Pacifico', cursive;
+}
+
+/* Asegurar que Tailwind funcione correctamente */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  line-height: inherit;
+}
+
+/* Clases adicionales para compatibilidad */
+.font-inter {
+  font-family: var(--font-inter), system-ui, sans-serif;
+}
+
+.bg-white\/95 {
+  background-color: rgba(255, 255, 255, 0.95);
 }

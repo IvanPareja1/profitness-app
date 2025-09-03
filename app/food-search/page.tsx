@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { callEdgeFunction, getCurrentUser } from '@/lib/supabase';
+import { useRouter } from 'next/navigation';
 
 interface Food {
   id: number;
@@ -26,6 +28,8 @@ export default function FoodSearchPage() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedFood, setSelectedFood] = useState<Food | null>(null);
   const [quantity, setQuantity] = useState(100);
+  const [isAdding, setIsAdding] = useState(false);
+  const router = useRouter();
 
   const categories = [
     { id: 'all', name: 'Todos', icon: 'ri-apps-line' },
@@ -63,8 +67,42 @@ export default function FoodSearchPage() {
     };
   };
 
-  const handleAddFood = () => {
-    console.log('Agregando alimento:', selectedFood, quantity);
+  const handleAddFood = async () => {
+    if (!selectedFood) return;
+
+    setIsAdding(true);
+    try {
+      const user = await getCurrentUser();
+      if (!user) {
+        router.push('/auth');
+        return;
+      }
+
+      const calculatedNutrients = calculateNutrients(selectedFood, quantity);
+      const today = new Date().toISOString().split('T')[0];
+
+      await callEdgeFunction('nutrition-tracker', {
+        date: today,
+        meal_type: 'desayuno', // Puedes cambiar esto según la comida seleccionada
+        food_name: selectedFood.name,
+        quantity: quantity,
+        unit: 'g',
+        calories: calculatedNutrients.calories,
+        protein: calculatedNutrients.protein,
+        carbs: calculatedNutrients.carbs,
+        fat: calculatedNutrients.fat,
+        scan_method: 'manual'
+      });
+
+      // Redirigir a nutrición con éxito
+      router.push('/nutrition?added=success');
+
+    } catch (error) {
+      console.error('Error adding food:', error);
+      alert('Error al agregar el alimento. Inténtalo de nuevo.');
+    } finally {
+      setIsAdding(false);
+    }
   };
 
   return (
@@ -158,9 +196,55 @@ export default function FoodSearchPage() {
                   <i className="ri-search-line text-gray-400 text-2xl"></i>
                 </div>
                 <p className="text-gray-500">No se encontraron alimentos</p>
-                <p className="text-sm text-gray-400 mt-1">Intenta con otro término de búsqueda</p>
+                <p className="text-sm text-gray-400 mt-1 mb-4">Intenta con otro término de búsqueda</p>
+                
+                <Link
+                  href="/custom-food"
+                  className="inline-flex items-center space-x-2 px-4 py-2 bg-purple-100 text-purple-600 rounded-lg font-medium hover:bg-purple-200 transition-colors"
+                >
+                  <i className="ri-add-line"></i>
+                  <span>Crear Alimento Personalizado</span>
+                </Link>
               </div>
             )}
+          </div>
+        </div>
+
+        {/* Acceso rápido a alimentos personalizados */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-800">¿No encuentras tu alimento?</h3>
+            <i className="ri-add-circle-line text-purple-500 text-xl"></i>
+          </div>
+          
+          <div className="grid grid-cols-1 gap-3">
+            <Link
+              href="/custom-food"
+              className="flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-xl hover:from-purple-100 hover:to-pink-100 transition-all"
+            >
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                  <i className="ri-add-line text-purple-500"></i>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-purple-800">Crear Alimento Personalizado</h4>
+                  <p className="text-sm text-purple-600">Agrega tus propios alimentos con valores nutricionales</p>
+                </div>
+              </div>
+              <i className="ri-arrow-right-s-line text-purple-500"></i>
+            </Link>
+            
+            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-xl">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                  <i className="ri-database-2-line text-blue-500"></i>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-blue-800">Base de Datos Local</h4>
+                  <p className="text-sm text-blue-600">8 alimentos básicos disponibles</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -231,16 +315,17 @@ export default function FoodSearchPage() {
               <button
                 onClick={() => setSelectedFood(null)}
                 className="flex-1 border border-gray-300 text-gray-700 py-3 rounded-xl font-medium"
+                disabled={isAdding}
               >
                 Cancelar
               </button>
-              <Link
-                href="/nutrition"
+              <button
                 onClick={handleAddFood}
-                className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white py-3 rounded-xl font-medium text-center"
+                disabled={isAdding}
+                className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white py-3 rounded-xl font-medium disabled:opacity-50"
               >
-                Agregar Alimento
-              </Link>
+                {isAdding ? 'Agregando...' : 'Agregar Alimento'}
+              </button>
             </div>
           </div>
         )}

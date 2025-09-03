@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -63,7 +64,7 @@ export default function AuthPage() {
           <div className="w-20 h-20 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
             <i className="ri-leaf-fill text-white text-3xl"></i>
           </div>
-          <h1 className="text-3xl font-pacifico text-green-600 mb-2">ProFitness</h1>
+          <h1 className="text-3xl font-['Pacifico'] text-green-600 mb-2">ProFitness</h1>
           <p className="text-gray-600 leading-relaxed">Tu compañero personal de nutrición y fitness</p>
         </div>
 
@@ -82,7 +83,7 @@ export default function AuthPage() {
           <button
             onClick={handleGoogleSignIn}
             disabled={loading}
-            className="w-full bg-white border border-gray-300 rounded-xl p-4 flex items-center justify-center space-x-3 hover:bg-gray-50 transition-all duration-200 disabled:opacity-50 shadow-soft hover:shadow-medium"
+            className="w-full bg-white border border-gray-300 rounded-xl p-4 flex items-center justify-center space-x-3 hover:bg-gray-50 transition-all duration-200 disabled:opacity-50 shadow-md hover:shadow-lg"
           >
             <div className="w-5 h-5 flex items-center justify-center">
               <svg viewBox="0 0 24 24" className="w-5 h-5">
@@ -117,7 +118,7 @@ export default function AuthPage() {
             <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
               <i className="ri-database-2-line text-blue-500 text-xs"></i>
             </div>
-            <span>Mejor calidad de vida</span>
+            <span>Base de datos OpenFoodFacts</span>
           </div>
           <div className="flex items-center space-x-3 text-sm text-gray-600">
             <div className="w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center">
