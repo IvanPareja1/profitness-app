@@ -3,1135 +3,520 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import BottomNavigation from '../../components/BottomNavigation';
-import { deviceTime } from '../../lib/device-time-utils';
+import { createClient } from '@supabase/supabase-js';
 
-// Interfaces para TypeScript
-interface DataPoint {
-  date: string;
-  value: number;
-}
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
-interface ProgressData {
-  weight: DataPoint[];
-  calories: DataPoint[];
-  protein: DataPoint[];
-  carbs: DataPoint[];
-  fats: DataPoint[];
-}
+export default function ProgressPage() {
+  const [selectedPeriod, setSelectedPeriod] = useState('week');
+  const [selectedMetric, setSelectedMetric] = useState('weight');
+  const [progressData, setProgressData] = useState({
+    weight: { current: 70, change: 0, unit: 'kg', data: [70, 69.8, 69.5, 69.3, 69.1, 69.0, 68.8], labels: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'] },
+    calories: { current: 0, change: 0, unit: 'kcal', data: [0, 0, 0, 0, 0, 0, 0], labels: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'] },
+    workouts: { current: 0, change: 0, unit: 'entrenamientos', data: [0, 0, 0, 0, 0, 0, 0], labels: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'] },
+    water: { current: 2.1, change: +0.2, unit: 'L', data: [1.8, 2.0, 2.2, 1.9, 2.1, 2.3, 2.1], labels: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'] }
+  });
+  const [user, setUser] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
 
-interface WeightData {
-  weight: number;
-  date: string;
-  timestamp: string;
-}
-
-interface SavedNutritionData {
-  calories?: number;
-  protein?: number;
-  carbs?: number;
-  fats?: number;
-}
-
-export default function Progress() {
-  const [mounted, setMounted] = useState<boolean>(false);
-  const [selectedPeriod, setSelectedPeriod] = useState<string>('7');
-  const [showWeightModal, setShowWeightModal] = useState<boolean>(false);
-  const [newWeight, setNewWeight] = useState<string>('');
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [progressData, setProgressData] = useState<ProgressData>({
-    weight: [],
-    calories: [],
-    protein: [],
-    carbs: [],
-    fats: []
+  const [weeklyStats] = useState({
+    activeDays: 5,
+    totalCalories: 2450,
+    totalMinutes: 180,
+    avgHeartRate: 145
   });
 
-  useEffect(() => {
-    setMounted(true);
-    loadProgressData();
-  }, [selectedPeriod]);
+  const [monthlyGoals] = useState([
+    { name: 'Perder peso', current: 2.5, target: 5, unit: 'kg', color: 'blue' },
+    { name: 'Entrenamientos', current: 12, target: 16, unit: '', color: 'purple' },
+    { name: 'Minutos activos', current: 520, target: 800, unit: ' min', color: 'green' }
+  ]);
 
-  const loadProgressData = (): void => {
-    const days = parseInt(selectedPeriod);
-    const data: ProgressData = {
-      weight: [],
-      calories: [],
-      protein: [],
-      carbs: [],
-      fats: []
-    };
-
-    // Solo cargar datos reales del usuario, sin generar datos de demostración
-    for (let i = days - 1; i >= 0; i--) {
-      try {
-        // Usar fecha del dispositivo de forma segura
-        const date = new Date();
-        date.setDate(date.getDate() - i);
-
-        // Intentar obtener fecha usando el sistema del dispositivo
-        let dateKey: string;
-        try {
-          // Si hay error con deviceTime, usar fallback
-          if (i === 0) {
-            dateKey = deviceTime.getCurrentDate();
-          } else {
-            dateKey = date.toISOString().split('T')[0];
-          }
-        } catch (error) {
-          // Fallback completamente seguro
-          dateKey = date.toISOString().split('T')[0];
-        }
-
-        // Intentar obtener datos reales del localStorage
-        try {
-          const savedData = localStorage.getItem(`nutrition_${dateKey}`);
-          if (savedData) {
-            const parsed: SavedNutritionData = JSON.parse(savedData);
-            data.calories.push({ date: dateKey, value: parsed.calories || 0 });
-            data.protein.push({ date: dateKey, value: parsed.protein || 0 });
-            data.carbs.push({ date: dateKey, value: parsed.carbs || 0 });
-            data.fats.push({ date: dateKey, value: parsed.fats || 0 });
-          }
-        } catch (error) {
-          console.error('Error parsing nutrition data:', error);
-        }
-
-        // Obtener datos de peso reales del localStorage
-        try {
-          const savedWeight = localStorage.getItem(`weight_${dateKey}`);
-          if (savedWeight) {
-            const weightData: WeightData = JSON.parse(savedWeight);
-            data.weight.push({ date: dateKey, value: weightData.weight });
-          }
-        } catch (error) {
-          console.error('Error parsing weight data:', error);
-        }
-      } catch (error) {
-        console.error('Error processing date for progress data:', error);
-        // Continuar con el siguiente día si hay error
-        continue;
-      }
+  const [achievements] = useState([
+    {
+      title: 'Primera semana completa',
+      description: '7 días consecutivos de ejercicio',
+      completed: true,
+      date: '15 Ene',
+      icon: 'ri-trophy-line',
+      color: 'bg-yellow-100 text-yellow-600',
+      progress: 100
+    },
+    {
+      title: 'Meta de peso',
+      description: 'Perder 5kg en 2 meses',
+      completed: false,
+      icon: 'ri-scales-3-line',
+      color: 'bg-blue-100 text-blue-600',
+      progress: 60
+    },
+    {
+      title: '1000 kcal quemadas',
+      description: 'En un solo día',
+      completed: false,
+      icon: 'ri-fire-line',
+      color: 'bg-red-100 text-red-600',
+      progress: 45
     }
+  ]);
 
-    setProgressData(data);
+  useEffect(() => {
+    checkUser();
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      loadProgressData();
+    }
+  }, [user, selectedPeriod]);
+
+  const checkUser = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    setUser(user);
+    if (user) {
+      loadProgressData();
+    }
+    setIsLoading(false);
   };
 
-  const handleAddWeight = async (): Promise<void> => {
-    if (!newWeight || isSubmitting) return;
-
-    setIsSubmitting(true);
-
+  const loadProgressData = async () => {
     try {
-      const weight = parseFloat(newWeight);
-      if (isNaN(weight) || weight <= 0) {
-        alert('Por favor ingresa un peso válido');
-        setIsSubmitting(false);
-        return;
+      if (!user) return;
+
+      // Cargar peso directamente
+      const { data: weightData } = await supabase
+        .from('weight_records')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('recorded_at', { ascending: false })
+        .limit(7);
+
+      // Cargar calorías diarias
+      const { data: nutritionData } = await supabase
+        .from('daily_nutrition')
+        .select('total_calories, date')
+        .eq('user_id', user.id)
+        .order('date', { ascending: false })
+        .limit(7);
+
+      // Cargar entrenamientos
+      const { data: workoutData } = await supabase
+        .from('workouts')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('workout_date', { ascending: false })
+        .limit(30);
+
+      // Procesar datos de peso
+      let weightStats = { current: 70, change: 0, unit: 'kg', data: [70, 69.8, 69.5, 69.3, 69.1, 69.0, 68.8], labels: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'] };
+
+      if (weightData && weightData.length > 0) {
+        const weights = weightData.slice(0, 7).reverse();
+        const current = weightData[0].weight;
+        const previous = weightData[1]?.weight || current;
+
+        weightStats = {
+          current,
+          change: current - previous,
+          unit: 'kg',
+          data: weights.map((w: any) => w.weight),
+          labels: weights.map((w: any) => new Date(w.recorded_at).toLocaleDateString('es-ES', { weekday: 'short' }))
+        };
       }
 
-      // Usar fecha actual del dispositivo de forma segura
-      let today: string;
-      try {
-        today = deviceTime.getCurrentDate();
-      } catch (error) {
-        console.warn('Error obteniendo fecha del dispositivo para peso:', error);
-        // Fallback seguro
-        today = new Date().toISOString().split('T')[0];
+      // Procesar datos de calorías
+      let caloriesStats = { current: 0, change: 0, unit: 'kcal', data: [0, 0, 0, 0, 0, 0, 0], labels: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'] };
+
+      if (nutritionData && nutritionData.length > 0) {
+        const current = nutritionData[0]?.total_calories || 0;
+        caloriesStats.current = current;
+
+        const caloriesArray = nutritionData.slice(0, 7).reverse();
+        caloriesStats.data = caloriesArray.map((n: any) => n.total_calories || 0);
+        caloriesStats.labels = caloriesArray.map((n: any) => new Date(n.date).toLocaleDateString('es-ES', { weekday: 'short' }));
       }
 
-      // Save weight data con timestamp del dispositivo
-      const weightData: WeightData = {
-        weight: weight,
-        date: today,
-        timestamp: (() => {
-          try {
-            return deviceTime.createTimestamp();
-          } catch (error) {
-            return new Date().toISOString();
-          }
-        })()
+      // Procesar datos de entrenamientos
+      let workoutsStats = { current: 0, change: 0, unit: 'entrenamientos', data: [0, 0, 0, 0, 0, 0, 0], labels: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'] };
+
+      if (workoutData && workoutData.length > 0) {
+        const today = new Date();
+        const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+        const thisWeekWorkouts = workoutData.filter((w: any) =>
+          new Date(w.workout_date) >= weekAgo
+        );
+
+        workoutsStats.current = thisWeekWorkouts.length;
+
+        // Distribuir entrenamientos por día
+        const workoutsByDay = Array(7).fill(0);
+        thisWeekWorkouts.forEach((workout: any) => {
+          const dayIndex = new Date(workout.workout_date).getDay();
+          workoutsByDay[dayIndex === 0 ? 6 : dayIndex - 1]++; // Ajustar para que lunes sea 0
+        });
+
+        workoutsStats.data = workoutsByDay;
+      }
+
+      // Datos de hidratación (placeholder - sin datos reales aún)
+      const waterStats = {
+        current: 2.1,
+        change: +0.2,
+        unit: 'L',
+        data: [1.8, 2.0, 2.2, 1.9, 2.1, 2.3, 2.1],
+        labels: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
       };
 
-      localStorage.setItem(`weight_${today}`, JSON.stringify(weightData));
-
-      // NUEVA FUNCIONALIDAD: Actualizar también el perfil del usuario
-      try {
-        const userProfileStored = localStorage.getItem('userProfile');
-        if (userProfileStored) {
-          const currentProfile = JSON.parse(userProfileStored);
-
-          // Actualizar el peso en el perfil
-          const updatedProfile = {
-            ...currentProfile,
-            weight: weight.toString(),
-            lastWeightUpdate: weightData.timestamp,
-            lastWeightUpdateDate: today
-          };
-
-          // Guardar el perfil actualizado
-          localStorage.setItem('userProfile', JSON.stringify(updatedProfile));
-
-          // Disparar evento para que otras páginas se enteren del cambio
-          if (typeof window !== 'undefined') {
-            window.dispatchEvent(new CustomEvent('profileUpdated', {
-              detail: {
-                weightUpdated: true,
-                newWeight: weight,
-                updateSource: 'progress-page'
-              }
-            }));
-          }
-
-          console.log('Peso actualizado en el perfil:', weight, 'kg');
-        }
-      } catch (profileError) {
-        console.warn('Error actualizando perfil con nuevo peso:', profileError);
-        // Continuar aunque falle la actualización del perfil
-      }
-
-      // Update progress data
-      loadProgressData();
-
-      // Reset form
-      setNewWeight('');
-      setShowWeightModal(false);
-
-      // Show success feedback with additional info
-      setTimeout(() => {
-        alert('¡Peso registrado exitosamente!\\n\\n✅ Guardado en progreso diario\\n✅ Actualizado en tu perfil\\n✅ IMC recalculado automáticamente');
-      }, 100);
+      setProgressData({
+        weight: weightStats,
+        calories: caloriesStats,
+        workouts: workoutsStats,
+        water: waterStats
+      });
 
     } catch (error) {
-      console.error('Error adding weight:', error);
-      alert('Error al registrar el peso');
+      console.error('Error cargando datos de progreso:', error);
+    }
+  };
+
+  const handleExportData = async () => {
+    setIsExporting(true);
+
+    try {
+      // Simular proceso de exportación
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // En una implementación real, aquí generarías y descargarías el archivo
+      const dataToExport = {
+        user_profile: user.user_metadata,
+        progress_data: progressData,
+        export_date: new Date().toISOString(),
+        weekly_stats: weeklyStats,
+        monthly_goals: monthlyGoals,
+        achievements: achievements
+      };
+
+      const dataStr = JSON.stringify(dataToExport, null, 2);
+      const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+
+      const exportFileDefaultName = `profitness-data-${new Date().toISOString().split('T')[0]}.json`;
+
+      const linkElement = document.createElement('a');
+      linkElement.setAttribute('href', dataUri);
+      linkElement.setAttribute('download', exportFileDefaultName);
+      linkElement.click();
+
+      alert('✅ Datos exportados correctamente');
+    } catch (error) {
+      console.error('Error exportando datos:', error);
+      alert('❌ Error al exportar datos. Intenta de nuevo.');
     } finally {
-      setIsSubmitting(false);
+      setIsExporting(false);
     }
   };
 
-  const getTodayWeight = (): number | null => {
-    try {
-      const today = deviceTime.getCurrentDate();
-      const savedWeight = localStorage.getItem(`weight_${today}`);
-      if (savedWeight) {
-        const weightData: WeightData = JSON.parse(savedWeight);
-        return weightData.weight;
-      }
-    } catch (error) {
-      console.warn('Error obteniendo peso de hoy:', error);
-      // Fallback seguro
-      try {
-        const fallbackToday = new Date().toISOString().split('T')[0];
-        const savedWeight = localStorage.getItem(`weight_${fallbackToday}`);
-        if (savedWeight) {
-          const weightData: WeightData = JSON.parse(savedWeight);
-          return weightData.weight;
-        }
-      } catch (fallbackError) {
-        console.error('Error en fallback para peso de hoy:', fallbackError);
-      }
-    }
-    return null;
-  };
+  const periods = [
+    { id: 'week', name: '7 días' },
+    { id: 'month', name: '30 días' },
+    { id: 'year', name: '1 año' }
+  ];
 
-  const formatDate = (dateString: string): string => {
-    try {
-      // Usar formato del dispositivo si está disponible
-      const date = new Date(dateString);
-      const locale = deviceTime.getLocale();
-      return date.toLocaleDateString(locale, {
-        month: 'short',
-        day: 'numeric'
-      });
-    } catch (error) {
-      // Fallback seguro
-      const date = new Date(dateString);
-      return date.toLocaleDateString('es-ES', {
-        month: 'short',
-        day: 'numeric'
-      });
-    }
-  };
+  const metrics = [
+    { id: 'weight', name: 'Peso', icon: 'ri-scales-3-line', color: 'text-blue-600' },
+    { id: 'calories', name: 'Calorías', icon: 'ri-fire-line', color: 'text-orange-600' },
+    { id: 'workouts', name: 'Ejercicios', icon: 'ri-run-line', color: 'text-purple-600' },
+    { id: 'water', name: 'Hidratación', icon: 'ri-drop-line', color: 'text-cyan-600' }
+  ];
 
-  const getAverage = (data: DataPoint[]): number => {
-    if (data.length === 0) return 0;
-    const sum = data.reduce((acc, item) => acc + item.value, 0);
-    return Math.round(sum / data.length);
-  };
+  const currentStats = progressData[selectedMetric as keyof typeof progressData];
 
-  const getMaxValue = (data: DataPoint[]): number => {
-    if (data.length === 0) return 0;
-    return Math.max(...data.map(item => item.value));
-  };
-
-  const getMinValue = (data: DataPoint[]): number => {
-    if (data.length === 0) return 0;
-    return Math.min(...data.map(item => item.value));
-  };
-
-  const createImprovedChart = (data: DataPoint[], color: string, max?: number, unit?: string): JSX.Element | null => {
-    if (data.length === 0) {
-      return (
-        <div style={{
-          marginTop: '12px',
-          padding: '40px 20px',
-          textAlign: 'center',
-          backgroundColor: '#f8fafc',
-          borderRadius: '8px',
-          border: '1px solid #e2e8f0'
-        }}>
-          <i className="ri-bar-chart-line" style={{
-            fontSize: '32px',
-            color: '#9ca3af',
-            marginBottom: '12px'
-          }}></i>
-          <p style={{
-            fontSize: '14px',
-            color: '#6b7280',
-            margin: '0 0 8px 0'
-          }}>
-            No hay datos disponibles
-          </p>
-          <p style={{
-            fontSize: '12px',
-            color: '#9ca3af',
-            margin: 0
-          }}>
-            Comienza registrando tu información
-          </p>
-        </div>
-      );
-    }
-
-    const maxValue = max || getMaxValue(data);
-    const minValue = getMinValue(data);
-    const range = maxValue - minValue || 1; // Evitar división por cero
-
-    // Create scale marks
-    const scaleMarks: number[] = [];
-    const numMarks = 4;
-    for (let i = 0; i <= numMarks; i++) {
-      const value = minValue + (range * i / numMarks);
-      scaleMarks.push(Math.round(value));
-    }
+  const renderChart = () => {
+    const maxValue = Math.max(...currentStats.data);
+    const minValue = Math.min(...currentStats.data);
 
     return (
-      <div style={{ marginTop: '12px' }}>
-        {/* Chart container */}
-        <div style={{ display: 'flex', gap: '8px' }}>
-          {/* Y-axis scale */}
-          <div style={{
-            width: '35px',
-            height: '100px',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            alignItems: 'flex-end',
-            paddingRight: '4px',
-            fontSize: '10px',
-            color: '#6b7280'
-          }}>
-            {scaleMarks.reverse().map((mark, index) => (
-              <div key={index} style={{ height: '1px', lineHeight: '10px' }}>
-                {mark}{unit}
+      <div className="bg-white rounded-2xl p-5 mb-6 shadow-sm">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold text-gray-800">{metrics.find(m => m.id === selectedMetric)?.name}</h3>
+          <div className="text-right">
+            <p className="text-2xl font-bold text-gray-800">
+              {typeof currentStats.current === 'number' ? currentStats.current.toFixed(selectedMetric === 'weight' ? 1 : 0) : currentStats.current}
+            </p>
+            <p className={`text-sm ${currentStats.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {currentStats.change >= 0 ? '+' : ''}{currentStats.change.toFixed(1)} {currentStats.unit}
+            </p>
+          </div>
+        </div>
+
+        {/* Simple Chart */}
+        <div className="h-32 flex items-end justify-between mb-2">
+          {currentStats.data.map((value, index) => {
+            const height = maxValue > 0 ? ((value - minValue) / (maxValue - minValue)) * 100 : 10;
+            return (
+              <div key={index} className="flex flex-col items-center">
+                <div
+                  className="w-8 bg-gradient-to-t from-purple-500 to-pink-400 rounded-t-md"
+                  style={{ height: `${Math.max(height, 10)}%` }}
+                ></div>
+                <span className="text-xs text-gray-500 mt-2">
+                  {currentStats.labels[index] || `D${index + 1}`}
+                </span>
               </div>
-            ))}
-          </div>
-
-          {/* Chart bars */}
-          <div style={{
-            flex: 1,
-            height: '100px',
-            display: 'flex',
-            alignItems: 'end',
-            gap: '2px',
-            padding: '8px',
-            backgroundColor: '#f8fafc',
-            borderRadius: '8px',
-            border: '1px solid #e2e8f0'
-          }}>
-            {data.map((item, index) => (
-              <div
-                key={index}
-                style={{
-                  flex: 1,
-                  height: `${((item.value - minValue) / range) * 80 + 10}%`,
-                  backgroundColor: color,
-                  borderRadius: '2px',
-                  minHeight: '4px',
-                  opacity: 0.8,
-                  position: 'relative'
-                }}
-                title={`${formatDate(item.date)}: ${Math.round(item.value)}${unit || ''}`}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* X-axis labels */}
-        <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-          <div style={{ width: '35px' }}></div>
-          <div style={{
-            flex: 1,
-            display: 'flex',
-            justifyContent: 'space-between',
-            fontSize: '10px',
-            color: '#6b7280',
-            paddingLeft: '8px',
-            paddingRight: '8px'
-          }}>
-            <span>{formatDate(data[0]?.date)}</span>
-            {data.length > 2 && (
-              <span>{formatDate(data[Math.floor(data.length / 2)]?.date)}</span>
-            )}
-            <span>{formatDate(data[data.length - 1]?.date)}</span>
-          </div>
-        </div>
-
-        {/* Chart statistics */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          marginTop: '8px',
-          padding: '8px 12px',
-          backgroundColor: '#f8fafc',
-          borderRadius: '6px',
-          fontSize: '12px'
-        }}>
-          <div style={{ color: '#059669' }}>
-            <span style={{ fontWeight: '500' }}>Mín:</span> {Math.round(minValue)}{unit}
-          </div>
-          <div style={{ color: '#dc2626' }}>
-            <span style={{ fontWeight: '500' }}>Máx:</span> {Math.round(maxValue)}{unit}
-          </div>
-          <div style={{ color: '#3b82f6' }}>
-            <span style={{ fontWeight: '500' }}>Prom:</span> {getAverage(data)}{unit}
-          </div>
+            );
+          })}
         </div>
       </div>
     );
   };
 
-  // Función para calcular días consecutivos con datos reales
-  const calculateConsecutiveDays = (): number => {
-    let consecutiveDays = 0;
-    let currentDate = new Date();
-
-    while (consecutiveDays < 30) { // Máximo 30 días hacia atrás
-      try {
-        let dateKey: string;
-
-        // Para el día actual, usar deviceTime si es posible
-        if (consecutiveDays === 0) {
-          try {
-            dateKey = deviceTime.getCurrentDate();
-          } catch (error) {
-            dateKey = currentDate.toISOString().split('T')[0];
-          }
-        } else {
-          dateKey = currentDate.toISOString().split('T')[0];
-        }
-
-        const savedData = localStorage.getItem(`nutrition_${dateKey}`);
-
-        if (savedData) {
-          try {
-            const parsed = JSON.parse(savedData);
-            if (parsed.calories > 0 || parsed.protein > 0 || parsed.carbs > 0 || parsed.fats > 0) {
-              consecutiveDays++;
-            } else {
-              break;
-            }
-          } catch (error) {
-            break;
-          }
-        } else {
-          break;
-        }
-
-        currentDate.setDate(currentDate.getDate() - 1);
-      } catch (error) {
-        console.error('Error calculando días consecutivos:', error);
-        break;
-      }
-    }
-
-    return consecutiveDays;
-  };
-
-  // Función para calcular metas alcanzadas
-  const calculateMetasAlcanzadas = (): number => {
-    let metasAlcanzadas = 0;
-    const userProfile = localStorage.getItem('userProfile');
-
-    if (!userProfile) return 0;
-
-    try {
-      const profile = JSON.parse(userProfile);
-      const targetCalories = profile.targetCalories || 2000;
-      const targetProtein = profile.targetProtein || 120;
-      const targetCarbs = profile.targetCarbs || 250;
-      const targetFats = profile.targetFats || 67;
-
-      // Revisar últimos 30 días
-      for (let i = 0; i < 30; i++) {
-        const date = new Date();
-        date.setDate(date.getDate() - i);
-        const dateKey = date.toISOString().split('T')[0];
-        const savedData = localStorage.getItem(`nutrition_${dateKey}`);
-
-        if (savedData) {
-          try {
-            const parsed = JSON.parse(savedData);
-
-            // Verificar si alcanzó al menos 80% de sus metas
-            if (parsed.calories >= targetCalories * 0.8 &&
-                parsed.protein >= targetProtein * 0.8 &&
-                parsed.carbs >= targetCarbs * 0.8 &&
-                parsed.fats >= targetFats * 0.8) {
-              metasAlcanzadas++;
-            }
-          } catch (error) {
-            continue;
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error calculating metas alcanzadas:', error);
-    }
-
-    return metasAlcanzadas;
-  };
-
-  if (!mounted) {
+  if (isLoading) {
     return (
-      <div style={{
-        minHeight: '100vh',
-        background: 'linear-gradient(135deg, #f0f9ff 0%, #e0e7ff 100%)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}>
-        <div style={{
-          width: '32px',
-          height: '32px',
-          border: '3px solid #e5e7eb',
-          borderTop: '3px solid #3b82f6',
-          borderRadius: '50%',
-          animation: 'spin 1s linear infinite'
-        }}>
-          <style jsx>{`
-            @keyframes spin {
-              0% { transform: rotate(0deg); }
-              100% { transform: rotate(360deg); }
-            }
-          `}</style>
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50 flex items-center justify-center px-4">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <i className="ri-bar-chart-line text-indigo-600 text-2xl"></i>
+          </div>
+          <h2 className="text-xl font-bold text-gray-800 mb-2">Inicia Sesión</h2>
+          <p className="text-gray-600 mb-4">Para ver tu progreso necesitas una cuenta</p>
+          <button
+            onClick={() => supabase.auth.signInWithOAuth({ provider: 'google' })}
+            className="bg-indigo-500 text-white px-6 py-3 rounded-xl font-medium"
+          >
+            Iniciar Sesión
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #f0f9ff 0%, #e0e7ff 100%)',
-      paddingTop: '80px',
-      paddingBottom: '100px'
-    }}>
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50">
       {/* Header */}
-      <header style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        background: 'white',
-        padding: '20px 16px',
-        borderBottom: '1px solid #e5e7eb',
-        zIndex: 1000
-      }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px'
-        }}>
-          <Link href="/" className="!rounded-button" style={{
-            width: '40px',
-            height: '40px',
-            background: '#f3f4f6',
-            borderRadius: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            textDecoration: 'none'
-          }}>
-            <i className="ri-arrow-left-line" style={{ color: '#374151', fontSize: '18px' }}></i>
+      <div className="fixed top-0 w-full bg-white/90 backdrop-blur-md z-50 px-4 py-4 shadow-sm">
+        <div className="flex items-center justify-between">
+          <Link href="/" className="w-8 h-8 flex items-center justify-center">
+            <i className="ri-arrow-left-line text-gray-600 text-lg"></i>
           </Link>
-          <h1 style={{
-            fontSize: '20px',
-            fontWeight: '600',
-            color: '#1f2937',
-            margin: 0
-          }}>
-            Progreso
-          </h1>
-        </div>
-      </header>
-
-      {/* Weight Modal */}
-      {showWeightModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 2000,
-          padding: '20px'
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '16px',
-            padding: '24px',
-            width: '100%',
-            maxWidth: '320px',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
-          }}>
-            <h3 style={{
-              fontSize: '18px',
-              fontWeight: '600',
-              color: '#1f2937',
-              marginBottom: '16px',
-              textAlign: 'center'
-            }}>
-              Registrar Peso
-            </h3>
-
-            {getTodayWeight() && (
-              <div style={{
-                backgroundColor: '#f0f9ff',
-                padding: '12px',
-                borderRadius: '8px',
-                marginBottom: '16px',
-                textAlign: 'center'
-              }}>
-                <p style={{
-                  fontSize: '14px',
-                  color: '#3b82f6',
-                  margin: 0
-                }}>
-                  Peso de hoy: {getTodayWeight()} kg
-                </p>
-              </div>
+          <h1 className="text-lg font-bold text-gray-800">Mi Progreso</h1>
+          <button
+            onClick={handleExportData}
+            disabled={isExporting}
+            className="w-8 h-8 flex items-center justify-center"
+          >
+            {isExporting ? (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
+            ) : (
+              <i className="ri-download-line text-gray-600 text-lg"></i>
             )}
-
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '14px',
-                fontWeight: '500',
-                color: '#374151',
-                marginBottom: '8px'
-              }}>
-                Peso actual (kg)
-              </label>
-              <input
-                type="number"
-                step="0.1"
-                value={newWeight}
-                onChange={(e) => setNewWeight(e.target.value)}
-                placeholder="Ej: 70.5"
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  borderRadius: '12px',
-                  border: '1px solid #e5e7eb',
-                  fontSize: '16px',
-                  outline: 'none',
-                  textAlign: 'center'
-                }}
-                autoFocus
-              />
-            </div>
-
-            <div style={{
-              display: 'flex',
-              gap: '12px'
-            }}>
-              <button
-                onClick={() => setShowWeightModal(false)}
-                disabled={isSubmitting}
-                className="!rounded-button"
-                style={{
-                  flex: 1,
-                  padding: '12px 16px',
-                  backgroundColor: '#f3f4f6',
-                  border: 'none',
-                  borderRadius: '12px',
-                  color: '#374151',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: isSubmitting ? 'not-allowed' : 'pointer'
-                }}
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleAddWeight}
-                disabled={!newWeight || isSubmitting}
-                className="!rounded-button"
-                style={{
-                  flex: 1,
-                  padding: '12px 16px',
-                  backgroundColor: newWeight && !isSubmitting ? '#3b82f6' : '#e5e7eb',
-                  border: 'none',
-                  borderRadius: '12px',
-                  color: 'white',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: newWeight && !isSubmitting ? 'pointer' : 'not-allowed',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px'
-                }}
-              >
-                {isSubmitting ? (
-                  <>
-                    <div style={{
-                      width: '12px',
-                      height: '12px',
-                      border: '2px solid #ffffff40',
-                      borderTop: '2px solid #ffffff',
-                      borderRadius: '50%',
-                      animation: 'spin 1s linear infinite'
-                    }}></div>
-                    Guardando...
-                  </>
-                ) : (
-                  'Guardar'
-                )}
-              </button>
-            </div>
-          </div>
+          </button>
         </div>
-      )}
+      </div>
 
-      {/* Main Content */}
-      <main style={{ padding: '24px 16px' }}>
-        {/* Period Selector */}
-        <div style={{
-          background: 'white',
-          borderRadius: '16px',
-          padding: '20px',
-          boxShadow: '0 4px 6px rgba(0,0,0,0.07)',
-          marginBottom: '24px'
-        }}>
-          <label style={{
-            display: 'block',
-            fontSize: '14px',
-            fontWeight: '500',
-            color: '#374151',
-            marginBottom: '12px'
-          }}>
-            Período
-          </label>
-          <div style={{
-            display: 'flex',
-            gap: '8px'
-          }}>
-            {[{
-              value: '7',
-              label: '7 días'
-            }, {
-              value: '14',
-              label: '14 días'
-            }, {
-              value: '30',
-              label: '30 días'
-            }].map(option => (
+      {/* Content */}
+      <div className="pt-20 pb-24 px-4">
+        {/* Period Selection */}
+        <div className="bg-white rounded-2xl p-1 mb-6 shadow-sm">
+          <div className="grid grid-cols-3 gap-1">
+            {periods.map((period) => (
               <button
-                key={option.value}
-                onClick={() => setSelectedPeriod(option.value)}
-                className="!rounded-button"
-                style={{
-                  flex: 1,
-                  padding: '12px 16px',
-                  borderRadius: '12px',
-                  border: selectedPeriod === option.value ? '2px solid #3b82f6' : '1px solid #e5e7eb',
-                  backgroundColor: selectedPeriod === option.value ? '#f0f9ff' : 'white',
-                  color: selectedPeriod === option.value ? '#3b82f6' : '#374151',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}
+                key={period.id}
+                onClick={() => setSelectedPeriod(period.id)}
+                className={`py-3 rounded-xl text-sm font-medium transition-all ${
+                  selectedPeriod === period.id
+                    ? 'bg-indigo-500 text-white'
+                    : 'text-gray-600 hover:bg-gray-50'
+                }`}
               >
-                {option.label}
+                {period.name}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Weight Progress */}
-        <div style={{
-          background: 'white',
-          borderRadius: '16px',
-          padding: '24px',
-          boxShadow: '0 4px 6px rgba(0,0,0,0.07)',
-          marginBottom: '24px'
-        }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: '16px'
-          }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px'
-            }}>
-              <div style={{
-                width: '40px',
-                height: '40px',
-                backgroundColor: '#e0e7ff',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <i className="ri-scales-3-line" style={{ color: '#6366f1', fontSize: '20px' }}></i>
-              </div>
-              <div>
-                <h3 style={{
-                  fontSize: '18px',
-                  fontWeight: '600',
-                  color: '#1f2937',
-                  margin: 0
-                }}>
-                  Peso
-                </h3>
-                <p style={{
-                  fontSize: '14px',
-                  color: '#6b7280',
-                  margin: 0
-                }}>
-                  {progressData.weight.length > 0 ? `Promedio: ${getAverage(progressData.weight).toFixed(1)} kg` : 'Sin datos registrados'}
-                </p>
-              </div>
-            </div>
+        {/* Metrics Selection */}
+        <div className="grid grid-cols-4 gap-3 mb-6">
+          {metrics.map((metric) => (
             <button
-              onClick={() => setShowWeightModal(true)}
-              className="!rounded-button"
-              style={{
-                padding: '8px 16px',
-                backgroundColor: '#3b82f6',
-                border: 'none',
-                borderRadius: '8px',
-                color: 'white',
-                fontSize: '14px',
-                fontWeight: '500',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}
+              key={metric.id}
+              onClick={() => setSelectedMetric(metric.id)}
+              className={`p-3 rounded-2xl border transition-all ${
+                selectedMetric === metric.id
+                  ? 'bg-white border-indigo-200 shadow-sm'
+                  : 'bg-white/50 border-gray-100 hover:bg-white'
+              }`}
             >
-              <i className="ri-add-line" style={{ fontSize: '16px' }}></i>
-              Registrar
+              <div
+                className={`w-8 h-8 mx-auto mb-2 rounded-lg flex items-center justify-center ${
+                  selectedMetric === metric.id ? 'bg-indigo-100' : 'bg-gray-100'
+                }`}
+              >
+                <i
+                  className={`${metric.icon} text-sm ${
+                    selectedMetric === metric.id ? 'text-indigo-600' : 'text-gray-600'
+                  }`}
+                ></i>
+              </div>
+              <p className="text-xs font-medium text-gray-800">{metric.name}</p>
             </button>
-          </div>
-          {createImprovedChart(progressData.weight, '#6366f1', undefined, 'kg')}
+          ))}
         </div>
 
-        {/* Calories Progress */}
-        <div style={{
-          background: 'white',
-          borderRadius: '16px',
-          padding: '24px',
-          boxShadow: '0 4px 6px rgba(0,0,0,0.07)',
-          marginBottom: '24px'
-        }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            marginBottom: '16px'
-          }}>
-            <div style={{
-              width: '40px',
-              height: '40px',
-              backgroundColor: '#fef3c7',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <i className="ri-fire-line" style={{ color: '#f59e0b', fontSize: '20px' }}></i>
+        {/* Chart */}
+        {renderChart()}
+
+        {/* Weekly Summary */}
+        <div className="bg-white rounded-2xl p-5 mb-6 shadow-sm">
+          <h3 className="text-lg font-bold text-gray-800 mb-4">Resumen Semanal</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="text-center p-3 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl">
+              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-2">
+                <i className="ri-trophy-line text-green-600 text-sm"></i>
+              </div>
+              <p className="text-lg font-bold text-gray-800">{weeklyStats.activeDays}/7</p>
+              <p className="text-xs text-gray-600">Días activos</p>
             </div>
-            <div>
-              <h3 style={{
-                fontSize: '18px',
-                fontWeight: '600',
-                color: '#1f2937',
-                margin: 0
-              }}>
-                Calorías
-              </h3>
-              <p style={{
-                fontSize: '14px',
-                color: '#6b7280',
-                margin: 0
-              }}>
-                {progressData.calories.length > 0 ? `Promedio: ${getAverage(progressData.calories)} cal/día` : 'Sin datos registrados'}
-              </p>
+
+            <div className="text-center p-3 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl">
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-2">
+                <i className="ri-fire-line text-blue-600 text-sm"></i>
+              </div>
+              <p className="text-lg font-bold text-gray-800">{weeklyStats.totalCalories.toLocaleString()}</p>
+              <p className="text-xs text-gray-600">kcal quemadas</p>
+            </div>
+
+            <div className="text-center p-3 bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl">
+              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-2">
+                <i className="ri-timer-line text-purple-600 text-sm"></i>
+              </div>
+              <p className="text-lg font-bold text-gray-800">{weeklyStats.totalMinutes}</p>
+              <p className="text-xs text-gray-600">min ejercicio</p>
+            </div>
+
+            <div className="text-center p-3 bg-gradient-to-br from-orange-50 to-red-50 rounded-xl">
+              <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center mx-auto mb-2">
+                <i className="ri-heart-pulse-line text-orange-600 text-sm"></i>
+              </div>
+              <p className="text-lg font-bold text-gray-800">{weeklyStats.avgHeartRate}</p>
+              <p className="text-xs text-gray-600">bpm promedio</p>
             </div>
           </div>
-          {createImprovedChart(progressData.calories, '#f59e0b', 2500, ' cal')}
         </div>
 
-        {/* Macronutrients */}
-        <div style={{
-          background: 'white',
-          borderRadius: '16px',
-          padding: '24px',
-          boxShadow: '0 4px 6px rgba(0,0,0,0.07)',
-          marginBottom: '24px'
-        }}>
-          <h3 style={{
-            fontSize: '18px',
-            fontWeight: '600',
-            color: '#1f2937',
-            marginBottom: '20px'
-          }}>
-            Macronutrientes
-          </h3>
-
-          {/* Proteins */}
-          <div style={{ marginBottom: '20px' }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              marginBottom: '8px'
-            }}>
-              <div style={{
-                width: '32px',
-                height: '32px',
-                backgroundColor: '#dcfce7',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <i className="ri-bread-line" style={{ color: '#16a34a', fontSize: '16px' }}></i>
-              </div>
-              <div>
-                <h4 style={{
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  color: '#1f2937',
-                  margin: 0
-                }}>
-                  Proteínas
-                </h4>
-                <p style={{
-                  fontSize: '12px',
-                  color: '#6b7280',
-                  margin: 0
-                }}>
-                  {progressData.protein.length > 0 ? `Promedio: ${getAverage(progressData.protein)}g/día` : 'Sin datos registrados'}
-                </p>
-              </div>
-            </div>
-            {createImprovedChart(progressData.protein, '#16a34a', 150, 'g')}
+        {/* Progress Goals */}
+        <div className="bg-white rounded-2xl p-5 mb-6 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold text-gray-800">Metas del Mes</h3>
+            <Link href="/profile/goals" className="text-indigo-600 text-sm font-medium">
+              Editar
+            </Link>
           </div>
 
-          {/* Carbohydrates */}
-          <div style={{ marginBottom: '20px' }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              marginBottom: '8px'
-            }}>
-              <div style={{
-                width: '32px',
-                height: '32px',
-                backgroundColor: '#fef3c7',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <i className="ri-restaurant-line" style={{ color: '#f59e0b', fontSize: '16px' }}></i>
-              </div>
-              <div>
-                <h4 style={{
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  color: '#1f2937',
-                  margin: 0
-                }}>
-                  Carbohidratos
-                </h4>
-                <p style={{
-                  fontSize: '12px',
-                  color: '#6b7280',
-                  margin: 0
-                }}>
-                  {progressData.carbs.length > 0 ? `Promedio: ${getAverage(progressData.carbs)}g/día` : 'Sin datos registrados'}
-                </p>
-              </div>
-            </div>
-            {createImprovedChart(progressData.carbs, '#f59e0b', 300, 'g')}
-          </div>
-
-          {/* Fats */}
-          <div>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              marginBottom: '8px'
-            }}>
-              <div style={{
-                width: '32px',
-                height: '32px',
-                backgroundColor: '#e0e7ff',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <i className="ri-drop-line" style={{ color: '#6366f1', fontSize: '16px' }}></i>
-              </div>
-              <div>
-                <h4 style={{
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  color: '#1f2937',
-                  margin: 0
-                }}>
-                  Grasas
-                </h4>
-                <p style={{
-                  fontSize: '12px',
-                  color: '#6b7280',
-                  margin: 0
-                }}>
-                  {progressData.fats.length > 0 ? `Promedio: ${getAverage(progressData.fats)}g/día` : 'Sin datos registrados'}
-                </p>
-              </div>
-            </div>
-            {createImprovedChart(progressData.fats, '#6366f1', 100, 'g')}
+          <div className="space-y-4">
+            {monthlyGoals.map((goal, index) => {
+              const percentage = Math.min((goal.current / goal.target) * 100, 100);
+              return (
+                <div key={index}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-800">{goal.name}</span>
+                    <span className={`text-sm text-${goal.color}-600`}>
+                      {goal.current.toFixed(1)}{goal.unit} / {goal.target}{goal.unit}
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className={`bg-${goal.color}-500 h-2 rounded-full`}
+                      style={{ width: `${percentage}%` }}
+                    ></div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
         {/* Achievements */}
-        <div style={{
-          background: 'white',
-          borderRadius: '16px',
-          padding: '24px',
-          boxShadow: '0 4px 6px rgba(0,0,0,0.07)'
-        }}>
-          <h3 style={{
-            fontSize: '18px',
-            fontWeight: '600',
-            color: '#1f2937',
-            marginBottom: '16px'
-          }}>
-            Logros
-          </h3>
+        <div className="bg-white rounded-2xl p-5 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold text-gray-800">Logros</h3>
+            <span className="text-sm text-gray-500">
+              {achievements.filter(a => a.completed).length}/{achievements.length}
+            </span>
+          </div>
 
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, 1fr)',
-            gap: '16px'
-          }}>
-            <div style={{
-              textAlign: 'center',
-              padding: '16px',
-              backgroundColor: '#f0fdf4',
-              borderRadius: '12px',
-              border: '1px solid #dcfce7'
-            }}>
-              <div style={{
-                width: '48px',
-                height: '48px',
-                backgroundColor: '#dcfce7',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 8px auto'
-              }}>
-                <i className="ri-trophy-line" style={{ color: '#16a34a', fontSize: '24px' }}></i>
+          <div className="space-y-3">
+            {achievements.map((achievement, index) => (
+              <div key={index} className="flex items-center p-3 bg-gray-50 rounded-xl">
+                <div
+                  className={`w-10 h-10 ${achievement.color} rounded-lg flex items-center justify-center mr-3`}
+                >
+                  <i className={`${achievement.icon} text-sm`}></i>
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium text-gray-800 text-sm">{achievement.title}</p>
+                  <p className="text-xs text-gray-600">{achievement.description}</p>
+                  {!achievement.completed && achievement.progress && (
+                    <div className="w-full bg-gray-200 rounded-full h-1 mt-1">
+                      <div
+                        className="bg-indigo-500 h-1 rounded-full"
+                        style={{ width: `${achievement.progress}%` }}
+                      ></div>
+                    </div>
+                  )}
+                </div>
+                <div className="text-right">
+                  {achievement.completed ? (
+                    <div>
+                      <i className="ri-check-line text-green-600 text-lg"></i>
+                      <p className="text-xs text-gray-500">{achievement.date}</p>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-gray-500">{Math.round(achievement.progress)}%</span>
+                  )}
+                </div>
               </div>
-              <p style={{
-                fontSize: '14px',
-                fontWeight: '600',
-                color: '#1f2937',
-                margin: '0 0 4px 0'
-              }}>
-                Días Consecutivos
-              </p>
-              <p style={{
-                fontSize: '20px',
-                fontWeight: '700',
-                color: '#16a34a',
-                margin: 0
-              }}>
-                {calculateConsecutiveDays()}
-              </p>
-            </div>
-
-            <div style={{
-              textAlign: 'center',
-              padding: '16px',
-              backgroundColor: '#f0f9ff',
-              borderRadius: '12px',
-              border: '1px solid #e0e7ff'
-            }}>
-              <div style={{
-                width: '48px',
-                height: '48px',
-                backgroundColor: '#e0e7ff',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 8px auto'
-              }}>
-                <i className="ri-target-line" style={{ color: '#3b82f6', fontSize: '24px' }}></i>
-              </div>
-              <p style={{
-                fontSize: '14px',
-                fontWeight: '600',
-                color: '#1f2937',
-                margin: '0 0 4px 0'
-              }}>
-                Metas Alcanzadas
-              </p>
-              <p style={{
-                fontSize: '20px',
-                fontWeight: '700',
-                color: '#3b82f6',
-                margin: 0
-              }}>
-                {calculateMetasAlcanzadas()}
-              </p>
-            </div>
+            ))}
           </div>
         </div>
-      </main>
+      </div>
 
-      <BottomNavigation />
+      {/* Bottom Navigation */}
+      <div className="fixed bottom-0 w-full bg-white border-t border-gray-100 px-0 py-0">
+        <div className="grid grid-cols-5 h-16">
+          <Link href="/" className="flex flex-col items-center justify-center">
+            <i className="ri-home-line text-gray-400 text-lg"></i>
+            <span className="text-xs text-gray-400 mt-1">Inicio</span>
+          </Link>
+          <Link href="/food" className="flex flex-col items-center justify-center">
+            <i className="ri-restaurant-line text-gray-400 text-lg"></i>
+            <span className="text-xs text-gray-400 mt-1">Comida</span>
+          </Link>
+          <Link href="/workout" className="flex flex-col items-center justify-center">
+            <i className="ri-run-line text-gray-400 text-lg"></i>
+            <span className="text-xs text-gray-400 mt-1">Ejercicio</span>
+          </Link>
+          <Link href="/progress" className="flex flex-col items-center justify-center bg-indigo-50">
+            <i className="ri-bar-chart-fill text-indigo-600 text-lg"></i>
+            <span className="text-xs text-indigo-600 mt-1">Progreso</span>
+          </Link>
+          <Link href="/profile" className="flex flex-col items-center justify-center">
+            <i className="ri-user-line text-gray-400 text-lg"></i>
+            <span className="text-xs text-gray-400 mt-1">Perfil</span>
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }

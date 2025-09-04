@@ -2,433 +2,197 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { supabase } from '../../lib/supabase';
 import { useRouter } from 'next/navigation';
-import LoadingSpinner from '../../components/ui/LoadingSpinner';
-import Logo from '../../components/ui/Logo';
 
-declare global {
-  interface Window {
-    google: any;
-    handleGoogleSignIn: (response: any) => void;
-  }
-}
-
-export default function Login() {
+export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [user, setUser] = useState<any>(null);
+  const [error, setError] = useState<string>('');
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
-    // Verificar si ya está autenticado
-    const isAuthenticated = localStorage.getItem('isAuthenticated');
-    if (isAuthenticated === 'true') {
-      router.push('/');
-      return;
-    }
-
-    // Cargar automáticamente Google Sign-In
-    loadGoogleSignIn();
+    checkCurrentUser();
   }, [router]);
 
-  const loadGoogleSignIn = () => {
-    const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.defer = true;
-    script.onload = initializeGoogleSignIn;
-    document.head.appendChild(script);
-  };
-
-  const initializeGoogleSignIn = () => {
-    if (window.google) {
-      const CLIENT_ID = "234981966694-v0qeb0nj89mrscnn5nef6o0eddj2fi15.apps.googleusercontent.com";
-
-      try {
-        window.google.accounts.id.initialize({
-          client_id: CLIENT_ID,
-          callback: handleGoogleSignIn,
-          auto_select: false,
-          cancel_on_tap_outside: true,
-          ux_mode: 'popup',
-        });
-
-        window.google.accounts.id.renderButton(
-          document.getElementById('google-signin-button'),
-          {
-            theme: 'outline',
-            size: 'large',
-            width: '100%',
-            text: 'signin_with',
-            shape: 'rectangular',
-            logo_alignment: 'left',
-            locale: 'es'
-          }
-        );
-      } catch (error) {
-        console.error('Error initializing Google Sign-In:', error);
-        setError('Error al configurar Google Sign-In. Por favor, contacta al soporte.');
+  const checkCurrentUser = async () => {
+    try {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error) {
+        console.error('Error verificando sesión:', error);
+      } else if (session?.user) {
+        console.log('Usuario ya autenticado, redirigiendo...');
+        setUser(session.user);
+        router.push('/');
+        return;
       }
+      
+    } catch (error) {
+      console.error('Error verificando usuario:', error);
+    } finally {
+      setIsCheckingAuth(false);
     }
   };
 
-  const handleGoogleSignIn = async (response: any) => {
+  const signInWithGoogle = async () => {
     setIsLoading(true);
     setError('');
-
+    
     try {
-      // Decodificar el JWT token
-      const payload = JSON.parse(atob(response.credential.split('.')[1]));
-
-      // Validar que el token sea válido
-      if (!payload || !payload.email || !payload.name) {
-        throw new Error('Token inválido recibido de Google');
-      }
-
-      const userEmail = payload.email;
+      // Limpiar cualquier sesión existente primero
+      await supabase.auth.signOut();
       
-      // Verificar si el usuario ya existe
-      const existingUserKey = `user_${userEmail}`;
-      const existingUser = localStorage.getItem(existingUserKey);
-
-      if (existingUser) {
-        // Usuario existente - restaurar todos sus datos
-        const userData = JSON.parse(existingUser);
-        
-        // Restaurar datos del usuario
-        localStorage.setItem('userData', JSON.stringify(userData.userData));
-        localStorage.setItem('userProfile', JSON.stringify(userData.userProfile));
-        localStorage.setItem('isAuthenticated', 'true');
-        
-        // Restaurar foto de perfil si existe
-        if (userData.userProfilePhoto) {
-          localStorage.setItem('userProfilePhoto', userData.userProfilePhoto);
+      // Obtener la URL base actual
+      const baseUrl = window.location.origin;
+      const redirectUrl = `${baseUrl}/auth/callback`;
+      
+      console.log('Iniciando OAuth con redirect a:', redirectUrl);
+      
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: redirectUrl,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          }
         }
-
-        // Restaurar todos los datos nutricionales
-        if (userData.nutritionData) {
-          Object.keys(userData.nutritionData).forEach(key => {
-            localStorage.setItem(key, userData.nutritionData[key]);
-          });
-        }
-
-        // Restaurar configuraciones adicionales
-        if (userData.restDaySettings) {
-          localStorage.setItem('restDaySettings', userData.restDaySettings);
-        }
-        if (userData.hydrationReminder) {
-          localStorage.setItem('hydrationReminder', userData.hydrationReminder);
-        }
-        if (userData.healthData) {
-          localStorage.setItem('healthData', userData.healthData);
-        }
-
-        // Mostrar mensaje de bienvenida de regreso
-        showWelcomeMessage(`¡Bienvenido de vuelta, ${userData.userData.name}!`, 'Datos restaurados correctamente');
-        
+      });
+      
+      if (error) {
+        console.error('Error de OAuth:', error);
+        setError(`Error de autenticación: ${error.message}`);
+        setIsLoading(false);
       } else {
-        // Usuario nuevo - crear datos limpios
-        const userData = {
-          name: payload.name,
-          email: payload.email,
-          picture: payload.picture || '',
-          sub: payload.sub,
-          email_verified: payload.email_verified || false
-        };
-
-        localStorage.setItem('userData', JSON.stringify(userData));
-        localStorage.setItem('isAuthenticated', 'true');
-
-        // Crear perfil inicial limpio
-        const newProfile = {
-          name: userData.name,
-          email: userData.email,
-          age: '',
-          weight: '',
-          height: '',
-          activityLevel: 'moderate',
-          workActivity: 'sedentary',
-          goal: 'maintain',
-          language: 'es',
-          targetCalories: 2000,
-          targetProtein: 120,
-          targetCarbs: 250,
-          targetFats: 67,
-          targetWater: 2500,
-          targetFiber: 25,
-          syncEnabled: false,
-          lastSyncTime: null,
-          avgDailySteps: 0,
-          avgActiveMinutes: 0,
-          avgCaloriesBurned: 0
-        };
-        localStorage.setItem('userProfile', JSON.stringify(newProfile));
-
-        // Guardar foto de perfil
-        if (userData.picture) {
-          localStorage.setItem('userProfilePhoto', userData.picture);
-        }
-
-        // Guardar usuario nuevo en el almacenamiento persistente
-        const newUserData = {
-          userData: userData,
-          userProfile: newProfile,
-          userProfilePhoto: userData.picture || null,
-          nutritionData: {},
-          restDaySettings: null,
-          hydrationReminder: null,
-          healthData: null,
-          createdAt: new Date().toISOString(),
-          lastLogin: new Date().toISOString()
-        };
-        localStorage.setItem(existingUserKey, JSON.stringify(newUserData));
-
-        showWelcomeMessage(`¡Bienvenido, ${userData.name}!`, 'Tu cuenta ha sido creada exitosamente');
+        console.log('Redirección OAuth iniciada correctamente');
+        // No establecer isLoading = false aquí porque vamos a ser redirigidos
       }
-
-      // Actualizar última conexión
-      const userKey = `user_${userEmail}`;
-      const userBackup = JSON.parse(localStorage.getItem(userKey) || '{}');
-      userBackup.lastLogin = new Date().toISOString();
-      localStorage.setItem(userKey, JSON.stringify(userBackup));
-
-      // Redirigir después de mostrar el mensaje
-      setTimeout(() => {
-        router.push('/');
-      }, 2000);
-
-    } catch (error) {
-      console.error('Error durante el inicio de sesión:', error);
-      setError('Error al iniciar sesión con Google. Por favor, intenta de nuevo.');
+      
+    } catch (error: any) {
+      console.error('Error general:', error);
+      setError('Error de conexión. Intenta de nuevo.');
       setIsLoading(false);
     }
   };
 
-  const showWelcomeMessage = (title: string, subtitle: string) => {
-    const successMessage = document.createElement('div');
-    successMessage.style.cssText = `
-      position: fixed;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-      border: 1px solid #bbf7d0;
-      border-radius: 12px;
-      padding: 16px 24px;
-      z-index: 3000;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      max-width: 320px;
-      width: 90%;
-    `;
-
-    successMessage.innerHTML = `
-      <div style="width: 24px; height: 24px; background: #16a34a; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-        <i class="ri-check-line" style="color: white; font-size: 14px;"></i>
-      </div>
-      <div>
-        <p style="font-size: 14px; font-weight: 600; color: #16a34a; margin: 0;">${title}</p>
-        <p style="font-size: 12px; color: #15803d; margin: 0;">${subtitle}</p>
-      </div>
-    `;
-
-    document.body.appendChild(successMessage);
-
-    setTimeout(() => {
-      if (document.body.contains(successMessage)) {
-        document.body.removeChild(successMessage);
-      }
-    }, 3000);
-  };
-
-  if (isLoading) {
+  if (isCheckingAuth) {
     return (
-      <div style={{
-        minHeight: '100vh',
-        background: 'linear-gradient(135deg, #f0f9ff 0%, #e0e7ff 100%)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}>
-        <div style={{
-          background: 'white',
-          borderRadius: '16px',
-          padding: '32px',
-          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-          textAlign: 'center',
-          width: '90%',
-          maxWidth: '320px'
-        }}>
-          <LoadingSpinner />
-          <p style={{
-            marginTop: '16px',
-            color: '#6b7280',
-            fontSize: '16px',
-            fontWeight: '500'
-          }}>
-            Iniciando sesión...
-          </p>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Verificando autenticación...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Redirigiendo al dashboard...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #f0f9ff 0%, #e0e7ff 100%)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '16px'
-    }}>
-      <div style={{
-        background: 'white',
-        borderRadius: '24px',
-        padding: '32px',
-        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-        width: '100%',
-        maxWidth: '400px'
-      }}>
-        {/* Logo y título */}
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <div style={{
-            marginBottom: '20px',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center'
-          }}>
-            <Logo size="lg" />
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex flex-col">
+      <div className="flex-1 flex flex-col items-center justify-center px-6">
+        {/* Logo y Marca */}
+        <div className="text-center mb-12">
+          <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-3xl flex items-center justify-center mx-auto mb-6">
+            <i className="ri-heart-pulse-line text-white text-4xl"></i>
           </div>
-          <h1 style={{
-            fontSize: '28px',
-            fontWeight: 'bold',
-            color: '#1f2937',
-            fontFamily: 'Pacifico, serif',
-            marginBottom: '12px'
-          }}>
-            ProFitness
-          </h1>
-          <p style={{
-            color: '#6b7280',
-            fontSize: '16px',
-            lineHeight: '1.6',
-            maxWidth: '280px',
-            margin: '0 auto'
-          }}>
-            Nutre tu progreso, domina tus resultados
-          </p>
+          <h1 className="text-4xl font-['Pacifico'] text-blue-600 mb-2">ProFitness</h1>
+          <p className="text-gray-600 text-lg">Tu compañero de fitness personal</p>
         </div>
 
-        {/* Botón de Google Sign-In */}
-        <div style={{ marginBottom: '24px' }}>
-          <div
-            id="google-signin-button"
-            style={{
-              width: '100%',
-              display: 'flex',
-              justifyContent: 'center'
-            }}
-          ></div>
-        </div>
-
-        {/* Mensaje de error */}
+        {/* Error Message */}
         {error && (
-          <div style={{
-            marginTop: '16px',
-            padding: '12px 16px',
-            background: '#fef2f2',
-            borderRadius: '8px',
-            border: '1px solid #fecaca',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}>
-            <i className="ri-error-warning-line" style={{ color: '#dc2626', fontSize: '16px' }}></i>
-            <p style={{
-              color: '#dc2626',
-              fontSize: '14px',
-              margin: 0
-            }}>
-              {error}
-            </p>
+          <div className="w-full max-w-sm mb-6">
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-2xl text-sm">
+              <div className="flex items-center">
+                <i className="ri-error-warning-line mr-2"></i>
+                {error}
+              </div>
+            </div>
           </div>
         )}
 
-        {/* Características */}
-        <div style={{
-          marginTop: '24px',
-          padding: '16px',
-          background: '#f0f9ff',
-          borderRadius: '12px',
-          border: '1px solid #e0e7ff'
-        }}>
-          <h4 style={{
-            fontSize: '14px',
-            fontWeight: '600',
-            color: '#1f2937',
-            margin: '0 0 12px 0'
-          }}>
-            ¿Qué incluye ProFitness?
-          </h4>
-          <div style={{
-            display: 'grid',
-            gap: '8px'
-          }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}>
-              <i className="ri-check-line" style={{ color: '#16a34a', fontSize: '14px' }}></i>
-              <span style={{ fontSize: '12px', color: '#6b7280' }}>
-                Seguimiento nutricional completo
-              </span>
+        {/* Features */}
+        <div className="w-full max-w-sm space-y-4 mb-12">
+          <div className="flex items-center bg-white/70 backdrop-blur-sm rounded-2xl p-4">
+            <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mr-4">
+              <i className="ri-restaurant-line text-green-600 text-xl"></i>
             </div>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}>
-              <i className="ri-check-line" style={{ color: '#16a34a', fontSize: '14px' }}></i>
-              <span style={{ fontSize: '12px', color: '#6b7280' }}>
-                Escáner de código de barras
-              </span>
+            <div>
+              <p className="font-semibold text-gray-800">Nutrición Inteligente</p>
+              <p className="text-sm text-gray-600">Registra y monitorea tu alimentación</p>
             </div>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}>
-              <i className="ri-check-line" style={{ color: '#16a34a', fontSize: '14px' }}></i>
-              <span style={{ fontSize: '12px', color: '#6b7280' }}>
-                Análisis de progreso detallado
-              </span>
+          </div>
+
+          <div className="flex items-center bg-white/70 backdrop-blur-sm rounded-2xl p-4">
+            <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mr-4">
+              <i className="ri-run-line text-purple-600 text-xl"></i>
             </div>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}>
-              <i className="ri-check-line" style={{ color: '#16a34a', fontSize: '14px' }}></i>
-              <span style={{ fontSize: '12px', color: '#6b7280' }}>
-                Sincronización en la nube
-              </span>
+            <div>
+              <p className="font-semibold text-gray-800">Entrenamientos</p>
+              <p className="text-sm text-gray-600">Registra tus ejercicios y progreso</p>
+            </div>
+          </div>
+
+          <div className="flex items-center bg-white/70 backdrop-blur-sm rounded-2xl p-4">
+            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mr-4">
+              <i className="ri-bar-chart-line text-blue-600 text-xl"></i>
+            </div>
+            <div>
+              <p className="font-semibold text-gray-800">Progreso Detallado</p>
+              <p className="text-sm text-gray-600">Visualiza tus estadísticas y metas</p>
             </div>
           </div>
         </div>
 
-        {/* Términos y condiciones */}
-        <p style={{
-          marginTop: '24px',
-          fontSize: '12px',
-          color: '#9ca3af',
-          textAlign: 'center',
-          lineHeight: '1.4'
-        }}>
-          Al continuar, aceptas nuestros <strong>Términos de Servicio</strong> y <strong>Política de Privacidad</strong>
-        </p>
+        {/* Login Button */}
+        <div className="w-full max-w-sm">
+          <button
+            onClick={signInWithGoogle}
+            disabled={isLoading}
+            className="w-full bg-white text-gray-800 py-4 px-6 rounded-2xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center space-x-3 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 border border-gray-100"
+          >
+            {isLoading ? (
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-600"></div>
+                <span>Conectando con Google...</span>
+              </>
+            ) : (
+              <>
+                <svg className="w-5 h-5" viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+                <span>Continuar con Google</span>
+              </>
+            )}
+          </button>
+
+          <p className="text-center text-sm text-gray-500 mt-6 leading-relaxed">
+            Al continuar, aceptas nuestros{' '}
+            <span className="text-blue-600 underline cursor-pointer">Términos de Servicio</span> y{' '}
+            <span className="text-blue-600 underline cursor-pointer">Política de Privacidad</span>
+          </p>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="text-center py-8">
+        <p className="text-xs text-gray-400">ProFitness v1.0.0</p>
+        <p className="text-xs text-gray-400 mt-1">Hecho con ❤️ para tu salud</p>
       </div>
     </div>
   );

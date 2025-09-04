@@ -1,7 +1,7 @@
-
 import type { Metadata } from "next";
 import { Inter, Pacifico } from "next/font/google";
-import "./components.css";
+import "./globals.css";
+import AuthGuard from "../components/AuthGuard";
 
 const pacifico = Pacifico({
   weight: '400',
@@ -16,8 +16,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "ProFitness",
-  description: "Tu compañero personal de nutrición y fitness",
+  title: "ProFitness - Tu compañero de fitness personal",
+  description: "Registra tu alimentación, entrenamientos y progreso con ProFitness",
 };
 
 export default function RootLayout({
@@ -30,7 +30,9 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${pacifico.variable} antialiased`}
       >
-        {children}
+        <AuthGuard>
+          {children}
+        </AuthGuard>
       </body>
     </html>
   );
