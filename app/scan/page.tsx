@@ -48,13 +48,14 @@ export default function ScanPage() {
   const [scannedData, setScannedData] = useState<BarcodeScannedData | AIScannedData | null>(null);
   const [selectedMeal, setSelectedMeal] = useState<string>('desayuno');
   const [cameraError, setCameraError] = useState<string>('');
-  const [scannerLibraryLoaded, setScannerLibraryLoaded] = useState(false);
   const [user, setUser] = useState<any>(null);
-  const [html5QrCode, setHtml5QrCode] = useState<any>(null);
+  const [videoStream, setVideoStream] = useState<MediaStream | null>(null);
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [openaiApiKey, setOpenaiApiKey] = useState<string>('');
+  const [qrScanner, setQrScanner] = useState<any>(null);
 
-  const scannerRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
@@ -62,11 +63,10 @@ export default function ScanPage() {
 
   useEffect(() => {
     initializeUser();
-    loadScannerLibrary();
     loadStoredApiKey();
     
     return () => {
-      cleanupScanner();
+      stopCamera();
     };
   }, []);
 
@@ -100,29 +100,16 @@ export default function ScanPage() {
     }
   };
 
-  const loadScannerLibrary = async () => {
-    try {
-      const { Html5Qrcode } = await import('html5-qrcode');
-      setScannerLibraryLoaded(true);
-    } catch (error) {
-      console.error('Error loading scanner library:', error);
-      setCameraError('Error al cargar el escáner. Por favor, recarga la página.');
+  const stopCamera = () => {
+    if (videoStream) {
+      videoStream.getTracks().forEach(track => track.stop());
+      setVideoStream(null);
     }
-  };
-
-  const cleanupScanner = () => {
-    if (html5QrCode) {
-      try {
-        if (html5QrCode.getState() === 2) {
-          html5QrCode.stop().then(() => {
-            html5QrCode.clear();
-          }).catch(console.error);
-        }
-      } catch (error) {
-        console.error('Error cleaning up scanner:', error);
-      }
-      setHtml5QrCode(null);
+    if (qrScanner) {
+      qrScanner.stop();
+      setQrScanner(null);
     }
+    setIsScanning(false);
   };
 
   const isBarcodeScannedData = (data: any): data is BarcodeScannedData => {
@@ -130,40 +117,39 @@ export default function ScanPage() {
   };
 
   const startBarcodeScanner = async () => {
-    if (!scannerLibraryLoaded) return;
-    
     setIsScanning(true);
     setCameraError('');
 
     try {
-      const { Html5Qrcode } = await import('html5-qrcode');
+      // Importación dinámica de la librería QR scanner
+      const QrScanner = (await import('qr-scanner')).default;
       
-      const scannerElement = document.getElementById("scanner-container");
-      if (scannerElement) {
-        scannerElement.innerHTML = '';
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'environment' } 
+      });
+      
+      setVideoStream(stream);
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        
+        const scanner = new QrScanner(
+          videoRef.current,
+          async (result: any) => {
+            setIsLoading(true);
+            stopCamera();
+            await lookupBarcodeInOpenFoodFacts(result.data);
+          },
+          {
+            returnDetailedScanResult: true,
+            highlightScanRegion: true,
+            highlightCodeOutline: true,
+          }
+        );
+        
+        await scanner.start();
+        setQrScanner(scanner);
       }
-      
-      const scanner = new Html5Qrcode("scanner-container");
-      setHtml5QrCode(scanner);
-
-      const config = {
-        fps: 10,
-        qrbox: { width: 250, height: 100 },
-        aspectRatio: 1.0
-      };
-
-      await scanner.start(
-        { facingMode: "environment" },
-        config,
-        async (decodedText: string) => {
-          setIsLoading(true);
-          stopScanning();
-          await lookupBarcodeInOpenFoodFacts(decodedText);
-        },
-        (error: any) => {
-          // Error de escaneo continuo - se puede ignorar
-        }
-      );
 
     } catch (error) {
       console.error('Error starting barcode scanner:', error);
@@ -189,31 +175,6 @@ export default function ScanPage() {
         barcode
       });
       setIsLoading(false);
-    }
-  };
-
-  const stopScanning = () => {
-    if (html5QrCode) {
-      try {
-        if (html5QrCode.getState() === 2) {
-          html5QrCode.stop().then(() => {
-            html5QrCode.clear();
-            setIsScanning(false);
-            setHtml5QrCode(null);
-          }).catch(() => {
-            setIsScanning(false);
-            setHtml5QrCode(null);
-          });
-        } else {
-          setIsScanning(false);
-          setHtml5QrCode(null);
-        }
-      } catch (error) {
-        setIsScanning(false);
-        setHtml5QrCode(null);
-      }
-    } else {
-      setIsScanning(false);
     }
   };
 
@@ -324,7 +285,7 @@ export default function ScanPage() {
             <button
               onClick={() => {
                 setScanMode('barcode');
-                if (html5QrCode) stopScanning();
+                stopCamera();
               }}
               className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${
                 scanMode === 'barcode'
@@ -337,7 +298,7 @@ export default function ScanPage() {
             <button
               onClick={() => {
                 setScanMode('ai');
-                if (html5QrCode) stopScanning();
+                stopCamera();
               }}
               className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${
                 scanMode === 'ai'
@@ -380,11 +341,6 @@ export default function ScanPage() {
                 ? 'Información nutricional de OpenFoodFacts'
                 : 'Detección automática de múltiples alimentos'}
             </p>
-            {!scannerLibraryLoaded && scanMode === 'barcode' && (
-              <p className="text-xs text-yellow-600 mt-2">
-                Cargando escáner...
-              </p>
-            )}
             {scanMode === 'ai' && !openaiApiKey && (
               <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-xl">
                 <p className="text-sm text-orange-700 font-medium">⚠️ API Key requerida</p>
@@ -398,10 +354,26 @@ export default function ScanPage() {
 
         {isScanning && scanMode === 'barcode' && (
           <div className="mb-6">
-            <div id="scanner-container" ref={scannerRef} className="w-full max-w-md mx-auto"></div>
+            <div className="relative w-full max-w-md mx-auto">
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full rounded-xl"
+                style={{ maxHeight: '300px' }}
+              />
+              <div className="absolute inset-0 border-2 border-blue-500 rounded-xl pointer-events-none">
+                <div className="absolute top-4 left-4 w-6 h-6 border-t-2 border-l-2 border-blue-500"></div>
+                <div className="absolute top-4 right-4 w-6 h-6 border-t-2 border-r-2 border-blue-500"></div>
+                <div className="absolute bottom-4 left-4 w-6 h-6 border-b-2 border-l-2 border-blue-500"></div>
+                <div className="absolute bottom-4 right-4 w-6 h-6 border-b-2 border-r-2 border-blue-500"></div>
+              </div>
+            </div>
             <div className="text-center mt-4">
+              <p className="text-sm text-gray-600 mb-3">Apunta la cámara hacia el código de barras</p>
               <button
-                onClick={stopScanning}
+                onClick={stopCamera}
                 className="bg-red-500 text-white px-6 py-2 rounded-xl font-medium"
               >
                 Detener Escáner
@@ -415,15 +387,10 @@ export default function ScanPage() {
             {scanMode === 'barcode' ? (
               <button
                 onClick={startBarcodeScanner}
-                disabled={!scannerLibraryLoaded}
-                className={`w-full py-4 rounded-xl font-semibold ${
-                  scannerLibraryLoaded
-                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                }`}
+                className="w-full py-4 rounded-xl font-semibold bg-gradient-to-r from-blue-500 to-blue-600 text-white"
               >
                 <i className="ri-camera-line mr-2"></i>
-                {scannerLibraryLoaded ? 'Iniciar Escáner de Cámara' : 'Cargando...'}
+                Iniciar Escáner de Cámara
               </button>
             ) : (
               <>
@@ -758,6 +725,8 @@ export default function ScanPage() {
           className="hidden"
           onChange={handleImageUpload}
         />
+
+        <canvas ref={canvasRef} className="hidden" />
 
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mt-8">
           <h3 className="font-semibold text-gray-800 mb-4">Tecnologías Integradas</h3>
