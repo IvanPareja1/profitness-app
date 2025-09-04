@@ -3,7 +3,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { supabase, callEdgeFunction, getCurrentUser } from '@/lib/supabase';
+import { supabase, callEdgeFunction, getCurrentUser } from '../../lib/supabase';
 import { useRouter } from 'next/navigation';
 
 type BarcodeScannedData = {
@@ -66,22 +66,21 @@ export default function ScanPage() {
     loadStoredApiKey();
     
     return () => {
-      // Cleanup scanner on unmount
-      if (html5QrCode && html5QrCode.isScanning) {
-        html5QrCode.stop().catch(console.error);
-      }
+      cleanupScanner();
     };
   }, []);
 
   const loadStoredApiKey = () => {
-    const storedKey = localStorage.getItem('openai_api_key');
-    if (storedKey) {
-      setOpenaiApiKey(storedKey);
+    if (typeof window !== 'undefined') {
+      const storedKey = localStorage.getItem('openai_api_key');
+      if (storedKey) {
+        setOpenaiApiKey(storedKey);
+      }
     }
   };
 
   const saveApiKey = () => {
-    if (openaiApiKey.trim()) {
+    if (openaiApiKey.trim() && typeof window !== 'undefined') {
       localStorage.setItem('openai_api_key', openaiApiKey.trim());
       setShowApiKeyModal(false);
     }
@@ -103,12 +102,26 @@ export default function ScanPage() {
 
   const loadScannerLibrary = async () => {
     try {
-      // Dynamically import html5-qrcode
-      const { Html5QrcodeScanner } = await import('html5-qrcode');
+      const { Html5Qrcode } = await import('html5-qrcode');
       setScannerLibraryLoaded(true);
     } catch (error) {
       console.error('Error loading scanner library:', error);
       setCameraError('Error al cargar el escáner. Por favor, recarga la página.');
+    }
+  };
+
+  const cleanupScanner = () => {
+    if (html5QrCode) {
+      try {
+        if (html5QrCode.getState() === 2) {
+          html5QrCode.stop().then(() => {
+            html5QrCode.clear();
+          }).catch(console.error);
+        }
+      } catch (error) {
+        console.error('Error cleaning up scanner:', error);
+      }
+      setHtml5QrCode(null);
     }
   };
 
@@ -117,39 +130,38 @@ export default function ScanPage() {
   };
 
   const startBarcodeScanner = async () => {
-    if (!scannerLibraryLoaded || !scannerRef.current) return;
+    if (!scannerLibraryLoaded) return;
     
     setIsScanning(true);
     setCameraError('');
 
     try {
-      const { Html5QrcodeScanner } = await import('html5-qrcode');
+      const { Html5Qrcode } = await import('html5-qrcode');
       
-      const scanner = new Html5QrcodeScanner(
-        "scanner-container",
-        { 
-          fps: 10,
-          qrbox: { width: 250, height: 100 },
-          rememberLastUsedCamera: true,
-          aspectRatio: 1.0
-        },
-        false
-      );
-
+      const scannerElement = document.getElementById("scanner-container");
+      if (scannerElement) {
+        scannerElement.innerHTML = '';
+      }
+      
+      const scanner = new Html5Qrcode("scanner-container");
       setHtml5QrCode(scanner);
 
-      scanner.render(
+      const config = {
+        fps: 10,
+        qrbox: { width: 250, height: 100 },
+        aspectRatio: 1.0
+      };
+
+      await scanner.start(
+        { facingMode: "environment" },
+        config,
         async (decodedText: string) => {
-          // Successfully scanned
           setIsLoading(true);
-          scanner.clear();
-          setIsScanning(false);
-          
+          stopScanning();
           await lookupBarcodeInOpenFoodFacts(decodedText);
         },
         (error: any) => {
-          // Scanning error (can be ignored for continuous scanning)
-          console.log('Scanning...', error);
+          // Error de escaneo continuo - se puede ignorar
         }
       );
 
@@ -181,12 +193,25 @@ export default function ScanPage() {
   };
 
   const stopScanning = () => {
-    if (html5QrCode && html5QrCode.isScanning) {
-      html5QrCode.stop().then(() => {
-        html5QrCode.clear();
+    if (html5QrCode) {
+      try {
+        if (html5QrCode.getState() === 2) {
+          html5QrCode.stop().then(() => {
+            html5QrCode.clear();
+            setIsScanning(false);
+            setHtml5QrCode(null);
+          }).catch(() => {
+            setIsScanning(false);
+            setHtml5QrCode(null);
+          });
+        } else {
+          setIsScanning(false);
+          setHtml5QrCode(null);
+        }
+      } catch (error) {
         setIsScanning(false);
         setHtml5QrCode(null);
-      }).catch(console.error);
+      }
     } else {
       setIsScanning(false);
     }
@@ -196,7 +221,6 @@ export default function ScanPage() {
     const file = event.target.files?.[0];
     if (!file || !user) return;
 
-    // Verificar si tenemos API key de OpenAI
     if (!openaiApiKey) {
       setShowApiKeyModal(true);
       return;
@@ -208,10 +232,8 @@ export default function ScanPage() {
     try {
       const token = (await supabase.auth.getSession()).data.session?.access_token;
       
-      // Convertir imagen a base64
       const base64Image = await convertToBase64(file);
       
-      // Llamar a la Edge Function de IA
       const result = await callEdgeFunction('ai-food-detection', {
         image: base64Image,
         apiKey: openaiApiKey
@@ -224,6 +246,10 @@ export default function ScanPage() {
       setCameraError('Error al procesar la imagen. Verifica tu conexión y la API key.');
       setIsLoading(false);
     }
+
+    if (event.target) {
+      event.target.value = '';
+    }
   };
 
   const convertToBase64 = (file: File): Promise<string> => {
@@ -232,7 +258,6 @@ export default function ScanPage() {
       reader.readAsDataURL(file);
       reader.onload = () => {
         const base64String = reader.result as string;
-        // Remover el prefijo data:image/...;base64,
         const base64Data = base64String.split(',')[1];
         resolve(base64Data);
       };
@@ -247,7 +272,6 @@ export default function ScanPage() {
       const token = (await supabase.auth.getSession()).data.session?.access_token;
       
       if (isBarcodeScannedData(scannedData)) {
-        // Guardar producto escaneado por código de barras
         const foodData = {
           food_name: scannedData.name,
           brand: scannedData.brand || '',
@@ -262,7 +286,6 @@ export default function ScanPage() {
 
         await callEdgeFunction('nutrition-tracker', foodData, token);
       } else {
-        // Guardar alimentos detectados por IA
         for (const item of scannedData.items) {
           const foodData = {
             food_name: item.name,
@@ -280,7 +303,6 @@ export default function ScanPage() {
         }
       }
       
-      // Redirigir a nutrition con mensaje de éxito
       router.push('/nutrition?added=success');
     } catch (error) {
       console.error('Error saving food:', error);
@@ -374,7 +396,6 @@ export default function ScanPage() {
           </div>
         )}
 
-        {/* Scanner Container */}
         {isScanning && scanMode === 'barcode' && (
           <div className="mb-6">
             <div id="scanner-container" ref={scannerRef} className="w-full max-w-md mx-auto"></div>
@@ -470,7 +491,6 @@ export default function ScanPage() {
 
         {scannedData && (
           <div className="space-y-4">
-            {/* Selector de tipo de comida */}
             {!isBarcodeScannedData(scannedData) || !scannedData.error && (
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de comida:</label>
@@ -493,7 +513,6 @@ export default function ScanPage() {
               </div>
             )}
 
-            {/* Render para datos escaneados */}
             <div className={`border rounded-xl p-4 ${
               isBarcodeScannedData(scannedData) && scannedData.error 
                 ? 'bg-red-50 border-red-200' 
@@ -551,7 +570,6 @@ export default function ScanPage() {
                 )}
               </div>
 
-              {/* Mostrar alimentos detectados para IA */}
               {!isBarcodeScannedData(scannedData) && 'items' in scannedData && (
                 <div className="mb-4">
                   <p className="font-medium text-gray-800 mb-3">Alimentos detectados por IA:</p>
@@ -591,7 +609,6 @@ export default function ScanPage() {
                 </div>
               )}
 
-              {/* Información nutricional solo si no hay error */}
               {!(isBarcodeScannedData(scannedData) && scannedData.error) && (
                 <>
                   <div className="grid grid-cols-4 gap-3 mb-4">
@@ -615,7 +632,6 @@ export default function ScanPage() {
                     </div>
                   </div>
 
-                  {/* Información adicional para código de barras exitoso */}
                   {isBarcodeScannedData(scannedData) && !scannedData.error && (
                     <>
                       {((scannedData.fiber && scannedData.fiber > 0) ||
@@ -676,7 +692,6 @@ export default function ScanPage() {
           </div>
         )}
 
-        {/* API Key Modal */}
         {showApiKeyModal && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl p-6 w-full max-w-md">
