@@ -52,7 +52,7 @@ export default function ScanPage() {
   const [videoStream, setVideoStream] = useState<MediaStream | null>(null);
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [openaiApiKey, setOpenaiApiKey] = useState<string>('');
-  const [qrScanner, setQrScanner] = useState<any>(null);
+  const [codeReader, setCodeReader] = useState<any>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -105,9 +105,9 @@ export default function ScanPage() {
       videoStream.getTracks().forEach(track => track.stop());
       setVideoStream(null);
     }
-    if (qrScanner) {
-      qrScanner.stop();
-      setQrScanner(null);
+    if (codeReader) {
+      codeReader.reset();
+      setCodeReader(null);
     }
     setIsScanning(false);
   };
@@ -121,11 +121,18 @@ export default function ScanPage() {
     setCameraError('');
 
     try {
-      // Importación dinámica de la librería QR scanner
-      const QrScanner = (await import('qr-scanner')).default;
+      // Importación dinámica de ZXing
+      const { BrowserMultiFormatReader } = await import('@zxing/library');
+      
+      const reader = new BrowserMultiFormatReader();
+      setCodeReader(reader);
       
       const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'environment' } 
+        video: { 
+          facingMode: 'environment',
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        } 
       });
       
       setVideoStream(stream);
@@ -133,22 +140,14 @@ export default function ScanPage() {
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         
-        const scanner = new QrScanner(
-          videoRef.current,
-          async (result: any) => {
+        // Configurar el lector para detectar códigos de barras
+        reader.decodeFromVideoDevice(undefined, videoRef.current, async (result, error) => {
+          if (result) {
             setIsLoading(true);
             stopCamera();
-            await lookupBarcodeInOpenFoodFacts(result.data);
-          },
-          {
-            returnDetailedScanResult: true,
-            highlightScanRegion: true,
-            highlightCodeOutline: true,
+            await lookupBarcodeInOpenFoodFacts(result.getText());
           }
-        );
-        
-        await scanner.start();
-        setQrScanner(scanner);
+        });
       }
 
     } catch (error) {
