@@ -1,383 +1,2841 @@
+
 'use client';
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { useRouter } from 'next/navigation';
+import BottomNavigation from '../../components/BottomNavigation';
+import { NutritionCalculator } from '../../lib/nutrition-calculator';
+import { fitnessSync, FitnessData } from '../../lib/fitness-sync';
+import { deviceTime } from '../../lib/device-time-utils';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
-export default function ProfilePage() {
-  const [userProfile, setUserProfile] = useState({
-    full_name: '',
-    email: '',
-    age: 0,
-    height: 0,
-    current_weight: 0,
-    target_weight: 0,
-    goal_type: '',
-    activity_level: '',
-    daily_calories_goal: 2100
+export default function Profile() {
+  const [mounted, setMounted] = useState(false);
+  const [language, setLanguage] = useState('es');
+  const [userData, setUserData] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<any>({});
+  const [showLanguageModal, setShowLanguageModal] = useState(false);
+  const [showSyncModal, setShowSyncModal] = useState(false);
+  const [showCalculatorModal, setShowCalculatorModal] = useState(false);
+  const [showRestDayModal, setShowRestDayModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editProfile, setEditProfile] = useState<any>();
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
+  const [syncMessage, setSyncMessage] = useState('');
+  const [fitnessData, setFitnessData] = useState<FitnessData | null>(null);
+  const [calculatorData, setCalculatorData] = useState<any>(null);
+  const [restDayConfig, setRestDayConfig] = useState({
+    enabled: false,
+    selectedDays: [] as string[],
+    reducedCalories: false,
+    calorieReduction: 200
   });
-  const [user, setUser] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [stats, setStats] = useState([
-    { label: 'Días activos', value: '0', icon: 'ri-calendar-check-line', color: 'bg-green-100 text-green-600' },
-    { label: 'Peso perdido', value: '0 kg', icon: 'ri-scales-3-line', color: 'bg-blue-100 text-blue-600' },
-    { label: 'Entrenamientos', value: '0', icon: 'ri-run-line', color: 'bg-purple-100 text-purple-600' },
-    { label: 'Calorías', value: '0k', icon: 'ri-fire-line', color: 'bg-orange-100 text-orange-600' }
-  ]);
+  const [showDonateModal, setShowDonateModal] = useState(false);
+  const [donateAmount, setDonateAmount] = useState(5);
+  const [donateMessage, setDonateMessage] = useState('');
+  const [donateStatus, setDonateStatus] = useState<'idle' | 'processing' | 'success' | 'error'>('idle');
+  const router = useRouter();
 
   useEffect(() => {
-    checkUser();
-  }, []);
+    setMounted(true);
 
-  const checkUser = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    setUser(user);
-    if (user) {
-      loadProfile();
+    if (typeof window === 'undefined') return;
+
+    const isAuthenticated = localStorage.getItem('isAuthenticated');
+    if (!isAuthenticated || isAuthenticated !== 'true') {
+      router.push('/login');
+      return;
     }
-    setIsLoading(false);
-  };
 
-  const loadProfile = async () => {
     try {
-      if (!user) return;
+      const userDataStored = localStorage.getItem('userData');
+      if (userDataStored) {
+        const user = JSON.parse(userDataStored);
+        setUserData(user);
+      }
 
-      // Consultar directamente la tabla user_profiles
-      const { data: profileData, error } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
+      const userProfileStored = localStorage.getItem('userProfile');
+      if (userProfileStored) {
+        const profile = JSON.parse(userProfileStored);
+        setUserProfile(profile);
+        setEditProfile(profile);
+        setLanguage(profile.language || 'es');
+      }
 
-      if (error && error.code === 'PGRST116') {
-        // El perfil no existe, crearlo con datos del usuario
-        const newProfile = {
-          id: user.id,
-          email: user.email,
-          full_name: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Usuario',
-          daily_calories_goal: 2100,
-          daily_protein_goal: 120,
-          daily_carbs_goal: 230,
-          daily_fats_goal: 80,
-          age: user.user_metadata?.age || 25,
-          height: user.user_metadata?.height || 170,
-          current_weight: user.user_metadata?.weight || 70,
-          target_weight: user.user_metadata?.target_weight || 65,
-          goal_type: 'lose_weight',
-          activity_level: 'moderate',
-          gender: user.user_metadata?.gender || 'other'
-        };
+      // Cargar datos de fitness del día actual usando fecha del dispositivo
+      try {
+        const today = deviceTime.getCurrentDate();
+        const todayFitnessData = fitnessSync.getFitnessData(today);
 
-        const { data: createdProfile, error: createError } = await supabase
-          .from('user_profiles')
-          .insert(newProfile)
-          .select()
-          .single();
-
-        if (createError) {
-          console.error('Error creando perfil:', createError);
-        } else {
-          setUserProfile(createdProfile);
-          loadStats();
+        if (todayFitnessData) {
+          setFitnessData(todayFitnessData);
         }
-      } else if (!error && profileData) {
-        setUserProfile(profileData);
-        loadStats();
-      } else {
-        console.error('Error cargando perfil:', error);
+      } catch (error) {
+        console.warn('Error cargando datos fitness con fecha del dispositivo:', error);
+        // Fallback seguro
+        const fallbackToday = new Date().toISOString().split('T')[0];
+        const todayFitnessData = fitnessSync.getFitnessData(fallbackToday);
+
+        if (todayFitnessData) {
+          setFitnessData(todayFitnessData);
+        }
+      }
+
+      // Cargar configuración de días de descanso
+      const restConfig = localStorage.getItem('restDaySettings');
+      if (restConfig) {
+        setRestDayConfig(JSON.parse(restConfig));
       }
     } catch (error) {
-      console.error('Error cargando perfil:', error);
+      console.log('Error loading user data:', error);
+    }
+  }, [router]);
+
+  const translations = {
+    es: {
+      profile: 'Perfil',
+      quickActions: 'Acciones Rápidas',
+      language: 'Idioma',
+      changeLanguage: 'Cambiar idioma',
+      sync: 'Sincronizar',
+      fitnessData: 'Datos fitness',
+      calculator: 'Calculadora',
+      nutritionTargets: 'Objetivos nutricionales',
+      rest: 'Descanso',
+      configureRest: 'Configurar descanso',
+      personalInfo: 'Información Personal',
+      edit: 'Editar',
+      name: 'Nombre',
+      email: 'Email',
+      age: 'Edad',
+      height: 'Altura',
+      weight: 'Peso',
+      activity: 'Actividad',
+      goal: 'Objetivo',
+      goalLose: 'Pérdida de peso',
+      goalMaintain: 'Mantenimiento',
+      goalMuscle: 'Ganar músculo',
+      nutritionGoals: 'Objetivos Nutricionales',
+      calories: 'Calorías',
+      protein: 'Proteínas',
+      carbs: 'Carbohidratos',
+      fats: 'Grasas',
+      autoCalculate: 'Cálculo automático',
+      logout: 'Cerrar Sesión',
+      save: 'Guardar',
+      cancel: 'Cancelar',
+      selectLanguage: 'Seleccionar Idioma',
+      spanish: 'Español',
+      english: 'English',
+      syncData: 'Sincronizar Datos',
+      syncDescription: 'Sincroniza tus datos con dispositivos fitness',
+      syncNow: 'Sincronizar Ahora',
+      syncing: 'Sincronizando...',
+      syncSuccess: 'Sincronización exitosa',
+      syncError: 'Error en sincronización',
+      requestPermissions: 'Solicitar Permisos',
+      nutritionCalculator: 'Calculadora Nutricional',
+      calculateTargets: 'Calcular Objetivos',
+      restDayConfig: 'Configuración de Descanso',
+      restDayDescription: 'Configura tus días de descanso',
+      configure: 'Configurar',
+      steps: 'Pasos',
+      activeMinutes: 'Minutos activos',
+      heartRate: 'Ritmo cardíaco',
+      distance: 'Distancia',
+      lastSync: 'Última sincronización',
+      fitnessDataTitle: 'Datos de Fitness Hoy',
+      enableRestDays: 'Habilitar días de descanso',
+      selectDays: 'Seleccionar días',
+      monday: 'Lunes',
+      tuesday: 'Martes',
+      wednesday: 'Miércoles',
+      thursday: 'Jueves',
+      friday: 'Viernes',
+      saturday: 'Sábado',
+      sunday: 'Domingo',
+      reduceCalories: 'Reducir calorías en días de descanso',
+      calorieReduction: 'Reducción de calorías',
+      applied: 'Aplicado',
+      syncWithDevice: 'Sincronizar con dispositivo',
+      permissionsNeeded: 'Se requieren permisos para sincronizar',
+      donate: 'Donar',
+      supportApp: 'Apoyar la aplicación',
+      donateTitle: 'Apoya ProFitness',
+      donateDescription: 'Tu apoyo nos ayuda a mantener la aplicación gratuita y mejorar constantemente',
+      donateAmount: 'Selecciona el monto',
+      donateMessage: 'Mensaje opcional',
+      donateSuccess: 'Donación realizada exitosamente',
+      donateError: 'Error al procesar la donación',
+      thankYou: 'Gracias por tu apoyo',
+      donate5: '$5 - Café',
+      donate10: '$10 - Almuerzo',
+      donate20: '$20 - Cena',
+      donateCustom: 'Monto personalizado',
+      processing: 'Procesando...'
+    },
+    en: {
+      profile: 'Profile',
+      quickActions: 'Quick Actions',
+      language: 'Language',
+      changeLanguage: 'Change language',
+      sync: 'Sync',
+      fitnessData: 'Fitness data',
+      calculator: 'Calculator',
+      nutritionTargets: 'Nutrition targets',
+      rest: 'Rest',
+      configureRest: 'Configure rest',
+      personalInfo: 'Personal Information',
+      edit: 'Edit',
+      name: 'Name',
+      email: 'Email',
+      age: 'Age',
+      height: 'Height',
+      weight: 'Weight',
+      activity: 'Activity',
+      goal: 'Goal',
+      goalLose: 'Weight loss',
+      goalMaintain: 'Maintenance',
+      goalMuscle: 'Gain muscle',
+      nutritionGoals: 'Nutrition Goals',
+      calories: 'Calories',
+      protein: 'Protein',
+      carbs: 'Carbs',
+      fats: 'Fats',
+      autoCalculate: 'Auto calculate',
+      logout: 'Logout',
+      save: 'Save',
+      cancel: 'Cancel',
+      selectLanguage: 'Select Language',
+      spanish: 'Español',
+      english: 'English',
+      syncData: 'Sync Data',
+      syncDescription: 'Sync your data with fitness devices',
+      syncNow: 'Sync Now',
+      syncing: 'Syncing...',
+      syncSuccess: 'Sync successful',
+      syncError: 'Sync error',
+      requestPermissions: 'Request Permissions',
+      nutritionCalculator: 'Nutrition Calculator',
+      calculateTargets: 'Calculate Targets',
+      restDayConfig: 'Rest Day Configuration',
+      restDayDescription: 'Configure your rest days',
+      configure: 'Configure',
+      steps: 'Steps',
+      activeMinutes: 'Active minutes',
+      heartRate: 'Heart rate',
+      distance: 'Distance',
+      lastSync: 'Last sync',
+      fitnessDataTitle: 'Today\'s Fitness Data',
+      enableRestDays: 'Enable rest days',
+      selectDays: 'Select days',
+      monday: 'Monday',
+      tuesday: 'Tuesday',
+      wednesday: 'Wednesday',
+      thursday: 'Thursday',
+      friday: 'Friday',
+      saturday: 'Saturday',
+      sunday: 'Sunday',
+      reduceCalories: 'Reduce calories on rest days',
+      calorieReduction: 'Calorie reduction',
+      applied: 'Applied',
+      syncWithDevice: 'Sync with device',
+      permissionsNeeded: 'Permissions needed to sync',
+      donate: 'Donate',
+      supportApp: 'Support the app',
+      donateTitle: 'Support ProFitness',
+      donateDescription: 'Your support helps us keep the app free and constantly improving',
+      donateAmount: 'Select amount',
+      donateMessage: 'Optional message',
+      donateSuccess: 'Donation completed successfully',
+      donateError: 'Error processing donation',
+      thankYou: 'Thank you for your support',
+      donate5: '$5 - Coffee',
+      donate10: '$10 - Lunch',
+      donate20: '$20 - Dinner',
+      donateCustom: 'Custom amount',
+      processing: 'Processing...'
     }
   };
 
-  const loadStats = async () => {
+  const t = translations[language as keyof typeof translations] || translations.es;
+
+  const handleSyncFitnessData = async () => {
+    setSyncStatus('syncing');
+    setSyncMessage(t.syncing);
+
     try {
-      if (!user) return;
+      // Verificar si hay permisos
+      if (!fitnessSync.hasPermissions()) {
+        const permissionGranted = await fitnessSync.requestFitnessPermissions();
+        if (!permissionGranted) {
+          setSyncStatus('error');
+          setSyncMessage(t.permissionsNeeded);
+          return;
+        }
+      }
 
-      // Cargar estadísticas reales de la base de datos
-      const { data: workouts } = await supabase
-        .from('workouts')
-        .select('*')
-        .eq('user_id', user?.id);
+      // Sincronizar datos usando fecha del dispositivo
+      try {
+        const today = deviceTime.getCurrentDate();
+        const syncResult = await fitnessSync.syncFitnessData(today);
 
-      const { data: weightRecords } = await supabase
-        .from('weight_records')
-        .select('*')
-        .eq('user_id', user?.id)
-        .order('recorded_at', { ascending: true });
+        if (syncResult.success && syncResult.data) {
+          setFitnessData(syncResult.data);
+          setSyncStatus('success');
+          setSyncMessage(t.syncSuccess);
 
-      const { data: dailyNutrition } = await supabase
-        .from('daily_nutrition')
-        .select('total_calories')
-        .eq('user_id', user?.id);
+          // Actualizar perfil con datos sincronizados
+          const updatedProfile = {
+            ...userProfile,
+            lastSyncTime: deviceTime.createTimestamp(), // Usar timestamp del dispositivo
+            syncEnabled: true
+          };
+          setUserProfile(updatedProfile);
+          localStorage.setItem('userProfile', JSON.stringify(updatedProfile));
+        } else {
+          setSyncStatus('error');
+          setSyncMessage(syncResult.error || t.syncError);
+        }
+      } catch (error) {
+        console.warn('Error en sincronización con fecha del dispositivo, intentando fallback:', error);
+        // Fallback seguro
+        const fallbackToday = new Date().toISOString().split('T')[0];
+        const syncResult = await fitnessSync.syncFitnessData(fallbackToday);
 
-      // Calcular estadísticas
-      const totalWorkouts = workouts?.length || 0;
-      const totalCalories = dailyNutrition?.reduce((sum, day) => sum + (day.total_calories || 0), 0) || 0;
-      const weightLost = (weightRecords && weightRecords.length >= 2) 
-        ? (weightRecords[0].weight - weightRecords[weightRecords.length - 1].weight).toFixed(1)
-        : '0.0';
-
-      // Días activos (aproximado basado en registros)
-      const activeDays = Math.min(23, Math.max(totalWorkouts, dailyNutrition?.length || 0));
-
-      setStats([
-        { label: 'Días activos', value: activeDays.toString(), icon: 'ri-calendar-check-line', color: 'bg-green-100 text-green-600' },
-        { label: 'Peso perdido', value: `${weightLost} kg`, icon: 'ri-scales-3-line', color: 'bg-blue-100 text-blue-600' },
-        { label: 'Entrenamientos', value: totalWorkouts.toString(), icon: 'ri-run-line', color: 'bg-purple-100 text-purple-600' },
-        { label: 'Calorías', value: `${(totalCalories / 1000).toFixed(1)}k`, icon: 'ri-fire-line', color: 'bg-orange-100 text-orange-600' }
-      ]);
+        if (syncResult.success && syncResult.data) {
+          setFitnessData(syncResult.data);
+          setSyncStatus('success');
+          setSyncMessage(t.syncSuccess);
+        } else {
+          setSyncStatus('error');
+          setSyncMessage(syncResult.error || t.syncError);
+        }
+      }
     } catch (error) {
-      console.error('Error cargando estadísticas:', error);
+      setSyncStatus('error');
+      setSyncMessage(t.syncError);
+    }
+
+    // Resetear estado después de 3 segundos
+    setTimeout(() => {
+      setSyncStatus('idle');
+      setSyncMessage('');
+    }, 3000);
+  };
+
+  const handleCalculateNutrition = () => {
+    if (!editProfile.age || !editProfile.weight || !editProfile.height) {
+      alert('Por favor completa tu información personal primero');
+      return;
+    }
+
+    const targets = NutritionCalculator.calculateNutritionTargets({
+      age: editProfile.age,
+      weight: editProfile.weight,
+      height: editProfile.height,
+      gender: editProfile.gender || 'male',
+      activityLevel: editProfile.activityLevel || 'moderate',
+      workActivity: editProfile.workActivity || 'moderate',
+      goal: editProfile.goal || 'maintain'
+    });
+
+    setCalculatorData(targets);
+
+    // Actualizar perfil automáticamente
+    const updatedProfile = {
+      ...userProfile,
+      targetCalories: targets.targetCalories,
+      targetProtein: targets.targetProtein,
+      targetCarbs: targets.targetCarbs,
+      targetFats: targets.targetFats,
+      lastCalculation: new Date().toISOString()
+    };
+
+    setUserProfile(updatedProfile);
+    localStorage.setItem('userProfile', JSON.stringify(updatedProfile));
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('profileUpdated'));
+    }
+
+    // Show success message
+    const successMessage = document.createElement('div');
+    successMessage.style.cssText = `
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #dcfce7;
+      border: 1px solid #bbf7d0;
+      color: #16a34a;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      z-index: 1000;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    `;
+    successMessage.textContent = 'Objetivos calculados y guardados exitosamente';
+
+    document.body.appendChild(successMessage);
+
+    setTimeout(() => {
+      if (document.body.contains(successMessage)) {
+        document.body.removeChild(successMessage);
+      }
+    }, 3000);
+  };
+
+  const handleRestDayConfig = () => {
+    localStorage.setItem('restDaySettings', JSON.stringify(restDayConfig));
+
+    // Aplicar configuración de descanso si es día de descanso
+    try {
+      // Usar detección de día de la semana del dispositivo de forma segura
+      const timezone = deviceTime.getTimezone();
+      const locale = deviceTime.getLocale();
+
+      const today = new Date().toLocaleDateString(locale, {
+        weekday: 'long',
+        timeZone: timezone
+      });
+      const todayKey = getDayKey(today);
+
+      if (restDayConfig.enabled && restDayConfig.selectedDays.includes(todayKey)) {
+        // Aplicar reducción de calorías si está habilitada
+        if (restDayConfig.reducedCalories) {
+          const updatedProfile = {
+            ...userProfile,
+            restDayActive: true,
+            adjustedCalories: (userProfile.targetCalories || 2000) - restDayConfig.calorieReduction
+          };
+          setUserProfile(updatedProfile);
+          localStorage.setItem('userProfile', JSON.stringify(updatedProfile));
+        }
+      }
+    } catch (error) {
+      console.warn('Error aplicando configuración de día de descanso:', error);
+      // Continuar sin aplicar configuración específica si hay error
     }
   };
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    window.location.reload();
+  const getDayKey = (dayName: string): string => {
+    const dayMap: { [key: string]: string } = {
+      'lunes': 'monday',
+      'martes': 'tuesday',
+      'miércoles': 'wednesday',
+      'jueves': 'thursday',
+      'viernes': 'friday',
+      'sábado': 'saturday',
+      'domingo': 'sunday'
+    };
+    return dayMap[dayName.toLowerCase()] || dayName;
   };
 
-  const getGoalText = (goalType: string) => {
-    switch (goalType) {
-      case 'lose_weight': return 'Perder peso';
-      case 'gain_muscle': return 'Ganar músculo';
-      case 'maintain_weight': return 'Mantener peso';
-      default: return 'Sin objetivo definido';
+  const toggleRestDay = (day: string) => {
+    const newSelectedDays = restDayConfig.selectedDays.includes(day)
+      ? restDayConfig.selectedDays.filter(d => d !== day)
+      : [...restDayConfig.selectedDays, day];
+
+    setRestDayConfig({
+      ...restDayConfig,
+      selectedDays: newSelectedDays
+    });
+  };
+
+  const handleSaveProfile = () => {
+    try {
+      if (editProfile.autoCalculate && editProfile.age && editProfile.weight && editProfile.height) {
+        const targets = NutritionCalculator.calculateNutritionTargets({
+          age: editProfile.age,
+          weight: editProfile.weight,
+          height: editProfile.height,
+          gender: editProfile.gender || 'male',
+          activityLevel: editProfile.activityLevel || 'moderate',
+          workActivity: editProfile.workActivity || 'moderate',
+          goal: editProfile.goal || 'maintain'
+        });
+
+        const updatedProfile = {
+          ...editProfile,
+          targetCalories: targets.targetCalories,
+          targetProtein: targets.targetProtein,
+          targetCarbs: targets.targetCarbs,
+          targetFats: targets.targetFats
+        };
+
+        setUserProfile(updatedProfile);
+        localStorage.setItem('userProfile', JSON.stringify(updatedProfile));
+      } else {
+        localStorage.setItem('userProfile', JSON.stringify(editProfile));
+        setUserProfile(editProfile);
+      }
+
+      setShowEditModal(false);
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('profileUpdated'));
+      }
+    } catch (error) {
+      console.log('Error saving profile:', error);
     }
   };
 
-  const getActivityText = (activityLevel: string) => {
-    switch (activityLevel) {
-      case 'sedentary': return 'Sedentario';
-      case 'light': return 'Ligeramente activo';
-      case 'moderate': return 'Moderadamente activo';
-      case 'active': return 'Muy activo';
-      case 'very_active': return 'Extremadamente activo';
-      default: return 'No definido';
+  const handleLanguageChange = (newLanguage: string) => {
+    const updatedProfile = { ...userProfile, language: newLanguage };
+    setUserProfile(updatedProfile);
+    setLanguage(newLanguage);
+    localStorage.setItem('userProfile', JSON.stringify(updatedProfile));
+    setShowLanguageModal(false);
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('profileUpdated'));
     }
   };
 
-  // Calcular IMC
-  const calculateBMI = () => {
-    if (userProfile.height > 0 && userProfile.current_weight > 0) {
-      return (userProfile.current_weight / Math.pow(userProfile.height / 100, 2)).toFixed(1);
+  const handleLogout = () => {
+    try {
+      const userData = localStorage.getItem('userData');
+      const userProfile = localStorage.getItem('userProfile');
+      const userProfilePhoto = localStorage.getItem('userProfilePhoto');
+
+      if (userData) {
+        const user = JSON.parse(userData);
+        const userEmail = user.email;
+        const userKey = `user_${userEmail}`;
+
+        const nutritionData: { [key: string]: string } = {};
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith('nutrition_')) {
+            const value = localStorage.getItem(key);
+            if (value) {
+              nutritionData[key] = value;
+            }
+          }
+        }
+
+        const restDaySettings = localStorage.getItem('restDaySettings');
+        const hydrationReminder = localStorage.getItem('hydrationReminder');
+        const healthData = localStorage.getItem('healthData');
+
+        const userBackup = {
+          userData: user,
+          userProfile: userProfile ? JSON.parse(userProfile) : null,
+          userProfilePhoto: userProfilePhoto,
+          nutritionData: nutritionData,
+          restDaySettings: restDaySettings,
+          hydrationReminder: hydrationReminder,
+          healthData: healthData,
+          lastLogin: new Date().toISOString(),
+          lastLogout: new Date().toISOString()
+        };
+
+        localStorage.setItem(userKey, JSON.stringify(userBackup));
+      }
+    } catch (error) {
+      console.error('Error al guardar datos antes del logout:', error);
     }
-    return '0.0';
+
+    localStorage.removeItem('isAuthenticated');
+    localStorage.removeItem('userData');
+    localStorage.removeItem('userProfile');
+    localStorage.removeItem('userProfilePhoto');
+
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i);
+      if (key && (key.startsWith('nutrition_') || key === 'restDaySettings' || key === 'hydrationReminder' || key === 'healthData')) {
+        localStorage.removeItem(key);
+      }
+    }
+
+    setTimeout(() => {
+      router.push('/login');
+    }, 1500);
+  };
+
+  const getGoalText = (goal: string) => {
+    switch (goal) {
+      case 'lose':
+        return t.goalLose;
+      case 'maintain':
+        return t.goalMaintain;
+      case 'muscle':
+        return t.goalMuscle;
+      default:
+        return t.goalMaintain;
+    }
+  };
+
+  const getGoalIcon = (goal: string) => {
+    switch (goal) {
+      case 'lose':
+        return 'ri-arrow-down-line';
+      case 'maintain':
+        return 'ri-pause-line';
+      case 'muscle':
+        return 'ri-building-line';
+      default:
+        return 'ri-pause-line';
+    }
+  };
+
+  const getGoalColor = (goal: string) => {
+    switch (goal) {
+      case 'lose':
+        return '#ef4444';
+      case 'maintain':
+        return '#3b82f6';
+      case 'muscle':
+        return '#16a34a';
+      default:
+        return '#3b82f6';
+    }
+  };
+
+  const calculateBMI = (weight: number, height: number) => {
+    if (!weight || !height) return 0;
+    const heightInMeters = height / 100;
+    return weight / (heightInMeters * heightInMeters);
   };
 
   const getBMICategory = (bmi: number) => {
-    if (bmi < 18.5) return 'Bajo peso';
-    if (bmi < 25) return 'Peso normal';
-    if (bmi < 30) return 'Sobrepeso';
-    return 'Obesidad';
+    if (bmi < 18.5) return { category: 'Bajo peso', color: '#3b82f6' };
+    if (bmi < 25) return { category: 'Normal', color: '#10b981' };
+    if (bmi < 30) return { category: 'Sobrepeso', color: '#f59e0b' };
+    return { category: 'Obesidad', color: '#ef4444' };
   };
 
-  const menuItems = [
-    { icon: 'ri-user-settings-line', title: 'Editar Perfil', subtitle: 'Actualizar información personal', href: '/profile/edit' },
-    { icon: 'ri-target-line', title: 'Objetivos', subtitle: 'Configurar metas nutricionales', href: '/profile/goals' },
-    { icon: 'ri-scales-3-line', title: 'Control de Peso', subtitle: 'Registrar y seguir peso', href: '/weight' },
-    { icon: 'ri-drop-line', title: 'Hidratación', subtitle: 'Registrar consumo de líquidos', href: '/hydration' },
-    { icon: 'ri-zzz-line', title: 'Días de Descanso', subtitle: 'Configurar días sin entrenamiento', href: '/rest-day' },
-    { icon: 'ri-notification-line', title: 'Notificaciones', subtitle: 'Recordatorios y alertas', href: '/profile/notifications' },
-    { icon: 'ri-pie-chart-line', title: 'Exportar Datos', subtitle: 'Descargar tu información', href: '/profile/export' },
-    { icon: 'ri-shield-check-line', title: 'Privacidad', subtitle: 'Configuración de privacidad', href: '/profile/privacy' },
-    { icon: 'ri-question-line', title: 'Ayuda y Soporte', subtitle: 'FAQ y contacto', href: '/profile/help' }
-  ];
+  const getBMIRecommendations = (bmi: number) => {
+    if (bmi < 18.5) {
+      return [
+        'Considera aumentar la ingesta calórica',
+        'Incluye ejercicios de fuerza',
+        'Consulta con un nutricionista',
+        'Monitorea tu progreso regularmente'
+      ];
+    }
+    if (bmi < 25) {
+      return [
+        'Mantén tus hábitos actuales',
+        'Continúa con ejercicio regular',
+        'Mantén una dieta equilibrada',
+        'Revisa tus objetivos periódicamente'
+      ];
+    }
+    if (bmi < 30) {
+      return [
+        'Considera crear un déficit calórico',
+        'Aumenta la actividad física',
+        'Reduce porciones gradualmente',
+        'Incluye más verduras y proteínas'
+      ];
+    }
+    return [
+      'Consulta con un profesional de salud',
+      'Crea un plan de pérdida de peso',
+      'Prioriza ejercicio cardiovascular',
+      'Considera apoyo nutricional especializado'
+    ];
+  };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500"></div>
+  const handleDonate = async () => {
+    setDonateStatus('processing');
+
+    try {
+      // Simulamos proceso de donación
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Aquí integrarías con tu pasarela de pagos preferida
+      // Por ejemplo: PayPal, Stripe, Mercado Pago, etc.
+
+      setDonateStatus('success');
+
+      // Mostrar mensaje de agradecimiento
+      const successMessage = document.createElement('div');
+      successMessage.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+        border: 2px solid #16a34a;
+        border-radius: 16px;
+        padding: 24px;
+        z-index: 3000;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+        text-align: center;
+        max-width: 300px;
+        width: 90%;
+      `;
+      successMessage.innerHTML = `
+        <div style="width: 64px; height: 64px; background: #16a34a; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+          <i class="ri-heart-fill" style="color: white; font-size: 28px;"></i>
+        </div>
+        <h3 style="font-size: 18px; font-weight: 600; color: #15803d; margin: 0 0 8px 0;">${t.thankYou}</h3>
+        <p style="font-size: 14px; color: #16a34a; margin: 0;">Tu apoyo significa mucho para nosotros</p>
+      `;
+
+      document.body.appendChild(successMessage);
+
+      setTimeout(() => {
+        if (document.body.contains(successMessage)) {
+          document.body.removeChild(successMessage);
+        }
+        setShowDonateModal(false);
+        setDonateStatus('idle');
+        setDonateAmount(5);
+        setDonateMessage('');
+      }, 3000);
+
+    } catch (error) {
+      setDonateStatus('error');
+      setTimeout(() => {
+        setDonateStatus('idle');
+      }, 3000);
+    }
+  };
+
+  const handlePatreonDonate = () => {
+    // Redirigir a tu página de Patreon
+    const patreonUrl = 'https://www.patreon.com/IvanPareja'; // Reemplaza con tu URL de Patreon
+    window.open(patreonUrl, '_blank', 'noopener,noreferrer');
+
+    // Cerrar el modal de donación
+    setShowDonateModal(false);
+
+    // Mostrar mensaje de agradecimiento
+    const thankYouMessage = document.createElement('div');
+    thankYouMessage.style.cssText = `
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+      border: 1px solid #f59e0b;
+      border-radius: 12px;
+      padding: 16px 24px;
+      z-index: 3000;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      max-width: 320px;
+      width: 90%;
+    `;
+    thankYouMessage.innerHTML = `
+      <div style="width: 24px; height: 24px; background: #f59e0b; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+        <i class="ri-external-link-line" style="color: white; font-size: 14px;"></i>
       </div>
-    );
-  }
+      <div>
+        <p style="font-size: 14px; font-weight: 600; color: #92400e; margin: 0;">Redirigiendo a Patreon</p>
+        <p style="font-size: 12px; color: #f59e0b; margin: 0;">¡Gracias por considerar apoyarnos!</p>
+      </div>
+    `;
 
-  if (!user) {
+    document.body.appendChild(thankYouMessage);
+
+    setTimeout(() => {
+      if (document.body.contains(thankYouMessage)) {
+        document.body.removeChild(thankYouMessage);
+      }
+    }, 4000);
+  };
+
+  if (!mounted) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 flex items-center justify-center px-4">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-pink-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <i className="ri-user-line text-pink-600 text-2xl"></i>
-          </div>
-          <h2 className="text-xl font-bold text-gray-800 mb-2">Inicia Sesión</h2>
-          <p className="text-gray-600 mb-4">Para acceder a tu perfil necesitas una cuenta</p>
-          <button 
-            onClick={() => supabase.auth.signInWithOAuth({ provider: 'google' })}
-            className="bg-pink-500 text-white px-6 py-3 rounded-xl font-medium"
-          >
-            Iniciar Sesión
-          </button>
+      <div style={{
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #f0f9ff 0%, #e0e7ff 100%)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <div style={{
+          width: '32px',
+          height: '32px',
+          border: '3px solid #e5e7eb',
+          borderTop: '3px solid #3b82f6',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }}><style jsx>{`
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          `}</style>
         </div>
       </div>
     );
   }
-
-  const bmiValue = parseFloat(calculateBMI());
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50">
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #f0f9ff 0%, #e0e7ff 100%)'
+    }}>
       {/* Header */}
-      <div className="fixed top-0 w-full bg-white/90 backdrop-blur-md z-50 px-4 py-4 shadow-sm">
-        <div className="flex items-center justify-between">
-          <Link href="/" className="w-8 h-8 flex items-center justify-center">
-            <i className="ri-arrow-left-line text-gray-600 text-lg"></i>
-          </Link>
-          <h1 className="text-lg font-bold text-gray-800">Mi Perfil</h1>
-          <Link href="/profile/edit" className="w-8 h-8 flex items-center justify-center">
-            <i className="ri-settings-line text-gray-600 text-lg"></i>
-          </Link>
-        </div>
-      </div>
+      <header style={{
+        padding: '20px 16px',
+        background: 'white',
+        borderBottom: '1px solid #e5e7eb'
+      }}>
+        <h1 style={{
+          fontSize: '24px',
+          fontWeight: '700',
+          color: '#1f2937',
+          margin: 0
+        }}>
+          {t.profile}
+        </h1>
+      </header>
 
-      {/* Content */}
-      <div className="pt-20 pb-24 px-4">
-        {/* User Profile Card */}
-        <div className="bg-white rounded-2xl p-6 mb-6 shadow-sm">
-          <div className="flex items-center mb-4">
-            <div className="w-16 h-16 bg-gradient-to-br from-pink-400 to-purple-500 rounded-2xl flex items-center justify-center mr-4">
-              <span className="text-white text-xl font-bold">
-                {userProfile.full_name?.charAt(0)?.toUpperCase() || 'U'}
+      {/* Main Content */}
+      <main style={{
+        padding: '24px 16px 100px 16px'
+      }}>
+        {/* Profile Header */}
+        <div style={{
+          background: 'white',
+          borderRadius: '20px',
+          padding: '24px',
+          boxShadow: '0 4px 6px rgba(0,0,0,0.07)',
+          marginBottom: '24px',
+          textAlign: 'center'
+        }}>
+          <div style={{
+            width: '80px',
+            height: '80px',
+            background: userData?.picture ? `url(${userData.picture})` : 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 16px auto'
+          }}>
+            {!userData?.picture && (
+              <span style={{
+                color: 'white',
+                fontWeight: '600',
+                fontSize: '24px'
+              }}>
+                {userData?.name ? userData.name.charAt(0).toUpperCase() : 'U'}
               </span>
-            </div>
-            <div className="flex-1">
-              <h2 className="text-xl font-bold text-gray-800">{userProfile.full_name || 'Usuario'}</h2>
-              <p className="text-sm text-gray-600">{userProfile.email || user.email}</p>
-              <p className="text-xs text-gray-500">Miembro activo</p>
-            </div>
+            )}
           </div>
-
-          <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50 rounded-xl">
-            <div className="text-center">
-              <p className="text-lg font-bold text-gray-800">{userProfile.current_weight || 0} kg</p>
-              <p className="text-xs text-gray-500">Peso Actual</p>
-            </div>
-            <div className="text-center">
-              <p className="text-lg font-bold text-gray-800">{userProfile.height || 0} cm</p>
-              <p className="text-xs text-gray-500">Altura</p>
-            </div>
-            <div className="text-center">
-              <p className="text-lg font-bold text-purple-600">{calculateBMI()}</p>
-              <p className="text-xs text-gray-500">IMC</p>
-            </div>
-          </div>
-
-          {bmiValue > 0 && (
-            <div className="mt-4 p-3 bg-purple-50 rounded-xl">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-800">IMC: {getBMICategory(bmiValue)}</p>
-                  <p className="text-xs text-gray-600">Valor: {calculateBMI()}</p>
-                </div>
-                <div className="w-16 h-2 bg-gray-200 rounded-full">
-                  <div 
-                    className="h-2 rounded-full bg-purple-500"
-                    style={{ width: `${Math.min((bmiValue / 35) * 100, 100)}%` }}
-                  ></div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="mt-4 p-3 bg-pink-50 rounded-xl">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-800">Meta Actual</p>
-                <p className="text-xs text-gray-600">
-                  {getGoalText(userProfile.goal_type)} • {getActivityText(userProfile.activity_level)}
-                </p>
-              </div>
-              <Link href="/profile/goals" className="text-pink-600 text-xs font-medium">
-                Cambiar
-              </Link>
-            </div>
-          </div>
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          {stats.map((stat, index) => (
-            <div key={index} className="bg-white rounded-2xl p-4 shadow-sm">
-              <div className="flex items-center">
-                <div className={`w-10 h-10 ${stat.color} rounded-lg flex items-center justify-center mr-3`}>
-                  <i className={`${stat.icon} text-sm`}></i>
-                </div>
-                <div>
-                  <p className="text-lg font-bold text-gray-800">{stat.value}</p>
-                  <p className="text-xs text-gray-500">{stat.label}</p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Menu Options */}
-        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-          {menuItems.map((item, index) => (
-            <Link 
-              key={index} 
-              href={item.href}
-              className={`flex items-center p-4 ${index !== menuItems.length - 1 ? 'border-b border-gray-50' : ''} hover:bg-gray-50`}
-            >
-              <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center mr-4">
-                <i className={`${item.icon} text-gray-600 text-sm`}></i>
-              </div>
-              <div className="flex-1">
-                <p className="font-medium text-gray-800">{item.title}</p>
-                <p className="text-xs text-gray-500">{item.subtitle}</p>
-              </div>
-              <i className="ri-arrow-right-s-line text-gray-400"></i>
-            </Link>
-          ))}
-        </div>
-
-        {/* Sign Out */}
-        <div className="mt-6">
-          <button 
-            onClick={handleSignOut}
-            className="w-full bg-red-50 text-red-600 py-4 rounded-2xl font-medium"
+          <h2 style={{
+            fontSize: '20px',
+            fontWeight: '600',
+            color: '#1f2937',
+            margin: '0 0 4px 0'
+          }}>
+            {userData?.name || 'Usuario'}
+          </h2>
+          <p style={{
+            color: '#6b7280',
+            fontSize: '14px',
+            margin: '0 0 16px 0'
+          }}>
+            {userData?.email || 'usuario@email.com'}
+          </p>
+          <button
+            onClick={() => setShowEditModal(true)}
+            className="!rounded-button"
+            style={{
+              padding: '8px 16px',
+              background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '20px',
+              fontSize: '14px',
+              fontWeight: '500',
+              cursor: 'pointer'
+            }}
           >
-            Cerrar Sesión
+            {t.edit}
           </button>
         </div>
 
-        {/* App Info */}
-        <div className="mt-6 text-center">
-          <p className="text-xs text-gray-400">ProFitness v1.0.0</p>
-          <p className="text-xs text-gray-400 mt-1">Hecho con ❤️ para tu salud</p>
-        </div>
-      </div>
+        {/* Fitness Data Card */}
+        {fitnessData && (
+          <div style={{
+            background: 'white',
+            borderRadius: '20px',
+            padding: '24px',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.07)',
+            marginBottom: '24px'
+          }}>
+            <h3 style={{
+              fontSize: '18px',
+              fontWeight: '600',
+              color: '#1f2937',
+              margin: '0 0 16px 0'
+            }}>
+              {t.fitnessDataTitle}
+            </h3>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, 1fr)',
+              gap: '16px'
+            }}>
+              <div style={{
+                textAlign: 'center',
+                padding: '16px',
+                background: '#f0f9ff',
+                borderRadius: '12px'
+              }}>
+                <i className="ri-walk-line" style={{ fontSize: '24px', color: '#3b82f6', marginBottom: '8px' }}></i>
+                <p style={{
+                  fontSize: '20px',
+                  fontWeight: '600',
+                  color: '#1f2937',
+                  margin: '0 0 4px 0'
+                }}>
+                  {fitnessData.steps.toLocaleString()}
+                </p>
+                <p style={{
+                  fontSize: '12px',
+                  color: '#6b7280',
+                  margin: 0
+                }}>
+                  {t.steps}
+                </p>
+              </div>
+              <div style={{
+                textAlign: 'center',
+                padding: '16px',
+                background: '#f0fdf4',
+                borderRadius: '12px'
+              }}>
+                <i className="ri-time-line" style={{ fontSize: '24px', color: '#16a34a', marginBottom: '8px' }}></i>
+                <p style={{
+                  fontSize: '20px',
+                  fontWeight: '600',
+                  color: '#1f2937',
+                  margin: '0 0 4px 0'
+                }}>
+                  {fitnessData.activeMinutes}
+                </p>
+                <p style={{
+                  fontSize: '12px',
+                  color: '#6b7280',
+                  margin: 0
+                }}>
+                  {t.activeMinutes}
+                </p>
+              </div>
+              <div style={{
+                textAlign: 'center',
+                padding: '16px',
+                background: '#fef3c7',
+                borderRadius: '12px'
+              }}>
+                <i className="ri-heart-pulse-line" style={{ fontSize: '24px', color: '#f59e0b', marginBottom: '8px' }}></i>
+                <p style={{
+                  fontSize: '20px',
+                  fontWeight: '600',
+                  color: '#1f2937',
+                  margin: '0 0 4px 0'
+                }}>
+                  {fitnessData.heartRate}
+                </p>
+                <p style={{
+                  fontSize: '12px',
+                  color: '#6b7280',
+                  margin: 0
+                }}>
+                  {t.heartRate}
+                </p>
+              </div>
+              <div style={{
+                textAlign: 'center',
+                padding: '16px',
+                background: '#fef2f2',
+                borderRadius: '12px'
+              }}>
+                <i className="ri-road-map-line" style={{ fontSize: '24px', color: '#ef4444', marginBottom: '8px' }}></i>
+                <p style={{
+                  fontSize: '20px',
+                  fontWeight: '600',
+                  color: '#1f2937',
+                  margin: '0 0 4px 0'
+                }}>
+                  {fitnessData.distance} km
+                </p>
+                <p style={{
+                  fontSize: '12px',
+                  color: '#6b7280',
+                  margin: 0
+                }}>
+                  {t.distance}
+                </p>
+              </div>
+            </div>
+            {userProfile.lastSyncTime && (
+              <p style={{
+                fontSize: '12px',
+                color: '#6b7280',
+                textAlign: 'center',
+                marginTop: '16px',
+                margin: '16px 0 0 0'
+              }}>
+                {t.lastSync}: {(() => {
+                  try {
+                    return deviceTime.formatTimestamp(userProfile.lastSyncTime, {
+                      includeDate: true,
+                      includeTime: true,
+                      dateOptions: { format: 'short' },
+                      timeOptions: { use24Hour: true }
+                    });
+                  } catch (error) {
+                    // Fallback seguro
+                    return new Date(userProfile.lastSyncTime).toLocaleString();
+                  }
+                })()}
+              </p>
+            )}
+          </div>
+        )}
 
-      {/* Bottom Navigation */}
-      <div className="fixed bottom-0 w-full bg-white border-t border-gray-100 px-0 py-0">
-        <div className="grid grid-cols-5 h-16">
-          <Link href="/" className="flex flex-col items-center justify-center">
-            <i className="ri-home-line text-gray-400 text-lg"></i>
-            <span className="text-xs text-gray-400 mt-1">Inicio</span>
-          </Link>
-          <Link href="/food" className="flex flex-col items-center justify-center">
-            <i className="ri-restaurant-line text-gray-400 text-lg"></i>
-            <span className="text-xs text-gray-400 mt-1">Comida</span>
-          </Link>
-          <Link href="/workout" className="flex flex-col items-center justify-center">
-            <i className="ri-run-line text-gray-400 text-lg"></i>
-            <span className="text-xs text-gray-400 mt-1">Ejercicio</span>
-          </Link>
-          <Link href="/progress" className="flex flex-col items-center justify-center">
-            <i className="ri-bar-chart-line text-gray-400 text-lg"></i>
-            <span className="text-xs text-gray-400 mt-1">Progreso</span>
-          </Link>
-          <Link href="/profile" className="flex flex-col items-center justify-center bg-pink-50">
-            <i className="ri-user-fill text-pink-600 text-lg"></i>
-            <span className="text-xs text-pink-600 mt-1">Perfil</span>
-          </Link>
+        {/* Quick Actions */}
+        <div style={{
+          background: 'white',
+          borderRadius: '20px',
+          padding: '24px',
+          boxShadow: '0 4px 6px rgba(0,0,0,0.07)',
+          marginBottom: '24px'
+        }}>
+          <h3 style={{
+            fontSize: '18px',
+            fontWeight: '600',
+            color: '#1f2937',
+            margin: '0 0 16px 0'
+          }}>
+            {t.quickActions}
+          </h3>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+            width: '100%'
+          }}>
+            <button
+              onClick={() => setShowLanguageModal(true)}
+              className="!rounded-button"
+              style={{
+                padding: '12px',
+                background: '#f0f9ff',
+                border: '1px solid #e0e7ff',
+                borderRadius: '12px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                minHeight: '65px',
+                width: '100%'
+              }}
+            >
+              <div style={{
+                width: '40px',
+                height: '40px',
+                background: '#3b82f6',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                <i className="ri-translate-line" style={{ color: 'white', fontSize: '18px' }}></i>
+              </div>
+              <div style={{
+                textAlign: 'left',
+                flex: 1,
+                minWidth: 0
+              }}>
+                <p style={{
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#1f2937',
+                  margin: '0 0 2px 0',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}>
+                  {t.language}
+                </p>
+                <p style={{
+                  fontSize: '12px',
+                  color: '#6b7280',
+                  margin: 0,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}>
+                  {t.changeLanguage}
+                </p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => setShowSyncModal(true)}
+              className="!rounded-button"
+              style={{
+                padding: '12px',
+                background: syncStatus === 'syncing' ? '#fef3c7' : syncStatus === 'success' ? '#f0fdf4' : syncStatus === 'error' ? '#fef2f2' : '#f0fdf4',
+                border: `1px solid ${syncStatus === 'syncing' ? '#fde68a' : syncStatus === 'success' ? '#dcfce7' : syncStatus === 'error' ? '#fecaca' : '#dcfce7'}`,
+                borderRadius: '12px',
+                cursor: syncStatus === 'syncing' ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                minHeight: '65px',
+                width: '100%',
+                opacity: syncStatus === 'syncing' ? 0.7 : 1
+              }}
+              disabled={syncStatus === 'syncing'}
+            >
+              <div style={{
+                width: '40px',
+                height: '40px',
+                background: syncStatus === 'syncing' ? '#f59e0b' : syncStatus === 'success' ? '#16a34a' : syncStatus === 'error' ? '#ef4444' : '#16a34a',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                <i className={`ri-${syncStatus === 'syncing' ? 'loader-4-line' : syncStatus === 'success' ? 'check-line' : syncStatus === 'error' ? 'error-warning-line' : 'refresh-line'}`} style={{
+                  color: 'white',
+                  fontSize: '18px',
+                  animation: syncStatus === 'syncing' ? 'spin 1s linear infinite' : 'none'
+                }}></i>
+              </div>
+              <div style={{
+                textAlign: 'left',
+                flex: 1,
+                minWidth: 0
+              }}>
+                <p style={{
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#1f2937',
+                  margin: '0 0 2px 0',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}>
+                  {t.sync}
+                </p>
+                <p style={{
+                  fontSize: '12px',
+                  color: '#6b7280',
+                  margin: 0,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}>
+                  {syncMessage || t.fitnessData}
+                </p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => setShowCalculatorModal(true)}
+              className="!rounded-button"
+              style={{
+                padding: '12px',
+                background: '#fef3c7',
+                border: '1px solid #fde68a',
+                borderRadius: '12px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                minHeight: '65px',
+                width: '100%'
+              }}
+            >
+              <div style={{
+                width: '40px',
+                height: '40px',
+                background: '#f59e0b',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                <i className="ri-calculator-line" style={{ color: 'white', fontSize: '18px' }}></i>
+              </div>
+              <div style={{
+                textAlign: 'left',
+                flex: 1,
+                minWidth: 0
+              }}>
+                <p style={{
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#1f2937',
+                  margin: '0 0 2px 0',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}>
+                  {t.calculator}
+                </p>
+                <p style={{
+                  fontSize: '12px',
+                  color: '#6b7280',
+                  margin: 0,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}>
+                  {t.nutritionTargets}
+                </p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => setShowRestDayModal(true)}
+              className="!rounded-button"
+              style={{
+                padding: '12px',
+                background: '#fef2f2',
+                border: '1px solid #fecaca',
+                borderRadius: '12px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                minHeight: '65px',
+                width: '100%'
+              }}
+            >
+              <div style={{
+                width: '40px',
+                height: '40px',
+                background: '#ef4444',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                <i className="ri-pause-circle-line" style={{ color: 'white', fontSize: '18px' }}></i>
+              </div>
+              <div style={{
+                textAlign: 'left',
+                flex: 1,
+                minWidth: 0
+              }}>
+                <p style={{
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#1f2937',
+                  margin: '0 0 2px 0',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}>
+                  {t.rest}
+                </p>
+                <p style={{
+                  fontSize: '12px',
+                  color: '#6b7280',
+                  margin: 0,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}>
+                  {t.configureRest}
+                </p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => setShowDonateModal(true)}
+              className="!rounded-button"
+              style={{
+                padding: '12px',
+                background: 'linear-gradient(135deg, #f59e0b 0%, #f97316 100%)',
+                border: 'none',
+                borderRadius: '12px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                minHeight: '65px',
+                width: '100%'
+              }}
+            >
+              <div style={{
+                width: '40px',
+                height: '40px',
+                background: 'rgba(255,255,255,0.2)',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                <i className="ri-heart-fill" style={{ color: 'white', fontSize: '18px' }}></i>
+              </div>
+              <div style={{
+                textAlign: 'left',
+                flex: 1,
+                minWidth: 0
+              }}>
+                <p style={{
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: 'white',
+                  margin: '0 0 2px 0',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}>
+                  {t.donate}
+                </p>
+                <p style={{
+                  fontSize: '12px',
+                  color: 'rgba(255,255,255,0.8)',
+                  margin: 0,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}>
+                  {t.supportApp}
+                </p>
+              </div>
+            </button>
+          </div>
         </div>
-      </div>
+
+        {/* Profile Info */}
+        <div style={{
+          background: 'white',
+          borderRadius: '20px',
+          padding: '24px',
+          boxShadow: '0 4px 6px rgba(0,0,0,0.07)',
+          marginBottom: '24px'
+        }}>
+          <h3 style={{
+            fontSize: '18px',
+            fontWeight: '600',
+            color: '#1f2937',
+            margin: '0 0 16px 0'
+          }}>
+            {t.personalInfo}
+          </h3>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: '16px'
+          }}>
+            <div>
+              <p style={{
+                fontSize: '12px',
+                color: '#6b7280',
+                margin: '0 0 4px 0'
+              }}>
+                {t.age}
+              </p>
+              <p style={{
+                fontSize: '16px',
+                fontWeight: '500',
+                color: '#1f2937',
+                margin: 0
+              }}>
+                {userProfile.age || '-'} años
+              </p>
+            </div>
+            <div>
+              <p style={{
+                fontSize: '12px',
+                color: '#6b7280',
+                margin: '0 0 4px 0'
+              }}>
+                {t.height}
+              </p>
+              <p style={{
+                fontSize: '16px',
+                fontWeight: '500',
+                color: '#1f2937',
+                margin: 0
+              }}>
+                {userProfile.height || '-'} cm
+              </p>
+            </div>
+            <div>
+              <p style={{
+                fontSize: '12px',
+                color: '#6b7280',
+                margin: '0 0 4px 0'
+              }}>
+                {t.weight}
+              </p>
+              <p style={{
+                fontSize: '16px',
+                fontWeight: '500',
+                color: '#1f2937',
+                margin: 0
+              }}>
+                {userProfile.weight || '-'} kg
+              </p>
+            </div>
+            <div>
+              <p style={{
+                fontSize: '12px',
+                color: '#6b7280',
+                margin: '0 0 4px 0'
+              }}>
+                {t.activity}
+              </p>
+              <p style={{
+                fontSize: '16px',
+                fontWeight: '500',
+                color: '#1f2937',
+                margin: 0
+              }}>
+                {userProfile.activityLevel || '-'}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* IMC Section */}
+        {userProfile.weight && userProfile.height && (
+          <div style={{
+            background: 'white',
+            borderRadius: '20px',
+            padding: '24px',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.07)',
+            marginBottom: '24px'
+          }}>
+            <h3 style={{
+              fontSize: '18px',
+              fontWeight: '600',
+              color: '#1f2937',
+              margin: '0 0 16px 0'
+            }}>
+              Índice de Masa Corporal (IMC)
+            </h3>
+
+            {(() => {
+              const weight = parseFloat(userProfile.weight);
+              const height = parseFloat(userProfile.height);
+              const bmi = calculateBMI(weight, height);
+              const bmiCategory = getBMICategory(bmi);
+              const recommendations = getBMIRecommendations(bmi);
+
+              return (
+                <div>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: '20px'
+                  }}>
+                    <div style={{
+                      width: '120px',
+                      height: '120px',
+                      borderRadius: '50%',
+                      background: `conic-gradient(${bmiCategory.color} ${Math.min(bmi / 40 * 360, 360)}deg, #f3f4f6 0deg)`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      position: 'relative'
+                    }}>
+                      <div style={{
+                        width: '90px',
+                        height: '90px',
+                        borderRadius: '50%',
+                        background: 'white',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        <span style={{
+                          fontSize: '24px',
+                          fontWeight: '700',
+                          color: '#1f2937'
+                        }}>
+                          {bmi.toFixed(1)}
+                        </span>
+                        <span style={{
+                          fontSize: '12px',
+                          color: '#6b7280'
+                        }}>
+                          kg/m²
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '12px',
+                    marginBottom: '20px'
+                  }}>
+                    <div style={{
+                      width: '12px',
+                      height: '12px',
+                      borderRadius: '50%',
+                      background: bmiCategory.color
+                    }}></div>
+                    <span style={{
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      color: bmiCategory.color
+                    }}>
+                      {bmiCategory.category}
+                    </span>
+                  </div>
+
+                  <div style={{
+                    background: '#f8fafc',
+                    borderRadius: '12px',
+                    padding: '16px',
+                    marginBottom: '16px'
+                  }}>
+                    <h4 style={{
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#1f2937',
+                      margin: '0 0 8px 0'
+                    }}>
+                      Rangos de IMC:
+                    </h4>
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(2, 1fr)',
+                      gap: '8px',
+                      fontSize: '12px'
+                    }}>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}>
+                        <div style={{
+                          width: '8px',
+                          height: '8px',
+                          borderRadius: '50%',
+                          background: '#3b82f6'
+                        }}></div>
+                        <span>Bajo peso: &lt;18.5</span>
+                      </div>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}>
+                        <div style={{
+                          width: '8px',
+                          height: '8px',
+                          borderRadius: '50%',
+                          background: '#10b981'
+                        }}></div>
+                        <span>Normal: 18.5-24.9</span>
+                      </div>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}>
+                        <div style={{
+                          width: '8px',
+                          height: '8px',
+                          borderRadius: '50%',
+                          background: '#f59e0b'
+                        }}></div>
+                        <span>Sobrepeso: 25-29.9</span>
+                      </div>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}>
+                        <div style={{
+                          width: '8px',
+                          height: '8px',
+                          borderRadius: '50%',
+                          background: '#ef4444'
+                        }}></div>
+                        <span>Obesidad: ≥30</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{
+                    background: '#f0f9ff',
+                    borderRadius: '12px',
+                    padding: '16px',
+                    border: '1px solid #e0e7ff'
+                  }}>
+                    <h4 style={{
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#1f2937',
+                      margin: '0 0 8px 0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}>
+                      <i className="ri-lightbulb-line" style={{ color: '#3b82f6' }}></i>
+                      Recomendaciones:
+                    </h4>
+                    <ul style={{
+                      margin: 0,
+                      paddingLeft: '16px',
+                      fontSize: '12px',
+                      color: '#374151'
+                    }}>
+                      {recommendations.map((recommendation, index) => (
+                        <li key={index} style={{ marginBottom: '4px' }}>
+                          {recommendation}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
+        {/* Goal Section */}
+        <div style={{
+          background: 'white',
+          borderRadius: '20px',
+          padding: '24px',
+          boxShadow: '0 4px 6px rgba(0,0,0,0.07)',
+          marginBottom: '24px'
+        }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '16px'
+          }}>
+            <h3 style={{
+              fontSize: '18px',
+              fontWeight: '600',
+              color: '#1f2937',
+              margin: 0
+            }}>
+              {t.goal}
+            </h3>
+            <div style={{
+              display: 'flex',
+              gap: '8px'
+            }}>
+              <button
+                onClick={() => setShowEditModal(true)}
+                className="!rounded-button"
+                style={{
+                  padding: '6px 12px',
+                  background: '#f0f9ff',
+                  border: '1px solid #e0e7ff',
+                  borderRadius: '8px',
+                  color: '#3b82f6',
+                  fontSize: '12px',
+                  fontWeight: '500',
+                  cursor: 'pointer'
+                }}
+              >
+                {t.edit}
+              </button>
+              <button
+                onClick={handleCalculateNutrition}
+                className="!rounded-button"
+                style={{
+                  padding: '6px 12px',
+                  background: '#f59e0b',
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: 'white',
+                  fontSize: '12px',
+                  fontWeight: '500',
+                  cursor: 'pointer'
+                }}
+              >
+                Calcular Objetivos
+              </button>
+            </div>
+          </div>
+
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            padding: '16px',
+            background: '#f8fafc',
+            borderRadius: '12px',
+            border: `2px solid ${getGoalColor(userProfile.goal || 'maintain')}`
+          }}>
+            <div style={{
+              width: '48px',
+              height: '48px',
+              background: getGoalColor(userProfile.goal || 'maintain'),
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <i className={getGoalIcon(userProfile.goal || 'maintain')} style={{
+                color: 'white',
+                fontSize: '20px'
+              }}></i>
+            </div>
+            <div>
+              <p style={{
+                fontSize: '16px',
+                fontWeight: '600',
+                color: '#1f2937',
+                margin: '0 0 2px 0'
+              }}>
+                {getGoalText(userProfile.goal || 'maintain')}
+              </p>
+              <p style={{
+                fontSize: '12px',
+                color: '#6b7280',
+                margin: 0
+              }}>
+                Objetivo actual seleccionado
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Nutrition Goals */}
+        <div style={{
+          background: 'white',
+          borderRadius: '20px',
+          padding: '24px',
+          boxShadow: '0 4px 6px rgba(0,0,0,0.07)',
+          marginBottom: '24px'
+        }}>
+          <h3 style={{
+            fontSize: '18px',
+            fontWeight: '600',
+            color: '#1f2937',
+            margin: '0 0 16px 0'
+          }}>
+            {t.nutritionGoals}
+          </h3>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: '16px'
+          }}>
+            <div>
+              <p style={{
+                fontSize: '12px',
+                color: '#6b7280',
+                margin: '0 0 4px 0'
+              }}>
+                {t.calories}
+              </p>
+              <p style={{
+                fontSize: '16px',
+                fontWeight: '500',
+                color: '#1f2937',
+                margin: 0
+              }}>
+                {userProfile.adjustedCalories || userProfile.targetCalories || 2000}
+                {userProfile.restDayActive && (
+                  <span style={{
+                    fontSize: '12px',
+                    color: '#ef4444',
+                    marginLeft: '4px'
+                  }}>
+                    ({t.applied})
+                  </span>
+                )}
+              </p>
+            </div>
+            <div>
+              <p style={{
+                fontSize: '12px',
+                color: '#6b7280',
+                margin: '0 0 4px 0'
+              }}>
+                {t.protein}
+              </p>
+              <p style={{
+                fontSize: '16px',
+                fontWeight: '500',
+                color: '#1f2937',
+                margin: 0
+              }}>
+                {userProfile.targetProtein || 120}g
+              </p>
+            </div>
+            <div>
+              <p style={{
+                fontSize: '12px',
+                color: '#6b7280',
+                margin: '0 0 4px 0'
+              }}>
+                {t.carbs}
+              </p>
+              <p style={{
+                fontSize: '16px',
+                fontWeight: '500',
+                color: '#1f2937',
+                margin: 0
+              }}>
+                {userProfile.targetCarbs || 250}g
+              </p>
+            </div>
+            <div>
+              <p style={{
+                fontSize: '12px',
+                color: '#6b7280',
+                margin: '0 0 4px 0'
+              }}>
+                {t.fats}
+              </p>
+              <p style={{
+                fontSize: '16px',
+                fontWeight: '500',
+                color: '#1f2937',
+                margin: 0
+              }}>
+                {userProfile.targetFats || 67}g
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Logout Button */}
+        <button
+          onClick={handleLogout}
+          className="!rounded-button"
+          style={{
+            width: '100%',
+            padding: '16px',
+            background: '#fef2f2',
+            border: '1px solid #fecaca',
+            borderRadius: '12px',
+            color: '#ef4444',
+            fontSize: '16px',
+            fontWeight: '500',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px'
+          }}
+        >
+          <i className="ri-logout-circle-line"></i>
+          {t.logout}
+        </button>
+      </main>
+
+      {/* Language Modal */}
+      {showLanguageModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '20px',
+            padding: '24px',
+            width: '90%',
+            maxWidth: '320px'
+          }}>
+            <h3 style={{
+              fontSize: '18px',
+              fontWeight: '600',
+              color: '#1f2937',
+              margin: '0 0 16px 0'
+            }}>
+              {t.selectLanguage}
+            </h3>
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px'
+            }}>
+              <button
+                onClick={() => handleLanguageChange('es')}
+                className="!rounded-button"
+                style={{
+                  padding: '12px 16px',
+                  background: language === 'es' ? '#3b82f6' : '#f8fafc',
+                  color: language === 'es' ? 'white' : '#1f2937',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  textAlign: 'left'
+                }}
+              >
+                {t.spanish}
+              </button>
+              <button
+                onClick={() => handleLanguageChange('en')}
+                className="!rounded-button"
+                style={{
+                  padding: '12px 16px',
+                  background: language === 'en' ? '#3b82f6' : '#f8fafc',
+                  color: language === 'en' ? 'white' : '#1f2937',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  textAlign: 'left'
+                }}
+              >
+                {t.english}
+              </button>
+            </div>
+            <button
+              onClick={() => setShowLanguageModal(false)}
+              className="!rounded-button"
+              style={{
+                width: '100%',
+                padding: '12px',
+                background: '#f8fafc',
+                border: '1px solid #e5e7eb',
+                borderRadius: '8px',
+                color: '#6b7280',
+                cursor: 'pointer',
+                marginTop: '16px'
+              }}
+            >
+              {t.cancel}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Profile Modal */}
+      {showEditModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '16px'
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '20px',
+            padding: '24px',
+            width: '100%',
+            maxWidth: '400px',
+            maxHeight: '80vh',
+            overflowY: 'auto'
+          }}>
+            <h3 style={{
+              fontSize: '18px',
+              fontWeight: '600',
+              color: '#1f2937',
+              margin: '0 0 20px 0'
+            }}>
+              {t.edit} {t.profile}
+            </h3>
+
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px'
+            }}>
+              <div>
+                <label style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#374151',
+                  marginBottom: '6px'
+                }}>
+                  {t.name}
+                </label>
+                <input
+                  type="text"
+                  value={editProfile.name || ''}
+                  onChange={(e) => setEditProfile({ ...editProfile, name: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#374151',
+                  marginBottom: '6px'
+                }}>
+                  {t.age}
+                </label>
+                <input
+                  type="number"
+                  value={editProfile.age || ''}
+                  onChange={(e) => setEditProfile({ ...editProfile, age: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#374151',
+                  marginBottom: '6px'
+                }}>
+                  {t.weight} (kg)
+                </label>
+                <input
+                  type="number"
+                  value={editProfile.weight || ''}
+                  onChange={(e) => setEditProfile({ ...editProfile, weight: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#374151',
+                  marginBottom: '6px'
+                }}>
+                  {t.height} (cm)
+                </label>
+                <input
+                  type="number"
+                  value={editProfile.height || ''}
+                  onChange={(e) => setEditProfile({ ...editProfile, height: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#374151',
+                  marginBottom: '6px'
+                }}>
+                  {t.activity}
+                </label>
+                <select
+                  value={editProfile.activityLevel || 'moderate'}
+                  onChange={(e) => setEditProfile({ ...editProfile, activityLevel: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    background: 'white',
+                    boxSizing: 'border-box'
+                  }}
+                >
+                  <option value="sedentary">Sedentario</option>
+                  <option value="light">Ligero</option>
+                  <option value="moderate">Moderado</option>
+                  <option value="active">Activo</option>
+                  <option value="very-active">Muy activo</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#374151',
+                  marginBottom: '6px'
+                }}>
+                  {t.goal}
+                </label>
+                <select
+                  value={editProfile.goal || 'maintain'}
+                  onChange={(e) => setEditProfile({ ...editProfile, goal: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    background: 'white',
+                    boxSizing: 'border-box'
+                  }}
+                >
+                  <option value="lose">{t.goalLose}</option>
+                  <option value="maintain">{t.goalMaintain}</option>
+                  <option value="muscle">{t.goalMuscle}</option>
+                </select>
+              </div>
+
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                padding: '12px',
+                background: '#f8fafc',
+                borderRadius: '8px',
+                border: '1px solid #e5e7eb'
+              }}>
+                <input
+                  type="checkbox"
+                  id="autoCalculate"
+                  checked={editProfile.autoCalculate || false}
+                  onChange={(e) => setEditProfile({ ...editProfile, autoCalculate: e.target.checked })}
+                  style={{
+                    width: '16px',
+                    height: '16px',
+                    cursor: 'pointer'
+                  }}
+                />
+                <label
+                  htmlFor="autoCalculate"
+                  style={{
+                    fontSize: '14px',
+                    color: '#374151',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {t.autoCalculate}
+                </label>
+              </div>
+
+              <div style={{
+                display: 'flex',
+                gap: '12px',
+                marginTop: '20px'
+              }}>
+                <button
+                  onClick={() => setShowEditModal(false)}
+                  className="!rounded-button"
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    background: '#f8fafc',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    color: '#6b7280',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '500'
+                  }}
+                >
+                  {t.cancel}
+                </button>
+                <button
+                  onClick={handleSaveProfile}
+                  className="!rounded-button"
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: 'white',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '500'
+                  }}
+                >
+                  {t.save}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Sync Modal */}
+      {showSyncModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '20px',
+            padding: '24px',
+            width: '90%',
+            maxWidth: '320px'
+          }}>
+            <h3 style={{
+              fontSize: '18px',
+              fontWeight: '600',
+              color: '#1f2937',
+              margin: '0 0 16px 0'
+            }}>
+              {t.syncData}
+            </h3>
+            <p style={{
+              fontSize: '14px',
+              color: '#6b7280',
+              margin: '0 0 20px 0'
+            }}>
+              {t.syncDescription}
+            </p>
+
+            <div style={{
+              display: 'flex',
+              gap: '12px'
+            }}>
+              <button
+                onClick={() => setShowSyncModal(false)}
+                className="!rounded-button"
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  background: '#f8fafc',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  color: '#6b7280',
+                  cursor: 'pointer'
+                }}
+              >
+                {t.cancel}
+              </button>
+              <button
+                onClick={() => {
+                  setShowSyncModal(false);
+                  handleSyncFitnessData();
+                }}
+                className="!rounded-button"
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  background: '#16a34a',
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: 'white',
+                  cursor: 'pointer'
+                }}
+              >
+                {t.syncNow}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Calculator Modal */}
+      {showCalculatorModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '20px',
+            padding: '24px',
+            width: '90%',
+            maxWidth: '400px',
+            maxHeight: '80vh',
+            overflowY: 'auto'
+          }}>
+            <h3 style={{
+              fontSize: '18px',
+              fontWeight: '600',
+              color: '#1f2937',
+              margin: '0 0 16px 0'
+            }}>
+              {t.nutritionCalculator}
+            </h3>
+            <p style={{
+              fontSize: '14px',
+              color: '#6b7280',
+              margin: '0 0 20px 0'
+            }}>
+              Calcula tus objetivos nutricionales basados en tu perfil
+            </p>
+
+            {calculatorData && (
+              <div style={{
+                background: '#f8fafc',
+                border: '1px solid #e5e7eb',
+                borderRadius: '12px',
+                padding: '16px',
+                marginBottom: '20px'
+              }}>
+                <h4 style={{
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#1f2937',
+                  margin: '0 0 12px 0'
+                }}>
+                  Objetivos Calculados:
+                </h4>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, 1fr)',
+                  gap: '12px'
+                }}>
+                  <div>
+                    <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 2px 0' }}>Calorías:</p>
+                    <p style={{ fontSize: '16px', fontWeight: '500', color: '#1f2937', margin: 0 }}>
+                      {calculatorData.targetCalories}
+                    </p>
+                  </div>
+                  <div>
+                    <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 2px 0' }}>Proteínas:</p>
+                    <p style={{ fontSize: '16px', fontWeight: '500', color: '#1f2937', margin: 0 }}>
+                      {calculatorData.targetProtein}g
+                    </p>
+                  </div>
+                  <div>
+                    <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 2px 0' }}>Carbohidratos:</p>
+                    <p style={{ fontSize: '16px', fontWeight: '500', color: '#1f2937', margin: 0 }}>
+                      {calculatorData.targetCarbs}g
+                    </p>
+                  </div>
+                  <div>
+                    <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 2px 0' }}>Grasas:</p>
+                    <p style={{ fontSize: '16px', fontWeight: '500', color: '#1f2937', margin: 0 }}>
+                      {calculatorData.targetFats}g
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div style={{
+              display: 'flex',
+              gap: '12px'
+            }}>
+              <button
+                onClick={() => setShowCalculatorModal(false)}
+                className="!rounded-button"
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  background: '#f8fafc',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  color: '#6b7280',
+                  cursor: 'pointer'
+                }}
+              >
+                {t.cancel}
+              </button>
+              <button
+                onClick={() => {
+                  handleCalculateNutrition();
+                }}
+                className="!rounded-button"
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  background: '#f59e0b',
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: 'white',
+                  cursor: 'pointer'
+                }}
+              >
+                {t.calculateTargets}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Rest Day Modal */}
+      {showRestDayModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '20px',
+            padding: '24px',
+            width: '90%',
+            maxWidth: '400px',
+            maxHeight: '80vh',
+            overflowY: 'auto'
+          }}>
+            <h3 style={{
+              fontSize: '18px',
+              fontWeight: '600',
+              color: '#1f2937',
+              margin: '0 0 16px 0'
+            }}>
+              {t.restDayConfig}
+            </h3>
+            <p style={{
+              fontSize: '14px',
+              color: '#6b7280',
+              margin: '0 0 20px 0'
+            }}>
+              {t.restDayDescription}
+            </p>
+
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px'
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                padding: '12px',
+                background: '#f8fafc',
+                borderRadius: '8px',
+                border: '1px solid #e5e7eb'
+              }}>
+                <input
+                  type="checkbox"
+                  id="enableRestDays"
+                  checked={restDayConfig.enabled}
+                  onChange={(e) => setRestDayConfig({ ...restDayConfig, enabled: e.target.checked })}
+                  style={{
+                    width: '16px',
+                    height: '16px',
+                    cursor: 'pointer'
+                  }}
+                />
+                <label
+                  htmlFor="enableRestDays"
+                  style={{
+                    fontSize: '14px',
+                    color: '#374151',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {t.enableRestDays}
+                </label>
+              </div>
+
+              {restDayConfig.enabled && (
+                <>
+                  <div>
+                    <p style={{
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      color: '#374151',
+                      marginBottom: '8px'
+                    }}>
+                      {t.selectDays}:
+                    </p>
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(2, 1fr)',
+                      gap: '8px'
+                    }}>
+                      {[[ 'monday', t.monday], [ 'tuesday', t.tuesday], [ 'wednesday', t.wednesday], [ 'thursday', t.thursday], [ 'friday', t.friday], [ 'saturday', t.saturday], [ 'sunday', t.sunday]].map(([ day, dayText]) => (
+                        <button
+                          key={day}
+                          onClick={() => toggleRestDay(day)}
+                          className="!rounded-button"
+                          style={{
+                            padding: '8px 12px',
+                            background: restDayConfig.selectedDays.includes(day) ? '#ef4444' : '#f8fafc',
+                            color: restDayConfig.selectedDays.includes(day) ? 'white' : '#374151',
+                            border: '1px solid #e5e7eb',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            fontSize: '12px'
+                          }}
+                        >
+                          {dayText}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '12px',
+                    background: '#f8fafc',
+                    borderRadius: '8px',
+                    border: '1px solid #e5e7eb'
+                  }}>
+                    <input
+                      type="checkbox"
+                      id="reduceCalories"
+                      checked={restDayConfig.reducedCalories}
+                      onChange={(e) => setRestDayConfig({ ...restDayConfig, reducedCalories: e.target.checked })}
+                      style={{
+                        width: '16px',
+                        height: '16px',
+                        cursor: 'pointer'
+                      }}
+                    />
+                    <label
+                      htmlFor="reduceCalories"
+                      style={{
+                        fontSize: '14px',
+                        color: '#374151',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {t.reduceCalories}
+                    </label>
+                  </div>
+
+                  {restDayConfig.reducedCalories && (
+                    <div>
+                      <label style={{
+                        display: 'block',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        color: '#374151',
+                        marginBottom: '6px'
+                      }}>
+                        {t.calorieReduction}:
+                      </label>
+                      <input
+                        type="number"
+                        value={restDayConfig.calorieReduction}
+                        onChange={(e) => setRestDayConfig({ ...restDayConfig, calorieReduction: parseInt(e.target.value) || 0 })}
+                        min="0"
+                        max="500"
+                        style={{
+                          width: '100%',
+                          padding: '12px',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '8px',
+                          fontSize: '14px',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            <div style={{
+              display: 'flex',
+              gap: '12px',
+              marginTop: '20px'
+            }}>
+              <button
+                onClick={() => setShowRestDayModal(false)}
+                className="!rounded-button"
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  background: '#f8fafc',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  color: '#6b7280',
+                  cursor: 'pointer'
+                }}
+              >
+                {t.cancel}
+              </button>
+              <button
+                onClick={() => {
+                  handleRestDayConfig();
+                  setShowRestDayModal(false);
+                }}
+                className="!rounded-button"
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  background: '#ef4444',
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: 'white',
+                  cursor: 'pointer'
+                }}
+              >
+                {t.configure}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Donate Modal */}
+      {showDonateModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '20px',
+            padding: '24px',
+            width: '90%',
+            maxWidth: '400px',
+            maxHeight: '80vh',
+            overflowY: 'auto'
+          }}>
+            <div style={{
+              textAlign: 'center',
+              marginBottom: '24px'
+            }}>
+              <div style={{
+                width: '64px',
+                height: '64px',
+                background: 'linear-gradient(135deg, #ff424d 0%, #ff6154 100%)',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 16px auto'
+              }}>
+                <i className="ri-heart-fill" style={{ color: 'white', fontSize: '28px' }}></i>
+              </div>
+              <h3 style={{
+                fontSize: '20px',
+                fontWeight: '600',
+                color: '#1f2937',
+                margin: '0 0 8px 0'
+              }}>
+                {t.donateTitle}
+              </h3>
+              <p style={{
+                fontSize: '14px',
+                color: '#6b7280',
+                margin: 0,
+                lineHeight: '1.5'
+              }}>
+                {t.donateDescription}
+              </p>
+            </div>
+
+            {/* Solo Patreon Option */}
+            <div style={{
+              marginBottom: '24px'
+            }}>
+              <div style={{
+                padding: '20px',
+                background: 'linear-gradient(135deg, #ff424d 0%, #ff6154 100%)',
+                borderRadius: '16px',
+                border: '3px solid #ff424d',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                boxShadow: '0 6px 20px rgba(255, 66, 77, 0.3)'
+              }}
+                onClick={handlePatreonDonate}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 8px 25px rgba(255, 66, 77, 0.4)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0px)';
+                  e.currentTarget.style.boxShadow = '0 6px 20px rgba(255, 66, 77, 0.3)';
+                }}
+              >
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '16px',
+                  marginBottom: '12px'
+                }}>
+                  <div style={{
+                    width: '56px',
+                    height: '56px',
+                    background: 'rgba(255,255,255,0.2)',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+                  }}>
+                    <i className="ri-heart-3-fill" style={{ color: 'white', fontSize: '28px' }}></i>
+                  </div>
+                  <div style={{
+                    flex: 1
+                  }}>
+                    <h4 style={{
+                      fontSize: '18px',
+                      fontWeight: '700',
+                      color: 'white',
+                      margin: '0 0 4px 0'
+                    }}>
+                      Apóyanos en Patreon
+                    </h4>
+                    <p style={{
+                      fontSize: '14px',
+                      color: 'rgba(255,255,255,0.9)',
+                      margin: 0
+                    }}>
+                      Suscríbete para apoyo continuo
+                    </p>
+                  </div>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    color: 'white'
+                  }}>
+                    <i className="ri-external-link-line" style={{ fontSize: '18px' }}></i>
+                  </div>
+                </div>
+
+                <div style={{
+                  background: 'rgba(255,255,255,0.15)',
+                  borderRadius: '12px',
+                  padding: '12px 16px'
+                }}>
+                  <h5 style={{
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: 'white',
+                    margin: '0 0 8px 0'
+                  }}>
+                    Beneficios exclusivos:
+                  </h5>
+                  <ul style={{
+                    fontSize: '13px',
+                    color: 'rgba(255,255,255,0.95)',
+                    margin: 0,
+                    paddingLeft: '16px',
+                    lineHeight: '1.4'
+                  }}>
+                    <li>Acceso anticipado a nuevas funciones</li>
+                    <li>Contenido exclusivo y tips de fitness</li>
+                    <li>Soporte prioritario</li>
+                    <li>Comunidad privada de miembros</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div style={{
+                textAlign: 'center',
+                marginTop: '16px',
+                padding: '12px',
+                background: '#f8fafc',
+                borderRadius: '12px',
+                border: '1px solid #e2e8f0'
+              }}>
+                <p style={{
+                  fontSize: '13px',
+                  color: '#6b7280',
+                  margin: '0 0 4px 0'
+                }}>
+                  Tu apoyo nos ayuda a:
+                </p>
+                <p style={{
+                  fontSize: '12px',
+                  color: '#374151',
+                  margin: 0,
+                  lineHeight: '1.4'
+                }}>
+                  Mantener la app gratuita • Agregar nuevas funciones • Mejorar la experiencia
+                </p>
+              </div>
+            </div>
+
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center'
+            }}>
+              <button
+                onClick={() => setShowDonateModal(false)}
+                className="!rounded-button"
+                style={{
+                  padding: '12px 24px',
+                  background: '#f8fafc',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '12px',
+                  color: '#6b7280',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <BottomNavigation />
     </div>
   );
 }
