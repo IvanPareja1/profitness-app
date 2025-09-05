@@ -1,0 +1,12 @@
+{
+  "/_not-found": "app/_not-found.js",
+  "/add-food/page": "app/add-food/page.js",
+  "/login/page": "app/login/page.js",
+  "/manifest.json/route": "app/manifest.json/route.js",
+  "/nutrition/page": "app/nutrition/page.js",
+  "/page": "app/page.js",
+  "/profile/page": "app/profile/page.js",
+  "/offline/page": "app/offline/page.js",
+  "/progress/page": "app/progress/page.js",
+  "/sitemap.xml/route": "app/sitemap.xml/route.js"
+}
