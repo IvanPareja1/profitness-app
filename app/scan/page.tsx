@@ -141,7 +141,7 @@ export default function ScanPage() {
         videoRef.current.srcObject = stream;
         
         // Configurar el lector para detectar códigos de barras
-        reader.decodeFromVideoDevice(undefined, videoRef.current, async (result, error) => {
+        reader.decodeFromVideoDevice(null, videoRef.current, async (result, error) => {
           if (result) {
             setIsLoading(true);
             stopCamera();
