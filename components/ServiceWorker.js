@@ -33,8 +33,10 @@ export default function ServiceWorker() {
       // Guardar el evento para que pueda ser activado después
       deferredPrompt.current = e;
       
-      // Opcional: Mostrar un botón de instalación personalizado
-      showInstallPromotion();
+       // Mostrar botón de instalación personalizado
+      if (typeof window !== 'undefined' && window.showInstallNotification) {
+        window.showInstallNotification();
+      }
     };
 
     const showInstallPromotion = () => {
@@ -58,10 +60,12 @@ export default function ServiceWorker() {
 
     registerServiceWorker();
 
-    // Cleanup
+       // Cleanup
     return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-      window.removeEventListener('appinstalled', handleAppInstalled);
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+        window.removeEventListener('appinstalled', handleAppInstalled);
+      }
     };
   }, []);
 

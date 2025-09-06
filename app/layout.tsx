@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import ServiceWorker from '@/components/ServiceWorker';
+import InstallButton from '@/components/InstallButton';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -90,6 +91,49 @@ export default function RootLayout({
       <body className={inter.className}>
   {children}
   <ServiceWorker />
+
+<script
+  dangerouslySetInnerHTML={{
+    __html: `
+      // Manejar la instalación de PWA
+      let deferredPrompt;
+      
+      window.showInstallNotification = function() {
+        // Aquí puedes mostrar un botón de instalación personalizado en tu UI
+        const installButton = document.getElementById('install-button');
+        if (installButton) {
+          installButton.style.display = 'block';
+          installButton.addEventListener('click', async () => {
+            if (deferredPrompt) {
+              deferredPrompt.prompt();
+              const { outcome } = await deferredPrompt.userChoice;
+              if (outcome === 'accepted') {
+                console.log('Usuario aceptó instalar la PWA');
+              }
+              deferredPrompt = null;
+            }
+          });
+        }
+      };
+      
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        window.showInstallNotification();
+      });
+      
+      window.addEventListener('appinstalled', () => {
+        console.log('PWA instalada');
+        deferredPrompt = null;
+      });
+      
+      // Verificar si la app ya está instalada
+      if (window.matchMedia('(display-mode: standalone)').matches) {
+        console.log('Ejecutándose como PWA');
+      }
+    `
+  }}
+/>
 </body>
     </html>
   );
