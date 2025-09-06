@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import ServiceWorker from '@/components/ServiceWorker';
+
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
@@ -10,9 +11,9 @@ export const metadata: Metadata = {
   description: 'Nutre tu progreso, domina tus resultados. Aplicación completa de nutrición y fitness.',
   manifest: '/manifest.json',
   keywords: ['nutrición', 'fitness', 'salud', 'dieta', 'ejercicio', 'wellness'],
-  authors: [{ name: 'ProFitness Team' }],
-  creator: 'ProFitness',
-  publisher: 'ProFitness',
+  authors: [{ name: 'IGPC' }],
+  creator: 'IGPC',
+  publisher: 'IGPC',
   formatDetection: {
     email: false,
     address: false,

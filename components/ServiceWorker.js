@@ -1,8 +1,10 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 export default function ServiceWorker() {
+  const deferredPrompt = useRef(null);
+
   useEffect(() => {
     const registerServiceWorker = async () => {
       if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
@@ -18,59 +20,48 @@ export default function ServiceWorker() {
             registration.update();
           }, 60 * 60 * 1000);
 
-          // Escuchar actualizaciones disponibles
-          registration.addEventListener('updatefound', () => {
-            const newWorker = registration.installing;
-            if (newWorker) {
-              newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  // Mostrar notificación de actualización disponible
-                  if (typeof window !== 'undefined' && window.showUpdateNotification) {
-                    window.showUpdateNotification();
-                  }
-                }
-              });
-            }
-          });
-
         } catch (registrationError) {
           console.log('SW registration failed: ', registrationError);
         }
       }
     };
 
-    registerServiceWorker();
-
-    // Verificar si hay datos para restaurar después de una actualización
-    const checkDataRestoration = () => {
-      const hasCloudSync = localStorage.getItem('google_access_token');
-      const dataRestored = localStorage.getItem('dataRestored');
+    // Manejar el evento de instalación de PWA
+    const handleBeforeInstallPrompt = (e) => {
+      // Prevenir que el mini-infobar aparezca en mobile
+      e.preventDefault();
+      // Guardar el evento para que pueda ser activado después
+      deferredPrompt.current = e;
       
-      // Si hay sincronización habilitada pero no hay datos restaurados recientemente
-      if (hasCloudSync && !dataRestored) {
-        // Verificar si hay pocos datos locales (posible pérdida por actualización)
-        const userData = localStorage.getItem('userData');
-        const nutritionKeys = Object.keys(localStorage).filter(key => key.startsWith('nutrition_'));
-        
-        if (!userData || nutritionKeys.length === 0) {
-          // Posible pérdida de datos, ofrecer restauración
-          setTimeout(() => {
-            if (typeof window !== 'undefined' && window.showDataRestorePrompt) {
-              window.showDataRestorePrompt();
-            }
-          }, 2000);
-        }
+      // Opcional: Mostrar un botón de instalación personalizado
+      showInstallPromotion();
+    };
+
+    const showInstallPromotion = () => {
+      // Solo mostrar si no está ya instalado
+      if (!window.matchMedia('(display-mode: standalone)').matches) {
+        console.log('Mostrar promoción de instalación');
+        // Aquí puedes mostrar un botón personalizado en tu UI
       }
     };
 
-    if (typeof window !== 'undefined') {
-      window.addEventListener('load', checkDataRestoration);
-    }
+    const handleAppInstalled = () => {
+      console.log('PWA fue instalada');
+      // Limpiar el deferredPrompt
+      deferredPrompt.current = null;
+      // Ocultar la promoción de instalación
+    };
 
+    // Registrar event listeners para PWA
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    registerServiceWorker();
+
+    // Cleanup
     return () => {
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('load', checkDataRestoration);
-      }
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
     };
   }, []);
 
