@@ -8,6 +8,7 @@ import BottomNavigation from '../../components/BottomNavigation';
 import { NutritionCalculator } from '../../lib/nutrition-calculator';
 import { fitnessSync, FitnessData } from '../../lib/fitness-sync';
 import { deviceTime } from '../../lib/device-time-utils';
+import { supabase } from '@/lib/supabase-client';
 
 export default function Profile() {
   const [mounted, setMounted] = useState(false);
@@ -37,30 +38,46 @@ export default function Profile() {
   const router = useRouter();
 
   useEffect(() => {
-    setMounted(true);
+  setMounted(true);
 
-    if (typeof window === 'undefined') return;
-
-    const isAuthenticated = localStorage.getItem('isAuthenticated');
-    if (!isAuthenticated || isAuthenticated !== 'true') {
-      router.push('/login');
-      return;
-    }
-
+  // Verificar autenticación con Supabase
+  const checkAuth = async () => {
     try {
-      const userDataStored = localStorage.getItem('userData');
-      if (userDataStored) {
-        const user = JSON.parse(userDataStored);
-        setUserData(user);
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        router.push('/login');
+        return;
       }
 
-      const userProfileStored = localStorage.getItem('userProfile');
-      if (userProfileStored) {
-        const profile = JSON.parse(userProfileStored);
+      // Usuario autenticado, obtener datos del perfil
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
+
+      if (error) {
+        console.error('Error al cargar el perfil:', error);
+        // Puedes mantener el fallback a localStorage si lo prefieres
+        const userProfileStored = localStorage.getItem('userProfile');
+        if (userProfileStored) {
+          const profile = JSON.parse(userProfileStored);
+          setUserProfile(profile);
+          setEditProfile(profile);
+          setLanguage(profile.language || 'es');
+        }
+      } else {
+        // Datos cargados desde Supabase
         setUserProfile(profile);
         setEditProfile(profile);
         setLanguage(profile.language || 'es');
+        
+        // También mantener en localStorage para compatibilidad
+        localStorage.setItem('userProfile', JSON.stringify(profile));
       }
+
+
 
       // Cargar datos de fitness del día actual usando fecha del dispositivo
       try {
@@ -89,6 +106,8 @@ export default function Profile() {
     } catch (error) {
       console.log('Error loading user data:', error);
     }
+  };
+     checkAuth();
   }, [router]);
 
   const translations = {
@@ -261,68 +280,85 @@ export default function Profile() {
   const t = translations[language as keyof typeof translations] || translations.es;
 
   const handleSyncFitnessData = async () => {
-    setSyncStatus('syncing');
-    setSyncMessage(t.syncing);
+  setSyncStatus('syncing');
+  setSyncMessage(t.syncing);
 
-    try {
-      // Verificar si hay permisos
-      if (!fitnessSync.hasPermissions()) {
-        const permissionGranted = await fitnessSync.requestFitnessPermissions();
-        if (!permissionGranted) {
-          setSyncStatus('error');
-          setSyncMessage(t.permissionsNeeded);
-          return;
-        }
+  try {
+    // Verificar si hay permisos
+    if (!fitnessSync.hasPermissions()) {
+      const permissionGranted = await fitnessSync.requestFitnessPermissions();
+      if (!permissionGranted) {
+        setSyncStatus('error');
+        setSyncMessage(t.permissionsNeeded);
+        return;
       }
-
-      // Sincronizar datos usando fecha del dispositivo
-      try {
-        const today = deviceTime.getCurrentDate();
-        const syncResult = await fitnessSync.syncFitnessData(today);
-
-        if (syncResult.success && syncResult.data) {
-          setFitnessData(syncResult.data);
-          setSyncStatus('success');
-          setSyncMessage(t.syncSuccess);
-
-          // Actualizar perfil con datos sincronizados
-          const updatedProfile = {
-            ...userProfile,
-            lastSyncTime: deviceTime.createTimestamp(), // Usar timestamp del dispositivo
-            syncEnabled: true
-          };
-          setUserProfile(updatedProfile);
-          localStorage.setItem('userProfile', JSON.stringify(updatedProfile));
-        } else {
-          setSyncStatus('error');
-          setSyncMessage(syncResult.error || t.syncError);
-        }
-      } catch (error) {
-        console.warn('Error en sincronización con fecha del dispositivo, intentando fallback:', error);
-        // Fallback seguro
-        const fallbackToday = new Date().toISOString().split('T')[0];
-        const syncResult = await fitnessSync.syncFitnessData(fallbackToday);
-
-        if (syncResult.success && syncResult.data) {
-          setFitnessData(syncResult.data);
-          setSyncStatus('success');
-          setSyncMessage(t.syncSuccess);
-        } else {
-          setSyncStatus('error');
-          setSyncMessage(syncResult.error || t.syncError);
-        }
-      }
-    } catch (error) {
-      setSyncStatus('error');
-      setSyncMessage(t.syncError);
     }
 
-    // Resetear estado después de 3 segundos
-    setTimeout(() => {
-      setSyncStatus('idle');
-      setSyncMessage('');
-    }, 3000);
-  };
+    // Sincronizar datos usando fecha del dispositivo
+    try {
+      const today = deviceTime.getCurrentDate();
+      const syncResult = await fitnessSync.syncFitnessData(today);
+
+      if (syncResult.success && syncResult.data) {
+        setFitnessData(syncResult.data);
+        setSyncStatus('success');
+        setSyncMessage(t.syncSuccess);
+
+        // Guardar en Supabase
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          const { error } = await supabase
+            .from('fitness_data')
+            .upsert({
+              user_id: session.user.id,
+              date: today,
+              data: syncResult.data,
+              created_at: new Date().toISOString()
+            });
+
+          if (error) {
+            console.error('Error al guardar datos de fitness en Supabase:', error);
+          }
+        }
+
+        // Actualizar perfil con datos sincronizados
+        const updatedProfile = {
+          ...userProfile,
+          lastSyncTime: deviceTime.createTimestamp(),
+          syncEnabled: true
+        };
+        setUserProfile(updatedProfile);
+        localStorage.setItem('userProfile', JSON.stringify(updatedProfile));
+      } else {
+        setSyncStatus('error');
+        setSyncMessage(syncResult.error || t.syncError);
+      }
+    } catch (error) {
+      console.warn('Error en sincronización con fecha del dispositivo, intentando fallback:', error);
+      // Fallback seguro
+      const fallbackToday = new Date().toISOString().split('T')[0];
+      const syncResult = await fitnessSync.syncFitnessData(fallbackToday);
+
+      if (syncResult.success && syncResult.data) {
+        setFitnessData(syncResult.data);
+        setSyncStatus('success');
+        setSyncMessage(t.syncSuccess);
+      } else {
+        setSyncStatus('error');
+        setSyncMessage(syncResult.error || t.syncError);
+      }
+    }
+  } catch (error) {
+    setSyncStatus('error');
+    setSyncMessage(t.syncError);
+  }
+
+  // Resetear estado después de 3 segundos
+  setTimeout(() => {
+    setSyncStatus('idle');
+    setSyncMessage('');
+  }, 3000);
+};
 
   const handleCalculateNutrition = () => {
     if (!editProfile.age || !editProfile.weight || !editProfile.height) {
@@ -444,43 +480,67 @@ export default function Profile() {
     });
   };
 
-  const handleSaveProfile = () => {
-    try {
-      if (editProfile.autoCalculate && editProfile.age && editProfile.weight && editProfile.height) {
-        const targets = NutritionCalculator.calculateNutritionTargets({
-          age: editProfile.age,
-          weight: editProfile.weight,
-          height: editProfile.height,
-          gender: editProfile.gender || 'male',
-          activityLevel: editProfile.activityLevel || 'moderate',
-          workActivity: editProfile.workActivity || 'moderate',
-          goal: editProfile.goal || 'maintain'
-        });
-
-        const updatedProfile = {
-          ...editProfile,
-          targetCalories: targets.targetCalories,
-          targetProtein: targets.targetProtein,
-          targetCarbs: targets.targetCarbs,
-          targetFats: targets.targetFats
-        };
-
-        setUserProfile(updatedProfile);
-        localStorage.setItem('userProfile', JSON.stringify(updatedProfile));
-      } else {
-        localStorage.setItem('userProfile', JSON.stringify(editProfile));
-        setUserProfile(editProfile);
-      }
-
-      setShowEditModal(false);
-
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new Event('profileUpdated'));
-      }
-    } catch (error) {
-      console.log('Error saving profile:', error);
+  const handleSaveProfile = async () => {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      alert('No hay sesión activa');
+      return;
     }
-  };
+
+    let updatedProfile = { ...editProfile };
+
+    if (editProfile.autoCalculate && editProfile.age && editProfile.weight && editProfile.height) {
+      const targets = NutritionCalculator.calculateNutritionTargets({
+        age: editProfile.age,
+        weight: editProfile.weight,
+        height: editProfile.height,
+        gender: editProfile.gender || 'male',
+        activityLevel: editProfile.activityLevel || 'moderate',
+        workActivity: editProfile.workActivity || 'moderate',
+        goal: editProfile.goal || 'maintain'
+      });
+
+      updatedProfile = {
+        ...editProfile,
+        targetCalories: targets.targetCalories,
+        targetProtein: targets.targetProtein,
+        targetCarbs: targets.targetCarbs,
+        targetFats: targets.targetFats
+      };
+    }
+
+    // Guardar en Supabase
+    const { error } = await supabase
+      .from('profiles')
+      .upsert({ 
+        ...updatedProfile,
+        id: session.user.id,
+        email: session.user.email,
+        updated_at: new Date().toISOString()
+      });
+
+    if (error) {
+      console.error('Error al guardar en Supabase:', error);
+      // Fallback a localStorage si hay error
+      localStorage.setItem('userProfile', JSON.stringify(updatedProfile));
+    }
+
+    setUserProfile(updatedProfile);
+    setShowEditModal(false);
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('profileUpdated'));
+    }
+  } catch (error) {
+    console.log('Error saving profile:', error);
+    // Fallback a localStorage en caso de error
+    localStorage.setItem('userProfile', JSON.stringify(editProfile));
+    setUserProfile(editProfile);
+    setShowEditModal(false);
+  }
+};
 
   const handleLanguageChange = (newLanguage: string) => {
     const updatedProfile = { ...userProfile, language: newLanguage };
@@ -494,48 +554,52 @@ export default function Profile() {
     }
   };
 
-  const handleLogout = () => {
-    try {
-      const userData = localStorage.getItem('userData');
-      const userProfile = localStorage.getItem('userProfile');
-      const userProfilePhoto = localStorage.getItem('userProfilePhoto');
+ const handleLogout = async () => {
+  try {
+    // Cerrar sesión en Supabase
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error('Error al cerrar sesión en Supabase:', error);
+    }
 
-      if (userData) {
-        const user = JSON.parse(userData);
-        const userEmail = user.email;
-        const userKey = `user_${userEmail}`;
+    // Tu código existente para limpiar localStorage
+    const userData = localStorage.getItem('userData');
+    const userProfile = localStorage.getItem('userProfile');
+    const userProfilePhoto = localStorage.getItem('userProfilePhoto');
 
-        const nutritionData: { [key: string]: string } = {};
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key && key.startsWith('nutrition_')) {
-            const value = localStorage.getItem(key);
-            if (value) {
-              nutritionData[key] = value;
-            }
+    if (userData) {
+      const user = JSON.parse(userData);
+      const userEmail = user.email;
+      const userKey = `user_${userEmail}`;
+
+      const nutritionData: { [key: string]: string } = {};
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('nutrition_')) {
+          const value = localStorage.getItem(key);
+          if (value) {
+            nutritionData[key] = value;
           }
         }
-
-        const restDaySettings = localStorage.getItem('restDaySettings');
-        const hydrationReminder = localStorage.getItem('hydrationReminder');
-        const healthData = localStorage.getItem('healthData');
-
-        const userBackup = {
-          userData: user,
-          userProfile: userProfile ? JSON.parse(userProfile) : null,
-          userProfilePhoto: userProfilePhoto,
-          nutritionData: nutritionData,
-          restDaySettings: restDaySettings,
-          hydrationReminder: hydrationReminder,
-          healthData: healthData,
-          lastLogin: new Date().toISOString(),
-          lastLogout: new Date().toISOString()
-        };
-
-        localStorage.setItem(userKey, JSON.stringify(userBackup));
       }
-    } catch (error) {
-      console.error('Error al guardar datos antes del logout:', error);
+
+      const restDaySettings = localStorage.getItem('restDaySettings');
+      const hydrationReminder = localStorage.getItem('hydrationReminder');
+      const healthData = localStorage.getItem('healthData');
+
+      const userBackup = {
+        userData: user,
+        userProfile: userProfile ? JSON.parse(userProfile) : null,
+        userProfilePhoto: userProfilePhoto,
+        nutritionData: nutritionData,
+        restDaySettings: restDaySettings,
+        hydrationReminder: hydrationReminder,
+        healthData: healthData,
+        lastLogin: new Date().toISOString(),
+        lastLogout: new Date().toISOString()
+      };
+
+      localStorage.setItem(userKey, JSON.stringify(userBackup));
     }
 
     localStorage.removeItem('isAuthenticated');
@@ -553,7 +617,10 @@ export default function Profile() {
     setTimeout(() => {
       router.push('/login');
     }, 1500);
-  };
+  } catch (error) {
+    console.error('Error al guardar datos antes del logout:', error);
+  }
+};
 
   const getGoalText = (goal: string) => {
     switch (goal) {
