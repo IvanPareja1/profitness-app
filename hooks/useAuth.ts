@@ -49,8 +49,8 @@ export function useAuth() {
         console.log('Creando perfil para usuario:', user.id);
         
         // Obtener la URL y clave desde las variables de entorno
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-        const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        const supabaseUrl = import.meta.env.VITE_PUBLIC_SUPABASE_URL;
+        const supabaseAnonKey = import.meta.env.VITE_PUBLIC_SUPABASE_ANON_KEY;
         
         const response = await fetch(`${supabaseUrl}/functions/v1/create-user-profile`, {
           method: 'POST',
