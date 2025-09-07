@@ -2,8 +2,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
-import ServiceWorker from '@/components/ServiceWorker';
-import InstallButton from '@/components/InstallButton';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -12,9 +10,9 @@ export const metadata: Metadata = {
   description: 'Nutre tu progreso, domina tus resultados. Aplicación completa de nutrición y fitness.',
   manifest: '/manifest.json',
   keywords: ['nutrición', 'fitness', 'salud', 'dieta', 'ejercicio', 'wellness'],
-  authors: [{ name: 'IGPC' }],
-  creator: 'IGPC',
-  publisher: 'IGPC',
+  authors: [{ name: 'ProFitness Team' }],
+  creator: 'ProFitness',
+  publisher: 'ProFitness',
   formatDetection: {
     email: false,
     address: false,
@@ -89,52 +87,63 @@ export default function RootLayout({
         <script src="https://accounts.google.com/gsi/client" async defer></script>
       </head>
       <body className={inter.className}>
-  {children}
-  <ServiceWorker />
-
-<script
-  dangerouslySetInnerHTML={{
-    __html: `
-      // Manejar la instalación de PWA
-      let deferredPrompt;
-      
-      window.showInstallNotification = function() {
-        // Aquí puedes mostrar un botón de instalación personalizado en tu UI
-        const installButton = document.getElementById('install-button');
-        if (installButton) {
-          installButton.style.display = 'block';
-          installButton.addEventListener('click', async () => {
-            if (deferredPrompt) {
-              deferredPrompt.prompt();
-              const { outcome } = await deferredPrompt.userChoice;
-              if (outcome === 'accepted') {
-                console.log('Usuario aceptó instalar la PWA');
+        {children}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              // Registrar Service Worker para actualizaciones automáticas
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                  navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                      console.log('SW registered: ', registration);
+                      
+                      // Escuchar actualizaciones disponibles
+                      registration.addEventListener('updatefound', () => {
+                        const newWorker = registration.installing;
+                        if (newWorker) {
+                          newWorker.addEventListener('statechange', () => {
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                              // Mostrar notificación de actualización disponible
+                              if (window.showUpdateNotification) {
+                                window.showUpdateNotification();
+                              }
+                            }
+                          });
+                        }
+                      });
+                    })
+                    .catch(registrationError => {
+                      console.log('SW registration failed: ', registrationError);
+                    });
+                });
               }
-              deferredPrompt = null;
-            }
-          });
-        }
-      };
-      
-      window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-        window.showInstallNotification();
-      });
-      
-      window.addEventListener('appinstalled', () => {
-        console.log('PWA instalada');
-        deferredPrompt = null;
-      });
-      
-      // Verificar si la app ya está instalada
-      if (window.matchMedia('(display-mode: standalone)').matches) {
-        console.log('Ejecutándose como PWA');
-      }
-    `
-  }}
-/>
-</body>
+              
+              // Verificar si hay datos para restaurar después de una actualización
+              window.addEventListener('load', () => {
+                const hasCloudSync = localStorage.getItem('google_access_token');
+                const dataRestored = localStorage.getItem('dataRestored');
+                
+                // Si hay sincronización habilitada pero no hay datos restaurados recientemente
+                if (hasCloudSync && !dataRestored) {
+                  // Verificar si hay pocos datos locales (posible pérdida por actualización)
+                  const userData = localStorage.getItem('userData');
+                  const nutritionKeys = Object.keys(localStorage).filter(key => key.startsWith('nutrition_'));
+                  
+                  if (!userData || nutritionKeys.length === 0) {
+                    // Posible pérdida de datos, ofrecer restauración
+                    setTimeout(() => {
+                      if (window.showDataRestorePrompt) {
+                        window.showDataRestorePrompt();
+                      }
+                    }, 2000);
+                  }
+                }
+              });
+            `
+          }}
+        />
+      </body>
     </html>
   );
 }
