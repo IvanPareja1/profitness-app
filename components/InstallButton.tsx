@@ -2,6 +2,13 @@
 
 import { useState, useEffect } from 'react';
 
+// Extender la interfaz Window para TypeScript
+declare global {
+  interface Window {
+    deferredPrompt: any;
+  }
+}
+
 export default function InstallButton() {
   const [isVisible, setIsVisible] = useState(false);
 
@@ -15,6 +22,7 @@ export default function InstallButton() {
     const handleBeforeInstallPrompt = (e: any) => {
       e.preventDefault();
       if (typeof window !== 'undefined') {
+        // Guardar el evento para usarlo después
         window.deferredPrompt = e;
       }
       setIsVisible(true);
@@ -59,7 +67,8 @@ export default function InstallButton() {
         borderRadius: '5px',
         cursor: 'pointer',
         zIndex: 1000,
-        fontSize: '14px'
+        fontSize: '14px',
+        boxShadow: '0 2px 10px rgba(0,0,0,0.2)'
       }}
     >
       📲 Instalar App

@@ -1,12 +1,12 @@
 {
-  "/manifest.json/route": "app/manifest.json/route.js",
+  "/profile/page": "app/profile/page.js",
   "/login/page": "app/login/page.js",
   "/_not-found": "app/_not-found.js",
-  "/sitemap.xml/route": "app/sitemap.xml/route.js",
-  "/offline/page": "app/offline/page.js",
   "/nutrition/page": "app/nutrition/page.js",
-  "/progress/page": "app/progress/page.js",
-  "/profile/page": "app/profile/page.js",
+  "/manifest.json/route": "app/manifest.json/route.js",
+  "/offline/page": "app/offline/page.js",
+  "/sitemap.xml/route": "app/sitemap.xml/route.js",
   "/page": "app/page.js",
-  "/add-food/page": "app/add-food/page.js"
+  "/add-food/page": "app/add-food/page.js",
+  "/progress/page": "app/progress/page.js"
 }
