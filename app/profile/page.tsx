@@ -41,32 +41,46 @@ export default function Profile() {
   setMounted(true);
 
   // Verificar autenticación con Supabase
-  const checkAuth = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        router.push('/login');
-        return;
-      }
-
-      // Usuario autenticado, obtener datos del perfil
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .single();
-
-      if (error) {
-        console.error('Error al cargar el perfil:', error);
-        // Puedes mantener el fallback a localStorage si lo prefieres
-        const userProfileStored = localStorage.getItem('userProfile');
-        if (userProfileStored) {
-          const profile = JSON.parse(userProfileStored);
-          setUserProfile(profile);
-          setEditProfile(profile);
-          setLanguage(profile.language || 'es');
+   const checkAuth = async () => {
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error('Error getting session:', sessionError);
+          router.push('/login');
+          return;
         }
+        
+        if (!session) {
+          console.log('No session found, redirecting to login');
+          router.push('/login');
+          return;
+        }
+
+        // USER ESTÁ AUTENTICADO - proceder a cargar datos
+        console.log('User authenticated:', session.user.id);
+        
+        // Cargar datos del perfil
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+
+        if (profileError) {
+          console.error('Error loading profile:', profileError);
+          // Fallback a localStorage
+          const userProfileStored = localStorage.getItem('userProfile');
+          if (userProfileStored) {
+            try {
+              const profileData = JSON.parse(userProfileStored);
+              setUserProfile(profileData);
+              setEditProfile(profileData);
+              setLanguage(profileData.language || 'es');
+            } catch (e) {
+              console.error('Error parsing stored profile:', e);
+            }
+          }
       } else {
         // Datos cargados desde Supabase
         setUserProfile(profile);
