@@ -119,6 +119,7 @@ export default function Profile() {
       }
     } catch (error) {
       console.log('Error loading user data:', error);
+      router.push('/login');
     }
   };
      checkAuth();
