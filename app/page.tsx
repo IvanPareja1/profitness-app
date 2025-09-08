@@ -4,11 +4,12 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import BottomNavigation from '../components/BottomNavigation';
-import InstallPrompt from '../components/InstallPrompt';
-import UpdateNotification from '../components/UpdateNotification';
-import CloudSyncManager from '../components/CloudSyncManager';
-import { deviceTime } from '../lib/device-time-utils';
+import BottomNavigation from './components/BottomNavigation';
+import InstallPrompt from './components/InstallPrompt';
+import UpdateNotification from './components/UpdateNotification';
+import CloudSyncManager from './components/CloudSyncManager';
+import { deviceTime } from './lib/device-time-utils';
+import { supabase } from './lib/supabase'; // Importar Supabase
 
 // Declarar tipos globales para ventana
 declare global {
@@ -62,6 +63,47 @@ export default function Home() {
     meals: [],
   });
   const router = useRouter();
+
+   // Función para cargar datos de nutrición desde Supabase
+  const loadNutritionDataFromSupabase = async (userId: string, date: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('nutrition_data')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('date', date)
+        .single();
+
+      if (!error && data) {
+        return data;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error cargando datos de nutrición:', error);
+      return null;
+    }
+  };
+
+   // Función para guardar datos de nutrición en Supabase
+  const saveNutritionDataToSupabase = async (userId: string, date: string, data: any) => {
+    try {
+      const { error } = await supabase
+        .from('nutrition_data')
+        .upsert({
+          user_id: userId,
+          date: date,
+          ...data,
+          updated_at: new Date().toISOString()
+        });
+
+      if (error) {
+        throw error;
+      }
+    } catch (error) {
+      console.error('Error guardando datos de nutrición:', error);
+    }
+  };
+
 
   useEffect(() => {
     setMounted(true);
@@ -143,11 +185,33 @@ export default function Home() {
       updateDateTime();
     }, 60000);
 
-    const loadTodayData = (): void => {
+        const loadTodayData = async (): Promise<void> => {
       if (typeof window === 'undefined') return;
 
       try {
         const todayKey = today;
+
+        // Intentar cargar desde Supabase primero
+        if (userData?.id) {
+          const supabaseData = await loadNutritionDataFromSupabase(userData.id, todayKey);
+          if (supabaseData) {
+            setNutritionData((prev) => ({
+              ...prev,
+              calories: supabaseData.calories || 0,
+              protein: supabaseData.protein || 0,
+              carbs: supabaseData.carbs || 0,
+              fats: supabaseData.fats || 0,
+              meals: supabaseData.meals || [],
+              targetCalories: supabaseData.targetCalories || prev.targetCalories,
+              targetProtein: supabaseData.targetProtein || prev.targetProtein,
+              targetCarbs: supabaseData.targetCarbs || prev.targetCarbs,
+              targetFats: supabaseData.targetFats || prev.targetFats,
+            }));
+            return;
+          }
+        }
+
+        // Fallback a localStorage si no hay datos en Supabase
         const savedData = localStorage.getItem(`nutrition_${todayKey}`);
         if (savedData) {
           const parsed = JSON.parse(savedData);
@@ -158,22 +222,16 @@ export default function Home() {
             carbs: parsed.carbs || 0,
             fats: parsed.fats || 0,
             meals: parsed.meals || [],
-            // Mantener los targets del perfil, pero permitir override si existen en los datos del día
             targetCalories: parsed.targetCalories || prev.targetCalories,
             targetProtein: parsed.targetProtein || prev.targetProtein,
             targetCarbs: parsed.targetCarbs || prev.targetCarbs,
             targetFats: parsed.targetFats || prev.targetFats,
           }));
-        } else {
-          // Si no hay datos del día, inicializar con valores vacíos pero mantener targets del perfil
-          setNutritionData((prev) => ({
-            ...prev,
-            calories: 0,
-            protein: 0,
-            carbs: 0,
-            fats: 0,
-            meals: [],
-          }));
+
+          // Guardar en Supabase para futuras sesiones
+          if (userData?.id) {
+            await saveNutritionDataToSupabase(userData.id, todayKey, parsed);
+          }
         }
       } catch (error) {
         console.log('Error loading data:', error);

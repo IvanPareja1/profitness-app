@@ -3,8 +3,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import LoadingSpinner from '../../components/ui/LoadingSpinner';
-import Logo from '../../components/ui/Logo';
+import LoadingSpinner from '../components/ui/LoadingSpinner';
+import Logo from '../components/ui/Logo';
+import { supabase } from '../lib/supabase';
 
 declare global {
   interface Window {
@@ -18,9 +19,22 @@ export default function Login() {
   const [error, setError] = useState('');
   const router = useRouter();
 
+  const handleGoogleLogin = async () => {
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: `${window.location.origin}/auth/callback`
+    }
+  });
+
+  if (error) {
+    console.error('Error signing in with Google:', error);
+  }
+};
+
+// Verificar si ya está autenticado
   useEffect(() => {
-    // Verificar si ya está autenticado
-    const isAuthenticated = localStorage.getItem('isAuthenticated');
+        const isAuthenticated = localStorage.getItem('isAuthenticated');
     if (isAuthenticated === 'true') {
       router.push('/');
       return;

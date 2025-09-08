@@ -4,14 +4,14 @@
 import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import BottomNavigation from '../../components/BottomNavigation';
-import { deviceTime } from '../../lib/device-time-utils';
+import BottomNavigation from '../components/BottomNavigation';
+import { deviceTime } from '../lib/device-time-utils';
 import { 
   initializeBarcodeScanner, 
   stopBarcodeScanner, 
   getProductByBarcode, 
   BarcodeResult 
-} from '../../lib/simple-barcode-scanner';
+} from '../lib/simple-barcode-scanner';
 
 interface FoodItem {
   id: string;

@@ -3,8 +3,8 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import BottomNavigation from '../../components/BottomNavigation';
-import { deviceTime } from '../../lib/device-time-utils';
+import BottomNavigation from '../components/BottomNavigation';
+import { deviceTime } from '../lib/device-time-utils';
 
 // Interfaces para TypeScript
 interface DataPoint {
