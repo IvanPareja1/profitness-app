@@ -62,7 +62,8 @@ export class SyncService {
       const { data: profile } = await supabase
         .from('user_profiles')
         .select('*')
-        .eq('user_id', userId)
+        .eq('google_id', 
+ userId)
         .single();
 
       if (profile) {
@@ -76,7 +77,8 @@ export class SyncService {
       const { data: nutritionData } = await supabase
         .from('nutrition_data')
         .select('*')
-        .eq('user_id', userId)
+        .eq('google_id', 
+ userId)
         .gte('date', thirtyDaysAgo.toISOString().split('T')[0])
         .order('date', { ascending: false });
 
@@ -90,7 +92,8 @@ export class SyncService {
       const { data: settings } = await supabase
         .from('user_settings')
         .select('*')
-        .eq('user_id', userId);
+        .eq('google_id', userId);
+
 
       if (settings) {
         settings.forEach(setting => {

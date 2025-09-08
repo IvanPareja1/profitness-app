@@ -70,7 +70,8 @@ export default function Home() {
       const { data, error } = await supabase
         .from('nutrition_data')
         .select('*')
-        .eq('user_id', userId)
+        .eq('google_id', 
+ userId)
         .eq('date', date)
         .single();
 

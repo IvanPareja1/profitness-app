@@ -54,7 +54,8 @@ const loadUserDataFromSupabase = async (userId: string) => {
     const { data: profileData, error: profileError } = await supabase
       .from('user_profiles')
       .select('*')
-      .eq('user_id', userId)
+      .eq('google_id', 
+ userId)
       .single();
 
     if (profileError) {
@@ -79,7 +80,8 @@ const loadUserDataFromSupabase = async (userId: string) => {
     const { data: restDayData, error: restDayError } = await supabase
       .from('user_settings')
       .select('*')
-      .eq('user_id', userId)
+      .eq('google_id', 
+ userId)
       .eq('setting_type', 'rest_days')
       .single();
 
@@ -93,7 +95,8 @@ const loadUserDataFromSupabase = async (userId: string) => {
       const { data: fitnessData, error: fitnessError } = await supabase
         .from('fitness_data')
         .select('*')
-        .eq('user_id', userId)
+        .eq('google_id', 
+ userId)
         .eq('date', today)
         .single();
 
