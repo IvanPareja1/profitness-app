@@ -14,10 +14,21 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
         
-        if (session && !error) {
+        if (session && !error && session.user) {
           console.log('Session found:', session.user.id);
+          
+          // Guardar datos CORRECTAMENTE
+          const userData = {
+            id: session.user.id,
+            email: session.user.email,
+            name: session.user.user_metadata?.name || session.user.email,
+            picture: session.user.user_metadata?.avatar_url || '',
+            sub: session.user.user_metadata?.sub || '',
+            email_verified: session.user.user_metadata?.email_verified || false
+          };
+          
           localStorage.setItem('isAuthenticated', 'true');
-          localStorage.setItem('userData', JSON.stringify(session.user));
+          localStorage.setItem('userData', JSON.stringify(userData));
         } else {
           console.log('No active session');
           localStorage.removeItem('isAuthenticated');
@@ -35,13 +46,21 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       async (event, session) => {
         console.log('Auth event:', event, session?.user?.id);
         
-        if (session) {
-          // Guardar en localStorage
+        if (session && session.user) {
+          // Guardar en localStorage CORRECTAMENTE
+          const userData = {
+            id: session.user.id,
+            email: session.user.email,
+            name: session.user.user_metadata?.name || session.user.email,
+            picture: session.user.user_metadata?.avatar_url || '',
+            sub: session.user.user_metadata?.sub || '',
+            email_verified: session.user.user_metadata?.email_verified || false
+          };
+          
           localStorage.setItem('isAuthenticated', 'true');
-          localStorage.setItem('userData', JSON.stringify(session.user));
+          localStorage.setItem('userData', JSON.stringify(userData));
           
           if (event === 'SIGNED_IN') {
-            // Redirigir después de login exitoso
             router.push('/');
           }
         } else {
