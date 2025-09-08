@@ -38,56 +38,65 @@ export default function Profile() {
   const router = useRouter();
 
   
-  // Función para cargar datos del usuario desde Supabase
-  const loadUserDataFromSupabase = async (userId: string) => {
+// Función para cargar datos del usuario desde Supabase
+const loadUserDataFromSupabase = async (userId: string) => {
+  // VERIFICAR que userId no sea undefined
+  if (!userId || userId === 'undefined') {
+    console.error('User ID is undefined');
+    return;
+  }
+
+  try {
+    // Cargar perfil del usuario
+    const { data: profileData, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+
+    if (profileError) {
+      console.error('Error loading profile:', profileError);
+      return;
+    }
+
+    if (profileData) {
+      setUserProfile(profileData);
+      setEditProfile(profileData);
+      setLanguage(profileData.language || 'es');
+    }
+
+    // Cargar configuración de días de descanso
+    const { data: restDayData, error: restDayError } = await supabase
+      .from('user_settings')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('setting_type', 'rest_days')
+      .single();
+
+    if (!restDayError && restDayData) {
+      setRestDayConfig(restDayData.setting_value);
+    }
+
+    // Cargar datos de fitness del día actual
     try {
-      // Cargar perfil del usuario
-      const { data: profileData, error: profileError } = await supabase
-        .from('user_profiles')
+      const today = deviceTime.getCurrentDate();
+      const { data: fitnessData, error: fitnessError } = await supabase
+        .from('fitness_data')
         .select('*')
         .eq('user_id', userId)
+        .eq('date', today)
         .single();
 
-      if (!profileError && profileData) {
-        setUserProfile(profileData);
-        setEditProfile(profileData);
-        setLanguage(profileData.language || 'es');
-      }
-
-      
-      // Cargar configuración de días de descanso
-      const { data: restDayData, error: restDayError } = await supabase
-        .from('user_settings')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('setting_type', 'rest_days')
-        .single();
-
-      if (!restDayError && restDayData) {
-        setRestDayConfig(restDayData.setting_value);
-      }
-
-      // Cargar datos de fitness del día actual
-      try {
-        const today = deviceTime.getCurrentDate();
-        const { data: fitnessData, error: fitnessError } = await supabase
-          .from('fitness_data')
-          .select('*')
-          .eq('user_id', userId)
-          .eq('date', today)
-          .single();
-
-        if (!fitnessError && fitnessData) {
-          setFitnessData(fitnessData);
-        }
-      } catch (error) {
-        console.warn('Error cargando datos fitness:', error);
+      if (!fitnessError && fitnessData) {
+        setFitnessData(fitnessData);
       }
     } catch (error) {
-      console.error('Error cargando datos desde Supabase:', error);
+      console.warn('Error cargando datos fitness:', error);
     }
-  };
-
+  } catch (error) {
+    console.error('Error cargando datos desde Supabase:', error);
+  }
+};
   // Función para guardar perfil en Supabase
   const saveProfileToSupabase = async (profileData: any) => {
     try {
@@ -109,81 +118,55 @@ export default function Profile() {
     }
   };
 
-  useEffect(() => {
-    setMounted(true);
 
-    if (typeof window === 'undefined') return;
+useEffect(() => {
+  setMounted(true);
 
-    const isAuthenticated = localStorage.getItem('isAuthenticated');
-    if (!isAuthenticated || isAuthenticated !== 'true') {
-      router.push('/login');
-      return;
-    }
+  if (typeof window === 'undefined') return;
 
-    try {
-      const userDataStored = localStorage.getItem('userData');
-      if (userDataStored) {
-        const user = JSON.parse(userDataStored);
-        setUserData(user);
-        
-        // Cargar datos desde Supabase
+  const isAuthenticated = localStorage.getItem('isAuthenticated');
+  if (!isAuthenticated || isAuthenticated !== 'true') {
+    router.push('/login');
+    return;
+  }
+
+  try {
+    const userDataStored = localStorage.getItem('userData');
+    if (userDataStored) {
+      const user = JSON.parse(userDataStored);
+      setUserData(user);
+      
+      // VERIFICAR que user.id existe antes de cargar datos
+      if (user && user.id && user.id !== 'undefined') {
         loadUserDataFromSupabase(user.id);
+      } else {
+        console.error('User ID is invalid:', user?.id);
+        // Forzar logout si el user ID es inválido
+        localStorage.removeItem('isAuthenticated');
+        localStorage.removeItem('userData');
+        router.push('/login');
+        return; // Agregar return para evitar ejecución adicional
       }
-
-      // También mantener compatibilidad con localStorage por ahora
-      const userProfileStored = localStorage.getItem('userProfile');
-      if (userProfileStored) {
-        const profile = JSON.parse(userProfileStored);
-        setUserProfile(profile);
-        setEditProfile(profile);
-        setLanguage(profile.language || 'es');
-      }
-
-      // Cargar configuración de días de descanso desde localStorage (temporal)
-      const restConfig = localStorage.getItem('restDaySettings');
-      if (restConfig) {
-        setRestDayConfig(JSON.parse(restConfig));
-      }
-    } catch (error) {
-      console.log('Error loading user data:', error);
-    }
-  }, [router]);
-
-  useEffect(() => {
-    setMounted(true);
-
-    if (typeof window === 'undefined') return;
-
-    const isAuthenticated = localStorage.getItem('isAuthenticated');
-    if (!isAuthenticated || isAuthenticated !== 'true') {
-      router.push('/login');
-      return;
     }
 
-    try {
-      const userDataStored = localStorage.getItem('userData');
-      if (userDataStored) {
-        const user = JSON.parse(userDataStored);
-        setUserData(user);
-      }
-
-      const userProfileStored = localStorage.getItem('userProfile');
-      if (userProfileStored) {
-        const profile = JSON.parse(userProfileStored);
-        setUserProfile(profile);
-        setEditProfile(profile);
-        setLanguage(profile.language || 'es');
-      }
-
-      // Cargar configuración de días de descanso
-      const restConfig = localStorage.getItem('restDaySettings');
-      if (restConfig) {
-        setRestDayConfig(JSON.parse(restConfig));
-      }
-    } catch (error) {
-      console.log('Error loading user data:', error);
+    // También mantener compatibilidad con localStorage por ahora
+    const userProfileStored = localStorage.getItem('userProfile');
+    if (userProfileStored) {
+      const profile = JSON.parse(userProfileStored);
+      setUserProfile(profile);
+      setEditProfile(profile);
+      setLanguage(profile.language || 'es');
     }
-  }, [router]);
+
+    // Cargar configuración de días de descanso desde localStorage (temporal)
+    const restConfig = localStorage.getItem('restDaySettings');
+    if (restConfig) {
+      setRestDayConfig(JSON.parse(restConfig));
+    }
+  } catch (error) {
+    console.log('Error loading user data:', error);
+  }
+}, [router]);
 
   const translations = {
     es: {
@@ -540,6 +523,8 @@ export default function Profile() {
 
   const handleSaveProfile = async () => {
     try {
+       let updatedProfile;
+
       if (editProfile.autoCalculate && editProfile.age && editProfile.weight && editProfile.height) {
         const targets = NutritionCalculator.calculateNutritionTargets({
           age: editProfile.age,
@@ -551,40 +536,34 @@ export default function Profile() {
           goal: editProfile.goal || 'maintain'
         });
 
-        const updatedProfile = {
+        updatedProfile = {
           ...editProfile,
           targetCalories: targets.targetCalories,
           targetProtein: targets.targetProtein,
           targetCarbs: targets.targetCarbs,
           targetFats: targets.targetFats
         };
+    } else {
+      updatedProfile = editProfile;
+    }
 
         // Guardar en Supabase
         await saveProfileToSupabase(updatedProfile);
         
         // También guardar en localStorage para compatibilidad
         localStorage.setItem('userProfile', JSON.stringify(updatedProfile));
-        
-        setUserProfile(updatedProfile);
-      } else {
-        // Guardar en Supabase
-        await saveProfileToSupabase(editProfile);
-        
-        // También guardar en localStorage para compatibilidad
-        localStorage.setItem('userProfile', JSON.stringify(editProfile));
-        setUserProfile(editProfile);
-      }
 
-      setShowEditModal(false);
-
+      
+    setShowEditModal(false);
+    setUserProfile(updatedProfile);
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new Event('profileUpdated'));
-      }
-    } catch (error) {
-      console.log('Error saving profile:', error);
+      window.dispatchEvent(new Event('profileUpdated'));
     }
-  };
-
+  } catch (error) {
+    console.log('Error saving profile:', error);
+  }
+};
+  
   const handleLanguageChange = async (newLanguage: string) => {
     const updatedProfile = { ...userProfile, language: newLanguage };
     
