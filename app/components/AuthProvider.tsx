@@ -9,17 +9,17 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   const router = useRouter();
 
   useEffect(() => {
-    // Verificar sesión existente al cargar
-    const checkSession = async () => {
+    const initializeAuth = async () => {
       try {
+        // 1. Primero verificar si hay sesión activa en Supabase
         const { data: { session }, error } = await supabase.auth.getSession();
         
-        if (session && !error && session.user) {
-          console.log('Session found:', session.user.id);
+        if (session && session.user) {
+          console.log('✅ Sesión de Supabase encontrada:', session.user.id);
           
-          // Guardar datos CORRECTAMENTE
+          // Guardar información CORRECTA con ID de Supabase
           const userData = {
-            id: session.user.id,
+            id: session.user.id, // ← ID de Supabase
             email: session.user.email,
             name: session.user.user_metadata?.name || session.user.email,
             picture: session.user.user_metadata?.avatar_url || '',
@@ -30,24 +30,25 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
           localStorage.setItem('isAuthenticated', 'true');
           localStorage.setItem('userData', JSON.stringify(userData));
         } else {
-          console.log('No active session');
+          console.log('ℹ️ No hay sesión activa en Supabase');
+          // Limpiar datos viejos
           localStorage.removeItem('isAuthenticated');
           localStorage.removeItem('userData');
         }
       } catch (error) {
-        console.error('Error checking session:', error);
+        console.error('Error inicializando auth:', error);
       }
     };
 
-    checkSession();
+    initializeAuth();
 
-    // Escuchar cambios de autenticación
+    // 2. Escuchar cambios en la autenticación
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth event:', event, session?.user?.id);
         
         if (session && session.user) {
-          // Guardar en localStorage CORRECTAMENTE
+          // Guardar información CORRECTA
           const userData = {
             id: session.user.id,
             email: session.user.email,
@@ -64,13 +65,9 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
             router.push('/');
           }
         } else {
-          // Limpiar localStorage en logout
+          // Limpiar en logout
           localStorage.removeItem('isAuthenticated');
           localStorage.removeItem('userData');
-          
-          if (event === 'SIGNED_OUT') {
-            router.push('/login');
-          }
         }
       }
     );

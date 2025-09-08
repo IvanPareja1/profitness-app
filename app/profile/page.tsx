@@ -129,9 +129,9 @@ const loadUserDataFromSupabase = async (userId: string) => {
   };
 
 
+// En tu Profile page.tsx - modifica el useEffect
 useEffect(() => {
   setMounted(true);
-
   if (typeof window === 'undefined') return;
 
   const initializeProfile = async () => {
@@ -149,49 +149,24 @@ useEffect(() => {
         
         setUserData(user);
         
-        // Verificar que user.id existe
-        if (user && user.id && user.id !== 'undefined') {
-          await loadUserDataFromSupabase(user.id);
-        } else {
-          console.error('Invalid user ID, checking session...');
+        // MIGRACIÓN: Si tiene sub pero no id, usar sub como ID temporal
+        let userId = user.id;
+        if ((!userId || userId === 'undefined') && user.sub) {
+          console.log('🔄 Migrando datos viejos, usando sub como ID temporal');
+          userId = user.sub;
           
-          // Intentar recuperar la sesión de Supabase
-          const { data: { session }, error } = await supabase.auth.getSession();
-          
-          if (session && !error) {
-            console.log('Session recovered:', session.user.id);
-            // Guardar datos correctamente
-            const updatedUser = {
-              id: session.user.id,
-              email: session.user.email,
-              name: session.user.user_metadata?.name || session.user.email,
-              picture: session.user.user_metadata?.avatar_url || ''
-            };
-            
-            localStorage.setItem('userData', JSON.stringify(updatedUser));
-            setUserData(updatedUser);
-            await loadUserDataFromSupabase(session.user.id);
-          } else {
-            console.error('No valid session found, redirecting to login');
-            localStorage.removeItem('isAuthenticated');
-            localStorage.removeItem('userData');
-            router.push('/login');
-          }
+          // Actualizar localStorage con ID temporal
+          const updatedUser = { ...user, id: user.sub };
+          localStorage.setItem('userData', JSON.stringify(updatedUser));
+          setUserData(updatedUser);
         }
-      }
 
-      // Cargar datos de localStorage como fallback
-      const userProfileStored = localStorage.getItem('userProfile');
-      if (userProfileStored) {
-        const profile = JSON.parse(userProfileStored);
-        setUserProfile(profile);
-        setEditProfile(profile);
-        setLanguage(profile.language || 'es');
-      }
-
-      const restConfig = localStorage.getItem('restDaySettings');
-      if (restConfig) {
-        setRestDayConfig(JSON.parse(restConfig));
+        if (userId && userId !== 'undefined') {
+          await loadUserDataFromSupabase(userId);
+        } else {
+          console.error('No valid user ID found');
+          router.push('/login');
+        }
       }
     } catch (error) {
       console.log('Error loading user data:', error);
@@ -199,7 +174,7 @@ useEffect(() => {
   };
 
   initializeProfile();
-}, [router]);
+}, [router]);  
 
   const translations = {
     es: {
