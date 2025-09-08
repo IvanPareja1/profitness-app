@@ -40,6 +40,8 @@ export default function Profile() {
   
 // Función para cargar datos del usuario desde Supabase
 const loadUserDataFromSupabase = async (userId: string) => {
+  console.log('Loading data for user:', userId);
+
   // VERIFICAR que userId no sea undefined
   if (!userId || userId === 'undefined') {
     console.error('User ID is undefined');
@@ -48,6 +50,7 @@ const loadUserDataFromSupabase = async (userId: string) => {
 
   try {
     // Cargar perfil del usuario
+    console.log('Fetching profile from Supabase...');
     const { data: profileData, error: profileError } = await supabase
       .from('user_profiles')
       .select('*')
@@ -57,6 +60,13 @@ const loadUserDataFromSupabase = async (userId: string) => {
     if (profileError) {
       console.error('Error loading profile:', profileError);
       return;
+    }
+
+    console.log('Profile data:', profileData);
+    if (profileData) {
+      setUserProfile(profileData);
+      setEditProfile(profileData);
+      setLanguage(profileData.language || 'es');
     }
 
     if (profileData) {
@@ -124,48 +134,71 @@ useEffect(() => {
 
   if (typeof window === 'undefined') return;
 
-  const isAuthenticated = localStorage.getItem('isAuthenticated');
-  if (!isAuthenticated || isAuthenticated !== 'true') {
-    router.push('/login');
-    return;
-  }
-
-  try {
-    const userDataStored = localStorage.getItem('userData');
-    if (userDataStored) {
-      const user = JSON.parse(userDataStored);
-      setUserData(user);
-      
-      // VERIFICAR que user.id existe antes de cargar datos
-      if (user && user.id && user.id !== 'undefined') {
-        loadUserDataFromSupabase(user.id);
-      } else {
-        console.error('User ID is invalid:', user?.id);
-        // Forzar logout si el user ID es inválido
-        localStorage.removeItem('isAuthenticated');
-        localStorage.removeItem('userData');
+  const initializeProfile = async () => {
+    try {
+      const isAuthenticated = localStorage.getItem('isAuthenticated');
+      if (!isAuthenticated || isAuthenticated !== 'true') {
         router.push('/login');
-        return; // Agregar return para evitar ejecución adicional
+        return;
       }
-    }
 
-    // También mantener compatibilidad con localStorage por ahora
-    const userProfileStored = localStorage.getItem('userProfile');
-    if (userProfileStored) {
-      const profile = JSON.parse(userProfileStored);
-      setUserProfile(profile);
-      setEditProfile(profile);
-      setLanguage(profile.language || 'es');
-    }
+      const userDataStored = localStorage.getItem('userData');
+      if (userDataStored) {
+        const user = JSON.parse(userDataStored);
+        console.log('User data from storage:', user);
+        
+        setUserData(user);
+        
+        // Verificar que user.id existe
+        if (user && user.id && user.id !== 'undefined') {
+          await loadUserDataFromSupabase(user.id);
+        } else {
+          console.error('Invalid user ID, checking session...');
+          
+          // Intentar recuperar la sesión de Supabase
+          const { data: { session }, error } = await supabase.auth.getSession();
+          
+          if (session && !error) {
+            console.log('Session recovered:', session.user.id);
+            // Guardar datos correctamente
+            const updatedUser = {
+              id: session.user.id,
+              email: session.user.email,
+              name: session.user.user_metadata?.name || session.user.email,
+              picture: session.user.user_metadata?.avatar_url || ''
+            };
+            
+            localStorage.setItem('userData', JSON.stringify(updatedUser));
+            setUserData(updatedUser);
+            await loadUserDataFromSupabase(session.user.id);
+          } else {
+            console.error('No valid session found, redirecting to login');
+            localStorage.removeItem('isAuthenticated');
+            localStorage.removeItem('userData');
+            router.push('/login');
+          }
+        }
+      }
 
-    // Cargar configuración de días de descanso desde localStorage (temporal)
-    const restConfig = localStorage.getItem('restDaySettings');
-    if (restConfig) {
-      setRestDayConfig(JSON.parse(restConfig));
+      // Cargar datos de localStorage como fallback
+      const userProfileStored = localStorage.getItem('userProfile');
+      if (userProfileStored) {
+        const profile = JSON.parse(userProfileStored);
+        setUserProfile(profile);
+        setEditProfile(profile);
+        setLanguage(profile.language || 'es');
+      }
+
+      const restConfig = localStorage.getItem('restDaySettings');
+      if (restConfig) {
+        setRestDayConfig(JSON.parse(restConfig));
+      }
+    } catch (error) {
+      console.log('Error loading user data:', error);
     }
-  } catch (error) {
-    console.log('Error loading user data:', error);
-  }
+  };
+
+  initializeProfile();
 }, [router]);
 
   const translations = {
