@@ -37,7 +37,53 @@ export default function Profile() {
   const [donateStatus, setDonateStatus] = useState<'idle' | 'processing' | 'success' | 'error'>('idle');
   const router = useRouter();
 
-  
+
+  async function loadOrCreateUserProfile(googleUser: any) {
+    const googleId = googleUser.sub;
+    
+    console.log('Buscando perfil para google_id:', googleId);
+    
+    // Primero intentar cargar el perfil existente
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .eq('google_id', googleId);
+    
+    if (error) {
+      console.error('Error buscando perfil:', error);
+      return null;
+    }
+    
+    // Si no existe, crear uno nuevo
+    if (!data || data.length === 0) {
+      console.log('Perfil no encontrado, creando nuevo...');
+      
+      const { data: newData, error: insertError } = await supabase
+        .from('user_profiles')
+        .insert([
+          {
+            google_id: googleId,
+            name: googleUser.name,
+            email: googleUser.email,
+            picture: googleUser.picture,
+            created_at: new Date().toISOString()
+          }
+        ])
+        .select('*');
+      
+      if (insertError) {
+        console.error('Error creando perfil:', insertError);
+        return null;
+      }
+      
+      console.log('Nuevo perfil creado:', newData);
+      return newData;
+    }
+    
+    console.log('Perfil encontrado:', data);
+    return data;
+  }
+ 
 // Función para cargar datos del usuario desde Supabase
 const loadUserDataFromSupabase = async (userId: string) => {
   console.log('Loading data for user:', userId);
@@ -48,40 +94,45 @@ const loadUserDataFromSupabase = async (userId: string) => {
     return;
   }
 
-  try {
-    // Cargar perfil del usuario
-    console.log('Fetching profile from Supabase...');
-    const { data: profileData, error: profileError } = await supabase
-      .from('user_profiles')
-      .select('*')
-      .eq('google_id', 
- userId)
-      .single();
 
-    if (profileError) {
-      console.error('Error loading profile:', profileError);
-      return;
-    }
+try {
+  // Cargar perfil del usuario usando la nueva función
+  console.log('Fetching profile from Supabase...');
+  
+  // Obtener el objeto user completo de localStorage
+  const userDataStored = localStorage.getItem('userData');
+  const user = userDataStored ? JSON.parse(userDataStored) : null;
+  
+  if (!user) {
+    console.error('No user data found in localStorage');
+    return;
+  }
 
-    console.log('Profile data:', profileData);
-    if (profileData) {
-      setUserProfile(profileData);
-      setEditProfile(profileData);
-      setLanguage(profileData.language || 'es');
-    }
+  // Usar loadOrCreateUserProfile en lugar de la consulta directa
+  const profileData = await loadOrCreateUserProfile(user);
 
-    if (profileData) {
-      setUserProfile(profileData);
-      setEditProfile(profileData);
-      setLanguage(profileData.language || 'es');
-    }
+  if (!profileData) {
+    console.error('Error loading or creating profile');
+    return;
+  }
+
+  console.log('Profile data:', profileData);
+  
+  // Asegurarse de que profileData es un array y tomar el primer elemento
+  const userProfileData = Array.isArray(profileData) ? profileData[0] : profileData;
+  
+  // SOLO UNA VEZ esto ↓
+  if (userProfileData) {
+    setUserProfile(userProfileData);
+    setEditProfile(userProfileData);
+    setLanguage(userProfileData.language || 'es');
+  }
 
     // Cargar configuración de días de descanso
     const { data: restDayData, error: restDayError } = await supabase
       .from('user_settings')
       .select('*')
-      .eq('google_id', 
- userId)
+      .eq('google_id', userId)
       .eq('setting_type', 'rest_days')
       .single();
 
@@ -95,8 +146,7 @@ const loadUserDataFromSupabase = async (userId: string) => {
       const { data: fitnessData, error: fitnessError } = await supabase
         .from('fitness_data')
         .select('*')
-        .eq('google_id', 
- userId)
+        .eq('google_id', userId)
         .eq('date', today)
         .single();
 
@@ -116,7 +166,7 @@ const loadUserDataFromSupabase = async (userId: string) => {
       const { data, error } = await supabase
         .from('user_profiles')
         .upsert({
-          user_id: userData.id,
+          google_id: userData.sub,
           ...profileData,
           updated_at: new Date().toISOString()
         });
@@ -132,7 +182,6 @@ const loadUserDataFromSupabase = async (userId: string) => {
   };
 
 
-// En tu Profile page.tsx - modifica el useEffect
 useEffect(() => {
   setMounted(true);
   if (typeof window === 'undefined') return;
