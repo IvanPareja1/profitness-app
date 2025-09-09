@@ -1,20 +1,22 @@
+
 import { useAuth } from '../../hooks/useAuth';
-import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import LoginScreen from './LoginScreen';
+import LoadingScreen from './LoadingScreen';
 
-export default function AuthGuard({ children }: { children: React.ReactNode }) {
+interface AuthGuardProps {
+  children: React.ReactNode;
+}
+
+export default function AuthGuard({ children }: AuthGuardProps) {
   const { user, loading } = useAuth();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!loading && !user) {
-      navigate('/login');
-    }
-  }, [user, loading, navigate]);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <LoadingScreen />;
   }
 
-  return user ? <>{children}</> : null;
+  if (!user) {
+    return <LoginScreen />;
+  }
+
+  return <>{children}</>;
 }

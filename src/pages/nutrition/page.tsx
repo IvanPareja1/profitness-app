@@ -3,7 +3,6 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, supabase } from '../../hooks/useAuth';
 
-
 interface Meal {
   id: string;
   name: string;
@@ -15,8 +14,6 @@ interface Meal {
   unit: string;
   meal_type: string;
   created_at: string;
-  confidence_score?: string; 
-  ingredients?: string; 
 }
 
 interface FoodItem {

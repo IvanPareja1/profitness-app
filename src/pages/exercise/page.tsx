@@ -16,15 +16,6 @@ interface Exercise {
   created_at: string;
 }
 
-interface CompletedExercise {
-  id: string;
-  name: string;
-  sets: number;
-  reps: number;
-  weight?: number;
-  completed_at: string;
-}
-
 interface ExerciseTotals {
   totalExercises: number;
   totalDuration: number;
@@ -39,7 +30,6 @@ interface ExerciseTemplate {
   category: string;
   calories_per_min: number;
 }
-
 
 export default function Exercise() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
