@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -38,146 +37,120 @@ export default function Profile() {
   const router = useRouter();
 
 
-  async function loadOrCreateUserProfile(googleUser: any) {
-    const googleId = googleUser.sub;
+// Función para cargar o crear perfil
+  const loadOrCreateUserProfile = async (user: any) => {
+    const googleId = user.id;
+    const { name, email, picture } = user;
     
-    console.log('Buscando perfil para google_id:', googleId);
-    
-    // Primero intentar cargar el perfil existente
-    const { data, error } = await supabase
-      .from('user_profiles')
-      .select('*')
-      .eq('google_id', googleId);
-    
-    if (error) {
-      console.error('Error buscando perfil:', error);
-      return null;
-    }
-    
-    // Si no existe, crear uno nuevo
-    if (!data || data.length === 0) {
-      console.log('Perfil no encontrado, creando nuevo...');
+    try {
+      console.log('Buscando perfil para google_id:', googleId);
       
-      const { data: newData, error: insertError } = await supabase
+      // 1. Primero buscar si ya existe el perfil
+      const { data: existingProfile, error: selectError } = await supabase
         .from('user_profiles')
-        .insert([
-          {
-            google_id: googleId,
-            name: googleUser.name,
-            email: googleUser.email,
-            picture: googleUser.picture,
-            created_at: new Date().toISOString()
-          }
-        ])
-        .select('*');
+        .select('*')
+        .eq('google_id', googleId)
+        .single();
       
-      if (insertError) {
-        console.error('Error creando perfil:', insertError);
-        return null;
+      if (selectError && selectError.code !== 'PGRST116') {
+        console.error('Error buscando perfil:', selectError);
+        throw selectError;
       }
       
-      console.log('Nuevo perfil creado:', newData);
-      return newData;
+      if (existingProfile) {
+        console.log('Perfil encontrado:', existingProfile);
+        return existingProfile;
+      } else {
+        console.log('Perfil no encontrado, creando nuevo...');
+        
+        // 2. Perfil no existe, crearlo
+        const { data: newProfile, error: insertError } = await supabase
+          .from('user_profiles')
+          .insert([
+            {
+              google_id: googleId,
+              name: name,
+              email: email,
+              picture: picture,
+              created_at: new Date().toISOString()
+            }
+          ])
+          .select('*')
+          .single();
+        
+        if (insertError) {
+          console.error('Error creando perfil:', insertError);
+          throw insertError;
+        }
+        
+        console.log('Perfil creado exitosamente:', newProfile);
+        return newProfile;
+      }
+    } catch (error) {
+      console.error('Error en loadOrCreateUserProfile:', error);
+      throw error;
     }
-    
-    console.log('Perfil encontrado:', data);
-    return data;
-  }
- 
-// Función para cargar datos del usuario desde Supabase
-const loadUserDataFromSupabase = async (userId: string) => {
-  console.log('Loading data for user:', userId);
+  };
 
-  // VERIFICAR que userId no sea undefined
-  if (!userId || userId === 'undefined') {
-    console.error('User ID is undefined');
-    return;
-  }
-
-
-try {
-  // Cargar perfil del usuario usando la nueva función
-  console.log('Fetching profile from Supabase...');
-  
-  // Obtener el objeto user completo de localStorage
-  const userDataStored = localStorage.getItem('userData');
-  const user = userDataStored ? JSON.parse(userDataStored) : null;
-  
-  if (!user) {
-    console.error('No user data found in localStorage');
-    return;
-  }
-
-  // Usar loadOrCreateUserProfile en lugar de la consulta directa
-  const profileData = await loadOrCreateUserProfile(user);
-
-  if (!profileData) {
-    console.error('Error loading or creating profile');
-    return;
-  }
-
-  console.log('Profile data:', profileData);
-  
-  // Asegurarse de que profileData es un array y tomar el primer elemento
-  const userProfileData = Array.isArray(profileData) ? profileData[0] : profileData;
-  
-  // SOLO UNA VEZ esto ↓
-  if (userProfileData) {
-    setUserProfile(userProfileData);
-    setEditProfile(userProfileData);
-    setLanguage(userProfileData.language || 'es');
-  }
-
-    // Cargar configuración de días de descanso
-    const { data: restDayData, error: restDayError } = await supabase
-      .from('user_settings')
-      .select('*')
-      .eq('google_id', userId)
-      .eq('setting_type', 'rest_days')
-      .single();
-
-    if (!restDayError && restDayData) {
-      setRestDayConfig(restDayData.setting_value);
-    }
-
-    // Cargar datos de fitness del día actual
+  // Función para manejar login con Google
+  const handleGoogleLogin = async () => {
     try {
-      const today = deviceTime.getCurrentDate();
-      const { data: fitnessData, error: fitnessError } = await supabase
-        .from('fitness_data')
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`
+        }
+      });
+      
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error en login con Google:', error);
+    }
+  };
+
+  // Función para cargar datos del usuario
+  const loadUserDataFromSupabase = async () => {
+    try {
+      // 1. Obtener usuario autenticado
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        console.log('Usuario no autenticado');
+        return;
+      }
+
+      console.log('Loading data for user:', user.id);
+
+      // 2. Cargar o crear perfil
+      const profileData = await loadOrCreateUserProfile(user);
+      
+      if (profileData) {
+        setUserProfile(profileData);
+        setEditProfile(profileData);
+        setLanguage(profileData.language || 'es');
+        
+        // Guardar en localStorage
+        localStorage.setItem('userData', JSON.stringify(user));
+      }
+
+      // 3. Cargar configuración de días de descanso
+      const { data: restDayData, error: restDayError } = await supabase
+        .from('user_settings')
         .select('*')
-        .eq('google_id', userId)
-        .eq('date', today)
+        .eq('google_id', user.id)
+        .eq('setting_type', 'rest_days')
         .single();
 
-      if (!fitnessError && fitnessData) {
-        setFitnessData(fitnessData);
+      if (restDayError && restDayError.code !== 'PGRST116') {
+        console.error('Error loading rest days:', restDayError);
       }
-    } catch (error) {
-      console.warn('Error cargando datos fitness:', error);
-    }
-  } catch (error) {
-    console.error('Error cargando datos desde Supabase:', error);
-  }
-};
-  // Función para guardar perfil en Supabase
-  const saveProfileToSupabase = async (profileData: any) => {
-    try {
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .upsert({
-          google_id: userData.sub,
-          ...profileData,
-          updated_at: new Date().toISOString()
-        });
 
-      if (error) {
-        throw error;
+      if (restDayData) {
+        setRestDayConfig(restDayData.setting_value);
       }
-      return data;
+
     } catch (error) {
-      console.error('Error guardando perfil en Supabase:', error);
-      throw error;
+      console.error('Error loading user data:', error);
     }
   };
 
@@ -213,12 +186,7 @@ useEffect(() => {
           setUserData(updatedUser);
         }
 
-        if (userId && userId !== 'undefined') {
-          await loadUserDataFromSupabase(userId);
-        } else {
-          console.error('No valid user ID found');
-          router.push('/login');
-        }
+      
       }
     } catch (error) {
       console.log('Error loading user data:', error);
@@ -607,9 +575,7 @@ useEffect(() => {
       updatedProfile = editProfile;
     }
 
-        // Guardar en Supabase
-        await saveProfileToSupabase(updatedProfile);
-        
+            
         // También guardar en localStorage para compatibilidad
         localStorage.setItem('userProfile', JSON.stringify(updatedProfile));
 
@@ -624,28 +590,7 @@ useEffect(() => {
   }
 };
   
-  const handleLanguageChange = async (newLanguage: string) => {
-    const updatedProfile = { ...userProfile, language: newLanguage };
-    
-    try {
-      // Guardar en Supabase
-      await saveProfileToSupabase(updatedProfile);
-      
-      // También guardar en localStorage para compatibilidad
-      localStorage.setItem('userProfile', JSON.stringify(updatedProfile));
-      
-      setUserProfile(updatedProfile);
-      setLanguage(newLanguage);
-      setShowLanguageModal(false);
-
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new Event('profileUpdated'));
-      }
-    } catch (error) {
-      console.error('Error cambiando idioma:', error);
-    }
-  };
-
+  
   const handleLogout = () => {
     try {
       const userData = localStorage.getItem('userData');
@@ -2027,37 +1972,8 @@ useEffect(() => {
               flexDirection: 'column',
               gap: '8px'
             }}>
-              <button
-                onClick={() => handleLanguageChange('es')}
-                className="!rounded-button"
-                style={{
-                  padding: '12px 16px',
-                  background: language === 'es' ? '#3b82f6' : '#f8fafc',
-                  color: language === 'es' ? 'white' : '#1f2937',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  textAlign: 'left'
-                }}
-              >
-                {t.spanish}
-              </button>
-              <button
-                onClick={() => handleLanguageChange('en')}
-                className="!rounded-button"
-                style={{
-                  padding: '12px 16px',
-                  background: language === 'en' ? '#3b82f6' : '#f8fafc',
-                  color: language === 'en' ? 'white' : '#1f2937',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  textAlign: 'left'
-                }}
-              >
-                {t.english}
-              </button>
-            </div>
+                        
+             </div>
             <button
               onClick={() => setShowLanguageModal(false)}
               className="!rounded-button"
