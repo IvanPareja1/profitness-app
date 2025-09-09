@@ -51,23 +51,24 @@ serve(async (req) => {
 
       // Si no existe, crear metas por defecto
       if (!data) {
-        const { data: newGoals, error: createError } = await supabaseClient
-          .from('user_goals')
-          .insert({
-            user_id: user.id,
-            daily_calories: 2200,
-            daily_protein: 100,
-            daily_carbs: 275,
-            daily_fat: 73,
-            daily_exercise_minutes: 60,
-            daily_water_glasses: 8,
-            weekly_exercise_days: 5,
-            rest_days: [],
-            auto_adjust_rest_days: true
-          })
-          .select()
-          .single();
-
+        // Cambia el upsert para no incluir user_id como PK
+      const { data, error } = await supabaseClient
+      .from('user_goals')
+      .upsert({
+    user_id: user.id,  // Esto debe coincidir con la columna existente
+    daily_calories: body.daily_calories,
+    daily_protein: body.daily_protein,
+    daily_carbs: body.daily_carbs,
+    daily_fat: body.daily_fat,
+    daily_exercise_minutes: body.daily_exercise_minutes,
+    daily_water_glasses: body.daily_water_glasses,
+    weekly_exercise_days: body.weekly_exercise_days,
+    rest_days: body.rest_days || [],
+    auto_adjust_rest_days: body.auto_adjust_rest_days,
+    updated_at: new Date().toISOString()
+  })
+  .select()
+  .single();
         if (createError) throw createError;
 
         return new Response(
@@ -97,7 +98,7 @@ serve(async (req) => {
           daily_exercise_minutes: body.daily_exercise_minutes,
           daily_water_glasses: body.daily_water_glasses,
           weekly_exercise_days: body.weekly_exercise_days,
-          rest_days: body.rest_days,
+          rest_days: [],
           auto_adjust_rest_days: body.auto_adjust_rest_days,
           updated_at: new Date().toISOString()
         })
@@ -113,23 +114,26 @@ serve(async (req) => {
     }
 
     // GET /goals/today - Obtener metas ajustadas para hoy
-    if (method === 'GET' && url.pathname === '/goals/today') {
-      const date = url.searchParams.get('date') || new Date().toISOString().split('T')[0];
-      const dayOfWeek = new Date(date).getDay(); // 0 = Domingo, 1 = Lunes, etc.
-      const dayNames = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
-      const currentDay = dayNames[dayOfWeek];
+if (method === 'GET' && url.pathname === '/goals/today') {
+  const date = url.searchParams.get('date') || new Date().toISOString().split('T')[0];
+  const dayOfWeek = new Date(date).getDay();
+  const dayNames = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+  const currentDay = dayNames[dayOfWeek];
 
-      // Obtener metas del usuario
-      const { data: goals, error: goalsError } = await supabaseClient
-        .from('user_goals')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
+  
+  const { data: goals, error: goalsError } = await supabaseClient
+    .from('user_goals')
+    .select('*')
+    .eq('user_id', user.id)  
+    .single();
 
-      if (goalsError) throw goalsError;
+  if (goalsError) {
+    console.error('Error fetching goals:', goalsError);
+    throw goalsError;
+  }
 
-      // Verificar si hoy es día de descanso
-      const isRestDay = goals.rest_days.includes(currentDay);
+       // Verificar si hoy es día de descanso
+      const isRestDay = goals.rest_days ? goals.rest_days.includes(currentDay) : false;
       
       // Calcular metas ajustadas
       let adjustedGoals = {
@@ -144,6 +148,7 @@ serve(async (req) => {
 
       // Si es día de descanso y tiene auto-ajuste activado
       if (isRestDay && goals.auto_adjust_rest_days) {
+
         // Reducir metas de ejercicio pero mantener nutrición
         adjustedGoals.daily_exercise_minutes = Math.round(goals.daily_exercise_minutes * 0.3); // 30% del ejercicio normal
         adjustedGoals.daily_calories = Math.round(goals.daily_calories * 0.9); // 90% de las calorías
