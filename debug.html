@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug</title>
+    <script>
+        window.onerror = function(msg, url, lineNo, columnNo, error) {
+            const message = `Error: ${msg}\nURL: ${url}\nLine: ${lineNo}\nColumn: ${columnNo}\nStack: ${error?.stack}`;
+            document.body.innerHTML += `<pre style="color: red;">${message}</pre><hr>`;
+            return false;
+        };
+        
+        console.log = function() {
+            const message = Array.from(arguments).join(' ');
+            document.body.innerHTML += `<pre>${message}</pre><hr>`;
+        };
+        
+        console.error = function() {
+            const message = Array.from(arguments).join(' ');
+            document.body.innerHTML += `<pre style="color: red;">ERROR: ${message}</pre><hr>`;
+        };
+    </script>
+</head>
+<body>
+    <h1>Debug Console</h1>
+</body>
+</html>
