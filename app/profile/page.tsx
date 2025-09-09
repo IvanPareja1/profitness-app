@@ -92,21 +92,24 @@ export default function Profile() {
     }
   };
 
-  // Función para manejar login con Google
-  const handleGoogleLogin = async () => {
-    try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`
-        }
-      });
-      
-      if (error) throw error;
-    } catch (error) {
-      console.error('Error en login con Google:', error);
-    }
-  };
+ const handleGoogleLogin = async () => {
+  try {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`
+      }
+    });
+    
+    if (error) throw error;
+    
+    // Opcional: guardar en localStorage para compatibilidad
+    localStorage.setItem('isAuthenticated', 'true');
+    
+  } catch (error) {
+    console.error('Error en login con Google:', error);
+  }
+};
 
   // Función para cargar datos del usuario
   const loadUserDataFromSupabase = async () => {
@@ -157,60 +160,41 @@ export default function Profile() {
 
 useEffect(() => {
   setMounted(true);
-
-   // Escuchar cambios en la autenticación
-  const { data: { subscription } } = supabase.auth.onAuthStateChange(
-    async (event, session) => {
-      console.log('Auth state changed:', event, session);
-      
-      if (event === 'SIGNED_IN' && session?.user) {
-        console.log('Usuario firmó sesión:', session.user);
-        await loadUserDataFromSupabase();
-      }
-      
-      if (event === 'SIGNED_OUT') {
-        console.log('Usuario cerró sesión');
-        setUserData(null);
-        setUserProfile({});
-      }
-    }
-  );
-
-  return () => subscription.unsubscribe();
   
   const initializeProfile = async () => {
     try {
-      // 1. Verificar autenticación con Supabase
+      // 1. Primero verificar autenticación REAL con Supabase
       const { data: { session } } = await supabase.auth.getSession();
       
       if (session?.user) {
-        console.log('Usuario autenticado encontrado:', session.user);
+        console.log('✅ Usuario autenticado con Supabase:', session.user);
         await loadUserDataFromSupabase();
-      } else {
-        console.log('No hay sesión activa, verificando localStorage...');
+        return;
+      }
+      
+      // 2. Solo como fallback, verificar localStorage (para compatibilidad)
+      console.log('⚠️  No hay sesión Supabase, verificando localStorage...');
+      const isAuthenticated = localStorage.getItem('isAuthenticated');
+      const userDataStored = localStorage.getItem('userData');
+      
+      if (isAuthenticated === 'true' && userDataStored) {
+        const user = JSON.parse(userDataStored);
+        console.log('📦 Usuario de localStorage:', user);
         
-        // 2. Fallback a localStorage para compatibilidad
-        const isAuthenticated = localStorage.getItem('isAuthenticated');
-        const userDataStored = localStorage.getItem('userData');
+        setUserData(user);
         
-        if (isAuthenticated === 'true' && userDataStored) {
-          const user = JSON.parse(userDataStored);
-          console.log('User data from storage:', user);
-          
-          setUserData(user);
-          
-          // Migración si es necesario
-          let userId = user.id;
-          if ((!userId || userId === 'undefined') && user.sub) {
-            console.log('🔄 Migrando datos viejos, usando sub como ID temporal');
-            userId = user.sub;
-            const updatedUser = { ...user, id: user.sub };
-            localStorage.setItem('userData', JSON.stringify(updatedUser));
-            setUserData(updatedUser);
-          }
-        } else {
-          console.log('Usuario no autenticado, mostrando botón de login');
+        // Migración si es necesario
+        let userId = user.id;
+        if ((!userId || userId === 'undefined') && user.sub) {
+          console.log('🔄 Migrando datos viejos, usando sub como ID temporal');
+          userId = user.sub;
+          const updatedUser = { ...user, id: user.sub };
+          localStorage.setItem('userData', JSON.stringify(updatedUser));
+          setUserData(updatedUser);
         }
+      } else {
+        console.log('❌ Usuario no autenticado');
+        // NO redirigir automáticamente, mostrar botón de login
       }
     } catch (error) {
       console.error('Error initializing profile:', error);
@@ -218,7 +202,7 @@ useEffect(() => {
   };
 
   initializeProfile();
-}, [router]); 
+}, [router]);
 
   const translations = {
     es: {
