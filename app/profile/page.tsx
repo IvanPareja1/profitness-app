@@ -157,44 +157,68 @@ export default function Profile() {
 
 useEffect(() => {
   setMounted(true);
-  if (typeof window === 'undefined') return;
 
+   // Escuchar cambios en la autenticación
+  const { data: { subscription } } = supabase.auth.onAuthStateChange(
+    async (event, session) => {
+      console.log('Auth state changed:', event, session);
+      
+      if (event === 'SIGNED_IN' && session?.user) {
+        console.log('Usuario firmó sesión:', session.user);
+        await loadUserDataFromSupabase();
+      }
+      
+      if (event === 'SIGNED_OUT') {
+        console.log('Usuario cerró sesión');
+        setUserData(null);
+        setUserProfile({});
+      }
+    }
+  );
+
+  return () => subscription.unsubscribe();
+  
   const initializeProfile = async () => {
     try {
-      const isAuthenticated = localStorage.getItem('isAuthenticated');
-      if (!isAuthenticated || isAuthenticated !== 'true') {
-        router.push('/login');
-        return;
-      }
-
-      const userDataStored = localStorage.getItem('userData');
-      if (userDataStored) {
-        const user = JSON.parse(userDataStored);
-        console.log('User data from storage:', user);
-        
-        setUserData(user);
-        
-        // MIGRACIÓN: Si tiene sub pero no id, usar sub como ID temporal
-        let userId = user.id;
-        if ((!userId || userId === 'undefined') && user.sub) {
-          console.log('🔄 Migrando datos viejos, usando sub como ID temporal');
-          userId = user.sub;
-          
-          // Actualizar localStorage con ID temporal
-          const updatedUser = { ...user, id: user.sub };
-          localStorage.setItem('userData', JSON.stringify(updatedUser));
-          setUserData(updatedUser);
-        }
-
+      // 1. Verificar autenticación con Supabase
+      const { data: { session } } = await supabase.auth.getSession();
       
+      if (session?.user) {
+        console.log('Usuario autenticado encontrado:', session.user);
+        await loadUserDataFromSupabase();
+      } else {
+        console.log('No hay sesión activa, verificando localStorage...');
+        
+        // 2. Fallback a localStorage para compatibilidad
+        const isAuthenticated = localStorage.getItem('isAuthenticated');
+        const userDataStored = localStorage.getItem('userData');
+        
+        if (isAuthenticated === 'true' && userDataStored) {
+          const user = JSON.parse(userDataStored);
+          console.log('User data from storage:', user);
+          
+          setUserData(user);
+          
+          // Migración si es necesario
+          let userId = user.id;
+          if ((!userId || userId === 'undefined') && user.sub) {
+            console.log('🔄 Migrando datos viejos, usando sub como ID temporal');
+            userId = user.sub;
+            const updatedUser = { ...user, id: user.sub };
+            localStorage.setItem('userData', JSON.stringify(updatedUser));
+            setUserData(updatedUser);
+          }
+        } else {
+          console.log('Usuario no autenticado, mostrando botón de login');
+        }
       }
     } catch (error) {
-      console.log('Error loading user data:', error);
+      console.error('Error initializing profile:', error);
     }
   };
 
   initializeProfile();
-}, [router]);  
+}, [router]); 
 
   const translations = {
     es: {
@@ -888,6 +912,68 @@ useEffect(() => {
         </h1>
       </header>
 
+        {!userData && (
+      <div style={{
+        background: 'white',
+        borderRadius: '20px',
+        padding: '40px 24px',
+        textAlign: 'center',
+        marginBottom: '24px',
+        margin: '24px 16px' // Agrega margen para que no toque los bordes
+      }}>
+        <div style={{
+          width: '64px',
+          height: '64px',
+          background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+          borderRadius: '50%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          margin: '0 auto 16px auto'
+        }}>
+          <i className="ri-user-smile-line" style={{ color: 'white', fontSize: '28px' }}></i>
+        </div>
+        <h3 style={{
+          fontSize: '20px',
+          fontWeight: '600',
+          color: '#1f2937',
+          margin: '0 0 8px 0'
+        }}>
+          Inicia sesión
+        </h3>
+        <p style={{
+          fontSize: '14px',
+          color: '#6b7280',
+          margin: '0 0 20px 0'
+        }}>
+          Conecta tu cuenta para sincronizar tu perfil
+        </p>
+        <button
+          onClick={handleGoogleLogin}
+          className="!rounded-button"
+          style={{
+            padding: '12px 24px',
+            background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '12px',
+            fontSize: '16px',
+            fontWeight: '500',
+            cursor: 'pointer'
+          }}
+        >
+          <i className="ri-google-fill" style={{ marginRight: '8px' }}></i>
+          Iniciar con Google
+        </button>
+      </div>
+    )}
+
+    {/* Main Content - Solo mostrar si hay userData */}
+    {userData && (
+      <main style={{
+        padding: '24px 16px 100px 16px'
+      }}>
+         
       {/* Main Content */}
       <main style={{
         padding: '24px 16px 100px 16px'
@@ -2902,7 +2988,8 @@ useEffect(() => {
           </div>
         </div>
       )}
-
+       </main>
+    )}
       <BottomNavigation />
     </div>
   );
