@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, supabase } from '../../hooks/useAuth';
 
+
 interface Meal {
   id: string;
   name: string;
@@ -14,6 +15,8 @@ interface Meal {
   unit: string;
   meal_type: string;
   created_at: string;
+  confidence_score?: string; 
+  ingredients?: string; 
 }
 
 interface FoodItem {
@@ -58,7 +61,6 @@ export default function Nutrition() {
   });
 
   // Estados del lector de códigos de barras
-  const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState<any>(null);
   const [isScanProcessing, setIsScanProcessing] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -83,7 +85,7 @@ export default function Nutrition() {
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      throw new Error(`HTTP error! status ${response.status}`);
     }
 
     return response.json();
@@ -92,7 +94,6 @@ export default function Nutrition() {
   // Función para inicializar la cámara para escaneo
   const startBarcodeScanner = async () => {
     try {
-      setIsScanning(true);
       setShowScanner(true);
       
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -115,7 +116,6 @@ export default function Nutrition() {
     } catch (error) {
       console.error('Error accessing camera:', error);
       alert('No se pudo acceder a la cámara. Verifica los permisos.');
-      setIsScanning(false);
       setShowScanner(false);
     }
   };
@@ -186,7 +186,6 @@ export default function Nutrition() {
 
   // Función para cerrar el escáner
   const closeBarcodeScanner = () => {
-    setIsScanning(false);
     setShowScanner(false);
     setScanResult(null);
     setIsScanProcessing(false);
@@ -666,7 +665,6 @@ export default function Nutrition() {
                     <button 
                       onClick={() => {
                         setScanResult(null);
-                        setIsScanning(true);
                         if (scanIntervalRef.current) {
                           clearInterval(scanIntervalRef.current);
                         }
@@ -845,7 +843,7 @@ export default function Nutrition() {
                             </div>
                             <div className="text-center">
                               <div className="text-sm font-semibold text-yellow-600">{food.protein}g</div>
-                              <div class="text-xs text-gray-500">Proteína</div>
+                              <div className="text-xs text-gray-500">Proteína</div>
                             </div>
                             <div className="text-center">
                               <div className="text-sm font-semibold text-blue-600">{food.fat}g</div>

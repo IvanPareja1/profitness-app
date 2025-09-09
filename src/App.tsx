@@ -4,6 +4,10 @@ import { BrowserRouter } from 'react-router-dom';
 import { AppRoutes } from './router';
 import AuthGuard from './components/auth/AuthGuard';
 
+
+const __BASE_PATH__ = import.meta.env.BASE_URL || '/';
+
+
 function App() {
   return (
     <AuthProvider>

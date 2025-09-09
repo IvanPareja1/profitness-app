@@ -16,6 +16,15 @@ interface Exercise {
   created_at: string;
 }
 
+interface CompletedExercise {
+  id: string;
+  name: string;
+  sets: number;
+  reps: number;
+  weight?: number;
+  completed_at: string;
+}
+
 interface ExerciseTotals {
   totalExercises: number;
   totalDuration: number;
@@ -31,13 +40,11 @@ interface ExerciseTemplate {
   calories_per_min: number;
 }
 
+
 export default function Exercise() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-  const [exercises, setExercises] = useState<Exercise[]>([]);
   const [totals, setTotals] = useState<ExerciseTotals>({ totalExercises: 0, totalDuration: 0, totalCalories: 0, totalSets: 0, totalReps: 0 });
-  const [loading, setLoading] = useState(false);
   const [activeWorkout, setActiveWorkout] = useState(false);
-  const [workoutTime, setWorkoutTime] = useState(0);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -57,10 +64,32 @@ export default function Exercise() {
   const [dailyGoal] = useState(2500); // 2.5L daily goal
   const [showHydrationForm, setShowHydrationForm] = useState(false);
   const [customAmount, setCustomAmount] = useState('');
-  const [reminderEnabled, setReminderEnabled] = useState(true);
-  const [reminderInterval, setReminderInterval] = useState(60); // minutes
   const [lastReminder, setLastReminder] = useState<Date | null>(null);
+
+  const [activeTab, setActiveTab] = useState('workout');
+  const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
+  const [showExerciseModal, setShowExerciseModal] = useState(false);
+  const [currentSet, setCurrentSet] = useState(1);
+  const [currentRep, setCurrentRep] = useState(0);
+  const [isResting, setIsResting] = useState(false);
+  const [restTime, setRestTime] = useState(60);
+  const [workoutStarted, setWorkoutStarted] = useState(false);
+  const [workoutTime] = useState(0);
+  const [completedExercises, setCompletedExercises] = useState<CompletedExercise[]>([]);
+  const [todayStats, setTodayStats] = useState({
+    totalWorkouts: 0,
+    totalExercises: 0,
+    totalDuration: 0,
+    caloriesBurned: 0
+  });
+  const [loading, setLoading] = useState(false);
+  const [workoutHistory, setWorkoutHistory] = useState<any[]>([]);
   
+  // Configuración de recordatorios
+  const [reminderEnabled] = useState(true);
+  const [reminderInterval] = useState(60); // minutes
+
   const navigate = useNavigate();
   const { user } = useAuth();
 
