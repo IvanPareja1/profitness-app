@@ -1,0 +1,42 @@
+
+{
+  "name": "ProFitness - Seguimiento nutricional y ejercicio",
+  "short_name": "ProFitness",
+  "description": "Tu compañero de salud y bienestar. Seguimiento nutricional y ejercicio físico con IA.",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#10b981",
+  "background_color": "#ffffff",
+  "orientation": "portrait-primary",
+  "categories": ["health", "fitness", "lifestyle"],
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Nuevo registro de comida",
+      "short_name": "Añadir comida",
+      "description": "Registra rápidamente una nueva comida",
+      "url": "/nutrition",
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Nuevo entrenamiento",
+      "short_name": "Entrenar",
+      "description": "Inicia un nuevo entrenamiento",
+      "url": "/exercise",
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
+    }
+  ]
+}
