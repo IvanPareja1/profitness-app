@@ -20,7 +20,7 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
   signInWithGoogle: async () => {},
-  signInWithEmail: async () => {},
+  signInWithEmail: async () => ,
   signUpWithEmail: async () => {},
   signOut: async () => {},
 });
@@ -62,17 +62,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     );
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [user]);
 
-  const createUserProfile = async (user: User) => {
+  const createUserProfile = async (userProfile: User) => {
     try {
       const { error } = await supabase
         .from('profiles')
         .upsert({
-          user_id: user.id,
-          email: user.email,
-          full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuario',
-          avatar_url: user.user_metadata?.avatar_url,
+          user_id: userProfile.id,
+          email: userProfile.email,
+          full_name: userProfile.user_metadata?.full_name || userProfile.email?.split('@')[0] || 'Usuario',
+          avatar_url: userProfile.user_metadata?.avatar_url,
           created_at: new Date().toISOString(),
         });
 
