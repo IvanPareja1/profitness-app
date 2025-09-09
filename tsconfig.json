@@ -1,4 +1,4 @@
-echo '{
+{
   "compilerOptions": {
     "target": "ES2022",
     "useDefineForClassFields": true,
@@ -13,7 +13,8 @@ echo '{
     "strict": true,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true
   },
   "include": ["src"]
-}' > tsconfig.json
+}
