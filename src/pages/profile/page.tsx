@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth, supabase } from '../../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 
@@ -24,7 +24,8 @@ export default function Profile() {
     totalExercises: 0,
     weightLost: 0
   });
-
+    const [caloriesProgress, setCaloriesProgress] = useState(0);
+    
     const debounce = (func: Function, wait: number) => {
     let timeout: NodeJS.Timeout;
     return function executedFunction(...args: any[]) {
@@ -37,7 +38,7 @@ export default function Profile() {
     };
   };
 
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -66,15 +67,17 @@ export default function Profile() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
-  const fetchStats = async () => {
+
+  const fetchStats = useCallback(async () => {
     try {
-      // Obtener estadísticas de comidas
+      // Obtener estadísticas de comidas (incluyendo calorías)
       const { data: meals } = await supabase
         .from('meals')
-        .select('id, created_at')
-        .eq('user_id', user?.id);
+        .select('id, created_at, calories')
+        .eq('user_id', user?.id)
+        .gte('created_at', new Date().toISOString().split('T')[0]);
 
       // Obtener estadísticas de ejercicios
       const { data: exercises } = await supabase
@@ -89,6 +92,17 @@ export default function Profile() {
       ].filter(Boolean);
       
       const uniqueDates = new Set(allDates);
+
+      // Calcular calorías consumidas hoy
+      const todayCalories = meals?.reduce((total, meal) => total + (meal.calories || 0), 0) || 0;
+      
+      // Calcular progreso de calorías
+      const dailyCaloriesGoal = profile?.daily_calories || 2200;
+      const progress = dailyCaloriesGoal > 0 
+        ? Math.min(100, Math.round((todayCalories / dailyCaloriesGoal) * 100))
+        : 0;
+      
+      setCaloriesProgress(progress);
       
       setStats({
         activeDays: uniqueDates.size,
@@ -101,30 +115,29 @@ export default function Profile() {
     } catch (error) {
       console.error('Error fetching stats:', error);
     }
-  };
+  }, [user, profile]);
 
-  const debouncedFetchProfile = debounce(fetchProfile, 500);
-  const debouncedFetchStats = debounce(fetchStats, 500);
+  const debouncedFetchProfile = useCallback(debounce(fetchProfile, 500), [fetchProfile]);
+  const debouncedFetchStats = useCallback(debounce(fetchStats, 500), [fetchStats]);
 
  useEffect(() => {
-  if (user) {
-     debouncedFetchProfile();
+    if (user) {
+      debouncedFetchProfile();
     }
-  }, [user?.id]);
+  }, [user, debouncedFetchProfile]);
 
   useEffect(() => {
     if (user && profile) {
       debouncedFetchStats();
     }
-  }, [user?.id, profile]);
+  }, [user, profile, debouncedFetchStats]);
 
   const handleSignOut = async () => {
     try {
       await signOut();
-      navigate('/'); // Redirigir al dashboard después del logout
+      navigate('/');
     } catch (error) {
       console.error('Error signing out:', error);
-      // Mostrar mensaje de error al usuario
       alert('Error al cerrar sesión. Inténtalo de nuevo.');
     }
   };
@@ -138,7 +151,7 @@ export default function Profile() {
       .slice(0, 2);
   };
 
-  const calculateBMI = () => {
+ const calculateBMI = () => {
     if (profile?.weight && profile?.height) {
       const heightInMeters = profile.height / 100;
       return (profile.weight / (heightInMeters * heightInMeters)).toFixed(1);
@@ -154,8 +167,7 @@ export default function Profile() {
   };
 
   const getCaloriesProgress = () => {
-    // Simulación de progreso de calorías del día
-    return Math.floor(Math.random() * 30) + 70; // 70-100%
+    return caloriesProgress;
   };
 
   if (loading) {
