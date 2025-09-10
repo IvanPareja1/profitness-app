@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react'; // Añadir useRef aquí
 import { useAuth, supabase } from '../../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 
@@ -24,21 +24,16 @@ export default function Profile() {
     totalExercises: 0,
     weightLost: 0
   });
-    const [caloriesProgress, setCaloriesProgress] = useState(0);
-    
-    const debounce = (func: Function, wait: number) => {
-    let timeout: NodeJS.Timeout;
-    return function executedFunction(...args: any[]) {
-      const later = () => {
-        clearTimeout(timeout);
-        func(...args);
-      };
-      clearTimeout(timeout);
-      timeout = setTimeout(later, wait);
-    };
-  };
+  const [caloriesProgress, setCaloriesProgress] = useState(0);
+  
+  // Usar useRef para trackear si ya hemos hecho fetch
+  const hasFetchedProfile = useRef(false);
+  const hasFetchedStats = useRef(false);
 
   const fetchProfile = useCallback(async () => {
+    if (hasFetchedProfile.current) return;
+    hasFetchedProfile.current = true;
+    
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -47,7 +42,8 @@ export default function Profile() {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        throw error;
+        console.error('Error fetching profile:', error);
+        return;
       }
 
       if (data) {
@@ -69,23 +65,38 @@ export default function Profile() {
     }
   }, [user]);
 
-
   const fetchStats = useCallback(async () => {
+    if (hasFetchedStats.current || !profile) return;
+    hasFetchedStats.current = true;
+    
     try {
-      // Obtener estadísticas de comidas (incluyendo calorías)
-      const { data: meals } = await supabase
+      // Obtener estadísticas de comidas (solo para hoy)
+      const today = new Date().toISOString().split('T')[0];
+      const { data: meals, error: mealsError } = await supabase
         .from('meals')
         .select('id, created_at, calories')
         .eq('user_id', user?.id)
-        .gte('created_at', new Date().toISOString().split('T')[0]);
+        .gte('created_at', today)
+        .limit(100); // Limitar resultados
 
-      // Obtener estadísticas de ejercicios
-      const { data: exercises } = await supabase
+      if (mealsError) {
+        console.error('Error fetching meals:', mealsError);
+        return;
+      }
+
+      // Obtener estadísticas de ejercicios (con límite)
+      const { data: exercises, error: exercisesError } = await supabase
         .from('exercises')
         .select('id, created_at')
-        .eq('user_id', user?.id);
+        .eq('user_id', user?.id)
+        .limit(100); // Limitar resultados
 
-      // Calcular días activos (días únicos con actividad)
+      if (exercisesError) {
+        console.error('Error fetching exercises:', exercisesError);
+        return;
+      }
+
+      // Calcular días activos
       const allDates = [
         ...(meals || []).map(m => m.created_at?.split('T')[0]),
         ...(exercises || []).map(e => e.created_at?.split('T')[0])
@@ -117,20 +128,17 @@ export default function Profile() {
     }
   }, [user, profile]);
 
-  const debouncedFetchProfile = useCallback(debounce(fetchProfile, 500), [fetchProfile]);
-  const debouncedFetchStats = useCallback(debounce(fetchStats, 500), [fetchStats]);
-
- useEffect(() => {
-    if (user) {
-      debouncedFetchProfile();
+  useEffect(() => {
+    if (user && !hasFetchedProfile.current) {
+      fetchProfile();
     }
-  }, [user, debouncedFetchProfile]);
+  }, [user, fetchProfile]);
 
   useEffect(() => {
-    if (user && profile) {
-      debouncedFetchStats();
+    if (user && profile && !hasFetchedStats.current) {
+      fetchStats();
     }
-  }, [user, profile, debouncedFetchStats]);
+  }, [user, profile, fetchStats]);
 
   const handleSignOut = async () => {
     try {
@@ -151,7 +159,7 @@ export default function Profile() {
       .slice(0, 2);
   };
 
- const calculateBMI = () => {
+  const calculateBMI = () => {
     if (profile?.weight && profile?.height) {
       const heightInMeters = profile.height / 100;
       return (profile.weight / (heightInMeters * heightInMeters)).toFixed(1);
