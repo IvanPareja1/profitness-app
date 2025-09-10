@@ -282,7 +282,7 @@ export default function Profile() {
             </button>
           </div>
         </div>
-         
+
     
 
       {/* Content */}
@@ -359,156 +359,35 @@ export default function Profile() {
           </div>
         </div>
 
-                    {/* Health Data */}
-            <div className="bg-white rounded-xl p-4 shadow-sm mb-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-gray-800">Datos de salud</h3>
-                <button 
-                  onClick={() => setEditing(!editing)}
-                  className="text-purple-600 text-sm font-medium px-3 py-1 rounded border border-purple-300"
-                >
-                  {editing ? 'Cancelar' : 'Editar'}
-                </button>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                {/* ... tus inputs de datos de salud */}
-              </div>
-
-              {editing && (
-                <div className="mt-4 flex space-x-2">
-                  <button 
-                    onClick={saveProfileData}
-                    disabled={saving}
-                    className="flex-1 bg-purple-600 text-white py-2 rounded-lg font-medium flex items-center justify-center"
-                  >
-                    {saving ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                        Guardando...
-                      </>
-                    ) : (
-                      <>
-                        <i className="ri-check-line mr-2"></i>
-                        Guardar cambios
-                      </>
-                    )}
-                  </button>
-                  
-                  {/* Botón para calcular calorías sugeridas */}
-                  <button
-                    onClick={() => handleInputChange('daily_calories', calculateSuggestedCalories().toString())}
-                    className="px-4 bg-blue-600 text-white py-2 rounded-lg font-medium flex items-center justify-center"
-                    title="Calcular calorías sugeridas"
-                  >
-                    <i className="ri-calculator-line"></i>
-                  </button>
-                </div>
-              )}
-            </div>
-
+              {/* Health Data */}
+        <div className="bg-white rounded-xl p-4 shadow-sm mb-6">
+          <h3 className="font-semibold text-gray-800 mb-4">Datos de salud</h3>
           <div className="grid grid-cols-2 gap-4">
-            {/* Edad */}
             <div className="text-center p-3 bg-gray-50 rounded-lg">
-              {editing ? (
-                <input
-                  type="number"
-                  value={formData.age}
-                  onChange={(e) => handleInputChange('age', e.target.value)}
-                  placeholder="Edad"
-                  className="w-full text-center text-lg font-bold text-gray-800 bg-transparent border-b border-gray-300 focus:outline-none focus:border-purple-600"
-                />
-              ) : (
-                <div className="text-lg font-bold text-gray-800">
-                  {profile?.age ? `${profile.age} años` : '--'}
-                </div>
-              )}
-              <div className="text-xs text-gray-500">Edad</div>
-            </div>
-
-            {/* Altura */}
-            <div className="text-center p-3 bg-gray-50 rounded-lg">
-              {editing ? (
-                <input
-                  type="number"
-                  value={formData.height}
-                  onChange={(e) => handleInputChange('height', e.target.value)}
-                  placeholder="Altura (cm)"
-                  className="w-full text-center text-lg font-bold text-gray-800 bg-transparent border-b border-gray-300 focus:outline-none focus:border-purple-600"
-                />
-              ) : (
-                <div className="text-lg font-bold text-gray-800">
-                  {profile?.height ? `${profile.height} cm` : '--'}
-                </div>
-              )}
-              <div className="text-xs text-gray-500">Altura</div>
-            </div>
-
-            {/* Peso actual */}
-            <div className="text-center p-3 bg-gray-50 rounded-lg">
-              {editing ? (
-                <input
-                  type="number"
-                  step="0.1"
-                  value={formData.weight}
-                  onChange={(e) => handleInputChange('weight', e.target.value)}
-                  placeholder="Peso (kg)"
-                  className="w-full text-center text-lg font-bold text-gray-800 bg-transparent border-b border-gray-300 focus:outline-none focus:border-purple-600"
-                />
-              ) : (
-                <div className="text-lg font-bold text-gray-800">
-                  {profile?.weight ? `${profile.weight} kg` : '--'}
-                </div>
-              )}
+              <div className="text-lg font-bold text-gray-800">
+                {profile?.weight ? `${profile.weight} kg` : '--'}
+              </div>
               <div className="text-xs text-gray-500">Peso actual</div>
             </div>
-
-            {/* Peso objetivo */}
             <div className="text-center p-3 bg-gray-50 rounded-lg">
-              {editing ? (
-                <input
-                  type="number"
-                  step="0.1"
-                  value={formData.goal_weight}
-                  onChange={(e) => handleInputChange('goal_weight', e.target.value)}
-                  placeholder="Meta (kg)"
-                  className="w-full text-center text-lg font-bold text-gray-800 bg-transparent border-b border-gray-300 focus:outline-none focus:border-purple-600"
-                />
-              ) : (
-                <div className="text-lg font-bold text-gray-800">
-                  {profile?.goal_weight ? `${profile.goal_weight} kg` : '--'}
-                </div>
-              )}
-              <div className="text-xs text-gray-500">Peso objetivo</div>
+              <div className="text-lg font-bold text-gray-800">
+                {profile?.height ? `${profile.height} cm` : '--'}
+              </div>
+              <div className="text-xs text-gray-500">Altura</div>
+            </div>
+            <div className="text-center p-3 bg-gray-50 rounded-lg">
+              <div className="text-lg font-bold text-gray-800">
+                {calculateBMI() || '--'}
+              </div>
+              <div className="text-xs text-gray-500">IMC</div>
+            </div>
+            <div className="text-center p-3 bg-gray-50 rounded-lg">
+              <div className="text-lg font-bold text-gray-800">
+                {profile?.age ? `${profile.age} años` : '--'}
+              </div>
+              <div className="text-xs text-gray-500">Edad</div>
             </div>
           </div>
-
-          {/* Calorías diarias sugeridas */}
-          {editing && (
-            <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-medium text-blue-800 text-sm">
-                    Calorías diarias sugeridas
-                  </div>
-                  <div className="text-xs text-blue-600">
-                    Basado en tus datos
-                  </div>
-                </div>
-                <div className="text-lg font-bold text-blue-800">
-                  {calculateSuggestedCalories()} kcal
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => handleInputChange('daily_calories', calculateSuggestedCalories().toString())}
-                className="mt-2 w-full bg-blue-600 text-white text-sm font-medium py-2 rounded flex items-center justify-center"
-              >
-                <i className="ri-magic-line mr-1"></i>
-                Usar esta recomendación
-              </button>
-            </div>
-          )}
         </div>
 
         {/* Menu Options */}
@@ -587,5 +466,8 @@ export default function Profile() {
         </div>
       </div>
     </div>
+    
+  </div>
   );
 }
+
