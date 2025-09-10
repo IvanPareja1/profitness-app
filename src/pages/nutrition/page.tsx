@@ -69,6 +69,17 @@ export default function Nutrition() {
 
   const navigate = useNavigate();
   const { user } = useAuth();
+    const debounce = (func: Function, wait: number) => {
+    let timeout: NodeJS.Timeout;
+    return function executedFunction(...args: any[]) {
+      const later = () => {
+        clearTimeout(timeout);
+        func(...args);
+      };
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+    };
+  };
 
   const callSupabaseFunction = async (functionName: string, options: any = {}) => {
     console.log('🔍 Llamando a:', functionName);
@@ -203,7 +214,7 @@ export default function Nutrition() {
   };
 
   // Función para agregar producto escaneado
-  const addScannedProduct = async () => {
+   const addScannedProduct = async () => {
     if (scanResult) {
       try {
         await callSupabaseFunction('meals', {
@@ -221,14 +232,14 @@ export default function Nutrition() {
         });
 
         closeBarcodeScanner();
-        await loadMeals();
+        await debouncedLoadMeals(); // ← Cambiado
       } catch (error) {
         console.error('Error adding scanned product:', error);
       }
     }
   };
 
-  const loadMeals = async () => {
+    const loadMeals = async () => {
     try {
       setLoading(true);
       const data = await callSupabaseFunction(`meals?date=${selectedDate}`);
@@ -241,11 +252,14 @@ export default function Nutrition() {
     }
   };
 
+  const debouncedLoadMeals = debounce(loadMeals, 500);
+
+  // ✅ useEffect CORREGIDO
   useEffect(() => {
     if (user) {
-      loadMeals();
+      debouncedLoadMeals();
     }
-  }, [selectedDate, user]);
+  }, [selectedDate, user?.id]);
 
   // Limpiar recursos al desmontar
   useEffect(() => {
@@ -274,7 +288,7 @@ export default function Nutrition() {
     }
   };
 
-  const addFoodFromSearch = async (food: FoodItem) => {
+ const addFoodFromSearch = async (food: FoodItem) => {
     try {
       await callSupabaseFunction('meals', {
         method: 'POST',
@@ -293,7 +307,7 @@ export default function Nutrition() {
       setShowSearch(false);
       setSearchQuery('');
       setSearchResults([]);
-      await loadMeals();
+      await debouncedLoadMeals(); 
     } catch (error) {
       console.error('Error adding food:', error);
     }
@@ -326,7 +340,7 @@ export default function Nutrition() {
         unit: 'porción'
       });
       setShowManualForm(false);
-      await loadMeals();
+      await debouncedLoadMeals(); // ← Cambiado
     } catch (error) {
       console.error('Error adding manual food:', error);
     }
@@ -337,7 +351,7 @@ export default function Nutrition() {
       await callSupabaseFunction(`meals/${mealId}`, {
         method: 'DELETE'
       });
-      await loadMeals();
+      await debouncedLoadMeals(); // ← Cambiado
     } catch (error) {
       console.error('Error deleting meal:', error);
     }
@@ -444,7 +458,7 @@ export default function Nutrition() {
     }
   };
 
-  const addDetectedFood = async (food: any) => {
+    const addDetectedFood = async (food: any) => {
     try {
       await callSupabaseFunction('meals', {
         method: 'POST',
@@ -461,7 +475,7 @@ export default function Nutrition() {
           ingredients: food.ingredients ? food.ingredients.join(', ') : null
         }
       });
-      await loadMeals();
+      await debouncedLoadMeals(); // ← Cambiado
     } catch (error) {
       console.error('Error adding detected food:', error);
     }
@@ -487,7 +501,7 @@ export default function Nutrition() {
         }
         setPhotoResult(null);
         setShowCamera(false);
-        await loadMeals();
+        await debouncedLoadMeals(); // ← Cambiado
       } catch (error) {
         console.error('Error adding all detected foods:', error);
       }
