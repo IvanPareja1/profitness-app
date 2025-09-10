@@ -39,7 +39,19 @@ export default function Goals() {
 
   const dayNames = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
   const dayLabels = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
-
+  
+  const debounce = (func: Function, wait: number) => {
+    let timeout: NodeJS.Timeout;
+    return function executedFunction(...args: any[]) {
+      const later = () => {
+        clearTimeout(timeout);
+        func(...args);
+      };
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+    };
+  };
+  
   const callSupabaseFunction = async (functionName: string, options: any = {}) => {
     console.log('🔍 Llamando a:', functionName);
     const { data: { session } } = await supabase.auth.getSession();
@@ -72,24 +84,31 @@ export default function Goals() {
       setSelectedRestDays(data.goals.rest_days || []);
       
       // Cargar estadísticas de la semana actual
-      const today = new Date();
+       const today = new Date();
       const startOfWeek = new Date(today.setDate(today.getDate() - today.getDay() + 1));
       const endOfWeek = new Date(today.setDate(today.getDate() - today.getDay() + 7));
       
-      const progressData = await callSupabaseFunction(`goals/progress?start_date=${startOfWeek.toISOString().split('T')[0]}&end_date=${endOfWeek.toISOString().split('T')[0]}`);
-      setProgressStats(progressData.stats);
+      setTimeout(async () => {
+        try {
+          const progressData = await callSupabaseFunction(`goals/progress?start_date=${startOfWeek.toISOString().split('T')[0]}&end_date=${endOfWeek.toISOString().split('T')[0]}`);
+          setProgressStats(progressData.stats);
+        } catch (error) {
+          console.error('Error loading progress:', error);
+        }
+      }, 300);
     } catch (error) {
       console.error('Error loading goals:', error);
     } finally {
       setLoading(false);
     }
   };
+    const debouncedLoadGoals = debounce(loadGoals, 500);
 
-  useEffect(() => {
+   useEffect(() => {
     if (user) {
-      loadGoals();
+      debouncedLoadGoals();
     }
-  }, [user]);
+  }, [user?.id]);
 
   const handleSaveGoals = async () => {
     if (!goals) return;
