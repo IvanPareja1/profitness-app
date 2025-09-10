@@ -79,6 +79,28 @@ export default function Dashboard() {
     try {
       setLoading(true);
       console.log('🔄 Loading dashboard data...');
+
+          // Cargar metas calculadas automáticamente
+    const { data: healthData } = await supabase
+      .from('health_data')
+      .select('*')
+      .eq('user_id', user?.id)
+      .single();
+
+    if (healthData) {
+      setTodayGoals({
+        daily_calories: healthData.target_calories || 2200,
+        daily_exercise_minutes: 60, // Puedes calcular esto también
+        is_rest_day: false
+      });
+    } else {
+      // Valores por defecto si no hay datos de salud
+      setTodayGoals({
+        daily_calories: 2200,
+        daily_exercise_minutes: 60,
+        is_rest_day: false
+      });
+    }
       
       const goalsData = await callSupabaseFunction(`goals/today?date=${selectedDate}`);
       setTodayGoals(goalsData.goals);

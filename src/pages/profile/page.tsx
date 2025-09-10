@@ -393,7 +393,7 @@ export default function Profile() {
               { icon: 'ri-target-line', label: 'Mis metas y objetivos', color: 'text-purple-600', action: () => navigate('/goals') },
               { icon: 'ri-bar-chart-line', label: 'Estadísticas detalladas', color: 'text-blue-600' },
               { icon: 'ri-medal-line', label: 'Logros y medallas', color: 'text-yellow-600' },
-              { icon: 'ri-heart-line', label: 'Datos de salud', color: 'text-red-600' },
+              { icon: 'ri-heart-line', label: 'Datos de salud', color: 'text-red-600', action: () => navigate('/health-data') },
               { icon: 'ri-notification-line', label: 'Notificaciones', color: 'text-purple-600' },
               { icon: 'ri-shield-check-line', label: 'Privacidad', color: 'text-green-600' },
               { icon: 'ri-question-line', label: 'Ayuda y soporte', color: 'text-gray-600' }
