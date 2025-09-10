@@ -101,8 +101,11 @@ export default function Profile() {
   const handleSignOut = async () => {
     try {
       await signOut();
+      navigate('/'); // Redirigir al dashboard después del logout
     } catch (error) {
       console.error('Error signing out:', error);
+      // Mostrar mensaje de error al usuario
+      alert('Error al cerrar sesión. Inténtalo de nuevo.');
     }
   };
 
