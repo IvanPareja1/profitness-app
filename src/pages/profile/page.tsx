@@ -274,12 +274,16 @@ export default function Profile() {
         <div className="px-4 py-4">
           <div className="flex items-center justify-between">
             <h1 className="text-lg font-bold text-gray-800">Perfil</h1>
-            <button className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+            <button 
+              onClick={() => navigate('/settings')} 
+              className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors"
+            >
               <i className="ri-settings-line text-gray-600 text-lg"></i>
             </button>
           </div>
         </div>
-      </div>
+         
+    
 
       {/* Content */}
       <div className="pt-20 px-4">
@@ -355,60 +359,53 @@ export default function Profile() {
           </div>
         </div>
 
-        {/* Health Data */}
-        <div className="bg-white rounded-xl p-4 shadow-sm mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-800">Datos de salud</h3>
-            {!editing ? (
-              <button 
-              onClick={() => navigate('/health-data')}
-              className="w-full flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors"
-              >
-                <div className="flex items-center space-x-3">
-                  <i className="ri-heart-line text-red-600 text-lg"></i>
-                  <span className="text-gray-800 text-sm">Datos de salud</span>
-                </div>
-                <i className="ri-arrow-right-s-line text-gray-400"></i>
-              </button>
-            ) : (
-              <div className="flex space-x-2">
+                    {/* Health Data */}
+            <div className="bg-white rounded-xl p-4 shadow-sm mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-gray-800">Datos de salud</h3>
                 <button 
-                  onClick={() => {
-                    setEditing(false);
-                    // Restaurar valores originales
-                    setFormData({
-                      age: profile?.age?.toString() || '',
-                      height: profile?.height?.toString() || '',
-                      weight: profile?.weight?.toString() || '',
-                      goal_weight: profile?.goal_weight?.toString() || '',
-                      daily_calories: profile?.daily_calories?.toString() || '2200'
-                    });
-                  }}
-                  className="text-gray-600 text-sm font-medium px-3 py-1 rounded border border-gray-300"
-                  disabled={saving}
+                  onClick={() => setEditing(!editing)}
+                  className="text-purple-600 text-sm font-medium px-3 py-1 rounded border border-purple-300"
                 >
-                  Cancelar
-                </button>
-                <button 
-                  onClick={saveProfileData}
-                  disabled={saving}
-                  className="bg-purple-600 text-white text-sm font-medium px-3 py-1 rounded flex items-center"
-                >
-                  {saving ? (
-                    <>
-                      <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin mr-1"></div>
-                      Guardando...
-                    </>
-                  ) : (
-                    <>
-                      <i className="ri-check-line mr-1"></i>
-                      Guardar
-                    </>
-                  )}
+                  {editing ? 'Cancelar' : 'Editar'}
                 </button>
               </div>
-            )}
-          </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                {/* ... tus inputs de datos de salud */}
+              </div>
+
+              {editing && (
+                <div className="mt-4 flex space-x-2">
+                  <button 
+                    onClick={saveProfileData}
+                    disabled={saving}
+                    className="flex-1 bg-purple-600 text-white py-2 rounded-lg font-medium flex items-center justify-center"
+                  >
+                    {saving ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                        Guardando...
+                      </>
+                    ) : (
+                      <>
+                        <i className="ri-check-line mr-2"></i>
+                        Guardar cambios
+                      </>
+                    )}
+                  </button>
+                  
+                  {/* Botón para calcular calorías sugeridas */}
+                  <button
+                    onClick={() => handleInputChange('daily_calories', calculateSuggestedCalories().toString())}
+                    className="px-4 bg-blue-600 text-white py-2 rounded-lg font-medium flex items-center justify-center"
+                    title="Calcular calorías sugeridas"
+                  >
+                    <i className="ri-calculator-line"></i>
+                  </button>
+                </div>
+              )}
+            </div>
 
           <div className="grid grid-cols-2 gap-4">
             {/* Edad */}
@@ -551,7 +548,7 @@ export default function Profile() {
         </button>
       </div>
 
-      {/* Bottom Navigation */}
+              {/* Bottom Navigation */}
       <div className="fixed bottom-0 w-full bg-white shadow-lg">
         <div className="grid grid-cols-4 h-16">
           <button 
