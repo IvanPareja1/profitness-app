@@ -8,6 +8,7 @@ import Exercise from "../pages/exercise/page";
 import Progress from '../pages/progress/page';
 import Profile from '../pages/profile/page';
 import Goals from '../pages/goals/page';
+import HealthDataForm from "../components/HealthDataForm";
 
 const routes: RouteObject[] = [
   {
@@ -38,6 +39,9 @@ const routes: RouteObject[] = [
     path: "*",
     element: <NotFound />,
   },
-];
+  {
+    path: "/health-data",
+    element: <HealthDataForm />,
+  }
 
-export default routes;
+];

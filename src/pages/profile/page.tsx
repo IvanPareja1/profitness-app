@@ -361,11 +361,14 @@ export default function Profile() {
             <h3 className="font-semibold text-gray-800">Datos de salud</h3>
             {!editing ? (
               <button 
-                onClick={() => setEditing(true)}
-                className="text-purple-600 text-sm font-medium flex items-center"
+              onClick={() => navigate('/health-data')}
+              className="w-full flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors"
               >
-                <i className="ri-edit-line mr-1"></i>
-                Editar
+                <div className="flex items-center space-x-3">
+                  <i className="ri-heart-line text-red-600 text-lg"></i>
+                  <span className="text-gray-800 text-sm">Datos de salud</span>
+                </div>
+                <i className="ri-arrow-right-s-line text-gray-400"></i>
               </button>
             ) : (
               <div className="flex space-x-2">
