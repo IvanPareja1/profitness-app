@@ -62,24 +62,31 @@ export default function Dashboard() {
     return response.json();
   };
 
+  const debounce = (func: Function, wait: number) => {
+    let timeout: NodeJS.Timeout;
+    return function executedFunction(...args: any[]) {
+      const later = () => {
+        clearTimeout(timeout);
+        func(...args);
+      };
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+    };
+  };
+
+
   const loadDashboardData = async () => {
     try {
       setLoading(true);
+      console.log('🔄 Loading dashboard data...');
       
-      // Cargar metas del día (con ajuste automático por días de descanso)
       const goalsData = await callSupabaseFunction(`goals/today?date=${selectedDate}`);
-      setTodayGoals({
-        daily_calories: goalsData.goals.daily_calories,
-        daily_exercise_minutes: goalsData.goals.daily_exercise_minutes,
-        is_rest_day: goalsData.goals.is_rest_day
-      });
+      setTodayGoals(goalsData.goals);
       
-      // Cargar datos de comidas
       const mealsData = await callSupabaseFunction(`meals?date=${selectedDate}`);
       setDayTotals(mealsData.totals || { calories: 0, carbs: 0, protein: 0, fat: 0 });
       setRecentMeals((mealsData.meals || []).slice(0, 3));
       
-      // Cargar datos de ejercicios
       const exercisesData = await callSupabaseFunction(`exercises?date=${selectedDate}`);
       setExerciseStats({
         totalDuration: exercisesData.totals?.totalDuration || 0,
@@ -87,32 +94,55 @@ export default function Dashboard() {
         totalExercises: exercisesData.totals?.totalExercises || 0
       });
 
-      // Actualizar logros del día
-      await callSupabaseFunction('goals/achievement', {
-        method: 'PUT',
-        body: {
-          date: selectedDate,
-          calories_achieved: mealsData.totals?.calories || 0,
-          protein_achieved: mealsData.totals?.protein || 0,
-          carbs_achieved: mealsData.totals?.carbs || 0,
-          fat_achieved: mealsData.totals?.fat || 0,
-          exercise_achieved: exercisesData.totals?.totalDuration || 0,
-          water_achieved: 0, // TODO: Implementar tracking de agua
-          streak_maintained: true // TODO: Lógica de racha
-        }
-      });
-    } catch (error) {
+       } catch (error) {
       console.error('Error loading dashboard data:', error);
     } finally {
       setLoading(false);
     }
   };
 
+  const debouncedLoadDashboard = debounce(loadDashboardData, 500);
+
+  // ✅ useEffect para cargar datos
   useEffect(() => {
     if (user) {
-      loadDashboardData();
+      debouncedLoadDashboard();
     }
-  }, [selectedDate, user]);
+  }, [selectedDate]);
+
+   useEffect(() => {
+    if (user) {
+      debouncedLoadDashboard();
+    }
+  }, [user?.id]);
+
+ useEffect(() => {
+    if (user && (dayTotals.calories > 0 || exerciseStats.totalDuration > 0)) {
+      console.log('📊 Actualizando achievements...');
+      
+      const updateAchievements = async () => {
+        try {
+          await callSupabaseFunction('goals/achievement', {
+            method: 'PUT',
+            body: {
+              date: selectedDate,
+              calories_achieved: dayTotals.calories,
+              protein_achieved: dayTotals.protein,
+              carbs_achieved: dayTotals.carbs,
+              fat_achieved: dayTotals.fat,
+              exercise_achieved: exerciseStats.totalDuration,
+              water_achieved: 0,
+              streak_maintained: true
+            }
+          });
+          console.log('✅ Achievements actualizados');
+        } catch (error) {
+          console.error('Error updating achievements:', error);
+        }
+      };
+       }
+      }, [dayTotals, exerciseStats.totalDuration, selectedDate, user]);
+
 
   const calorieProgress = Math.min((dayTotals.calories / todayGoals.daily_calories) * 100, 100);
   const exerciseProgress = Math.min((exerciseStats.totalDuration / todayGoals.daily_exercise_minutes) * 100, 100);
