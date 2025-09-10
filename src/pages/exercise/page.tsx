@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, supabase } from '../../hooks/useAuth';
+import { CompletedExercise } from '@/types/exercise';
 
 interface Exercise {
   id: string;

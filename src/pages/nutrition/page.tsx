@@ -1388,12 +1388,13 @@ export default function Nutrition() {
                           Detectado por IA • {meal.unit}
                         </div>
                         <div className="flex items-center space-x-2">
-                          {meal.confidence_score && (
+                         const confidence = meal.confidence_score ?? 0;
+                            {meal.confidence_score && (
                             <div className="text-xs text-purple-600 font-medium bg-purple-100 px-2 py-0.5 rounded">
-                              {meal.confidence_score}% confianza
+                            {meal.confidence_score}% confianza
                             </div>
-                          )}
-                          <div className="text-xs text-gray-500">
+                            )}
+                            <div className="text-xs text-gray-500">
                             {new Date(meal.created_at).toLocaleDateString()}
                           </div>
                         </div>
