@@ -25,12 +25,17 @@ export default function Profile() {
     weightLost: 0
   });
 
-  useEffect(() => {
-    if (user) {
-      fetchProfile();
-      fetchStats();
-    }
-  }, [user]);
+    const debounce = (func: Function, wait: number) => {
+    let timeout: NodeJS.Timeout;
+    return function executedFunction(...args: any[]) {
+      const later = () => {
+        clearTimeout(timeout);
+        func(...args);
+      };
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+    };
+  };
 
   const fetchProfile = async () => {
     try {
@@ -97,6 +102,21 @@ export default function Profile() {
       console.error('Error fetching stats:', error);
     }
   };
+
+  const debouncedFetchProfile = debounce(fetchProfile, 500);
+  const debouncedFetchStats = debounce(fetchStats, 500);
+
+ useEffect(() => {
+  if (user) {
+     debouncedFetchProfile();
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (user && profile) {
+      debouncedFetchStats();
+    }
+  }, [user?.id, profile]);
 
   const handleSignOut = async () => {
     try {
