@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'; // Añadir useRef aquí
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth, supabase } from '../../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 
@@ -18,6 +18,8 @@ export default function Profile() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [stats, setStats] = useState({
     activeDays: 0,
     totalMeals: 0,
@@ -25,6 +27,13 @@ export default function Profile() {
     weightLost: 0
   });
   const [caloriesProgress, setCaloriesProgress] = useState(0);
+  const [formData, setFormData] = useState({
+    age: '',
+    height: '',
+    weight: '',
+    goal_weight: '',
+    daily_calories: ''
+  });
   
   // Usar useRef para trackear si ya hemos hecho fetch
   const hasFetchedProfile = useRef(false);
@@ -47,7 +56,7 @@ export default function Profile() {
       }
 
       if (data) {
-        setProfile({
+        const profileData = {
           full_name: data.full_name || 'Usuario',
           email: data.email || user?.email || '',
           age: data.age,
@@ -56,6 +65,17 @@ export default function Profile() {
           goal_weight: data.goal_weight,
           daily_calories: data.daily_calories,
           avatar_url: data.avatar_url
+        };
+        
+        setProfile(profileData);
+        
+        // Inicializar formData con los valores del perfil
+        setFormData({
+          age: data.age?.toString() || '',
+          height: data.height?.toString() || '',
+          weight: data.weight?.toString() || '',
+          goal_weight: data.goal_weight?.toString() || '',
+          daily_calories: data.daily_calories?.toString() || '2200'
         });
       }
     } catch (error) {
@@ -77,7 +97,7 @@ export default function Profile() {
         .select('id, created_at, calories')
         .eq('user_id', user?.id)
         .gte('created_at', today)
-        .limit(100); // Limitar resultados
+        .limit(100);
 
       if (mealsError) {
         console.error('Error fetching meals:', mealsError);
@@ -89,7 +109,7 @@ export default function Profile() {
         .from('exercises')
         .select('id, created_at')
         .eq('user_id', user?.id)
-        .limit(100); // Limitar resultados
+        .limit(100);
 
       if (exercisesError) {
         console.error('Error fetching exercises:', exercisesError);
@@ -127,6 +147,64 @@ export default function Profile() {
       console.error('Error fetching stats:', error);
     }
   }, [user, profile]);
+
+  const saveProfileData = async () => {
+    setSaving(true);
+    try {
+      const updates = {
+        age: formData.age ? parseInt(formData.age) : null,
+        height: formData.height ? parseFloat(formData.height) : null,
+        weight: formData.weight ? parseFloat(formData.weight) : null,
+        goal_weight: formData.goal_weight ? parseFloat(formData.goal_weight) : null,
+        daily_calories: formData.daily_calories ? parseInt(formData.daily_calories) : 2200,
+        updated_at: new Date().toISOString()
+      };
+
+      const { error } = await supabase
+        .from('profiles')
+        .update(updates)
+        .eq('user_id', user?.id);
+
+      if (error) {
+        throw error;
+      }
+
+      // Actualizar el estado local del perfil
+      setProfile(prev => prev ? { ...prev, ...updates } : null);
+      setEditing(false);
+      
+      // Recargar estadísticas para reflejar los cambios
+      hasFetchedStats.current = false;
+      fetchStats();
+      
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      alert('Error al guardar los datos. Inténtalo de nuevo.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const calculateSuggestedCalories = () => {
+    if (!formData.weight || !formData.height || !formData.age) return 2200;
+    
+    const weight = parseFloat(formData.weight);
+    const height = parseFloat(formData.height);
+    const age = parseInt(formData.age);
+    
+    // Fórmula básica de Mifflin-St Jeor para calorías basales
+    const basalCalories = (10 * weight) + (6.25 * height) - (5 * age) + 5;
+    
+    // Multiplicador de actividad moderada (1.55)
+    return Math.round(basalCalories * 1.55);
+  };
 
   useEffect(() => {
     if (user && !hasFetchedProfile.current) {
@@ -279,33 +357,158 @@ export default function Profile() {
 
         {/* Health Data */}
         <div className="bg-white rounded-xl p-4 shadow-sm mb-6">
-          <h3 className="font-semibold text-gray-800 mb-4">Datos de salud</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-800">Datos de salud</h3>
+            {!editing ? (
+              <button 
+                onClick={() => setEditing(true)}
+                className="text-purple-600 text-sm font-medium flex items-center"
+              >
+                <i className="ri-edit-line mr-1"></i>
+                Editar
+              </button>
+            ) : (
+              <div className="flex space-x-2">
+                <button 
+                  onClick={() => {
+                    setEditing(false);
+                    // Restaurar valores originales
+                    setFormData({
+                      age: profile?.age?.toString() || '',
+                      height: profile?.height?.toString() || '',
+                      weight: profile?.weight?.toString() || '',
+                      goal_weight: profile?.goal_weight?.toString() || '',
+                      daily_calories: profile?.daily_calories?.toString() || '2200'
+                    });
+                  }}
+                  className="text-gray-600 text-sm font-medium px-3 py-1 rounded border border-gray-300"
+                  disabled={saving}
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={saveProfileData}
+                  disabled={saving}
+                  className="bg-purple-600 text-white text-sm font-medium px-3 py-1 rounded flex items-center"
+                >
+                  {saving ? (
+                    <>
+                      <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin mr-1"></div>
+                      Guardando...
+                    </>
+                  ) : (
+                    <>
+                      <i className="ri-check-line mr-1"></i>
+                      Guardar
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
+            {/* Edad */}
             <div className="text-center p-3 bg-gray-50 rounded-lg">
-              <div className="text-lg font-bold text-gray-800">
-                {profile?.weight ? `${profile.weight} kg` : '--'}
-              </div>
-              <div className="text-xs text-gray-500">Peso actual</div>
-            </div>
-            <div className="text-center p-3 bg-gray-50 rounded-lg">
-              <div className="text-lg font-bold text-gray-800">
-                {profile?.height ? `${profile.height} cm` : '--'}
-              </div>
-              <div className="text-xs text-gray-500">Altura</div>
-            </div>
-            <div className="text-center p-3 bg-gray-50 rounded-lg">
-              <div className="text-lg font-bold text-gray-800">
-                {calculateBMI() || '--'}
-              </div>
-              <div className="text-xs text-gray-500">IMC</div>
-            </div>
-            <div className="text-center p-3 bg-gray-50 rounded-lg">
-              <div className="text-lg font-bold text-gray-800">
-                {profile?.age ? `${profile.age} años` : '--'}
-              </div>
+              {editing ? (
+                <input
+                  type="number"
+                  value={formData.age}
+                  onChange={(e) => handleInputChange('age', e.target.value)}
+                  placeholder="Edad"
+                  className="w-full text-center text-lg font-bold text-gray-800 bg-transparent border-b border-gray-300 focus:outline-none focus:border-purple-600"
+                />
+              ) : (
+                <div className="text-lg font-bold text-gray-800">
+                  {profile?.age ? `${profile.age} años` : '--'}
+                </div>
+              )}
               <div className="text-xs text-gray-500">Edad</div>
             </div>
+
+            {/* Altura */}
+            <div className="text-center p-3 bg-gray-50 rounded-lg">
+              {editing ? (
+                <input
+                  type="number"
+                  value={formData.height}
+                  onChange={(e) => handleInputChange('height', e.target.value)}
+                  placeholder="Altura (cm)"
+                  className="w-full text-center text-lg font-bold text-gray-800 bg-transparent border-b border-gray-300 focus:outline-none focus:border-purple-600"
+                />
+              ) : (
+                <div className="text-lg font-bold text-gray-800">
+                  {profile?.height ? `${profile.height} cm` : '--'}
+                </div>
+              )}
+              <div className="text-xs text-gray-500">Altura</div>
+            </div>
+
+            {/* Peso actual */}
+            <div className="text-center p-3 bg-gray-50 rounded-lg">
+              {editing ? (
+                <input
+                  type="number"
+                  step="0.1"
+                  value={formData.weight}
+                  onChange={(e) => handleInputChange('weight', e.target.value)}
+                  placeholder="Peso (kg)"
+                  className="w-full text-center text-lg font-bold text-gray-800 bg-transparent border-b border-gray-300 focus:outline-none focus:border-purple-600"
+                />
+              ) : (
+                <div className="text-lg font-bold text-gray-800">
+                  {profile?.weight ? `${profile.weight} kg` : '--'}
+                </div>
+              )}
+              <div className="text-xs text-gray-500">Peso actual</div>
+            </div>
+
+            {/* Peso objetivo */}
+            <div className="text-center p-3 bg-gray-50 rounded-lg">
+              {editing ? (
+                <input
+                  type="number"
+                  step="0.1"
+                  value={formData.goal_weight}
+                  onChange={(e) => handleInputChange('goal_weight', e.target.value)}
+                  placeholder="Meta (kg)"
+                  className="w-full text-center text-lg font-bold text-gray-800 bg-transparent border-b border-gray-300 focus:outline-none focus:border-purple-600"
+                />
+              ) : (
+                <div className="text-lg font-bold text-gray-800">
+                  {profile?.goal_weight ? `${profile.goal_weight} kg` : '--'}
+                </div>
+              )}
+              <div className="text-xs text-gray-500">Peso objetivo</div>
+            </div>
           </div>
+
+          {/* Calorías diarias sugeridas */}
+          {editing && (
+            <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-medium text-blue-800 text-sm">
+                    Calorías diarias sugeridas
+                  </div>
+                  <div className="text-xs text-blue-600">
+                    Basado en tus datos
+                  </div>
+                </div>
+                <div className="text-lg font-bold text-blue-800">
+                  {calculateSuggestedCalories()} kcal
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleInputChange('daily_calories', calculateSuggestedCalories().toString())}
+                className="mt-2 w-full bg-blue-600 text-white text-sm font-medium py-2 rounded flex items-center justify-center"
+              >
+                <i className="ri-magic-line mr-1"></i>
+                Usar esta recomendación
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Menu Options */}
