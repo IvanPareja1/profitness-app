@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useAuth, supabase } from '../../hooks/useAuth';
+import { useAuth, supabase } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 
 interface HealthData {
