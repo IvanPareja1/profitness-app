@@ -42,6 +42,7 @@ export default function Progress() {
   const { user } = useAuth();
 
   const callSupabaseFunction = async (functionName: string, options: any = {}) => {
+    console.log('🔍 Llamando a:', functionName);
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) throw new Error('No authenticated session');
 
@@ -54,6 +55,7 @@ export default function Progress() {
       },
       body: options.body ? JSON.stringify(options.body) : undefined,
     });
+    console.log('📊 Response status:', response.status);
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
