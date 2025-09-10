@@ -76,32 +76,32 @@ export default function Dashboard() {
 
 
   const loadDashboardData = async () => {
-    try {
-      setLoading(true);
-      console.log('🔄 Loading dashboard data...');
-
-          // Cargar metas calculadas automáticamente
-    const { data: healthData } = await supabase
-      .from('health_data')
+  try {
+    setLoading(true);
+    
+    // Cargar datos del perfil (que incluyen las metas calculadas)
+    const { data: profile } = await supabase
+      .from('profiles')
       .select('*')
       .eq('user_id', user?.id)
       .single();
 
-    if (healthData) {
+    if (profile) {
       setTodayGoals({
-        daily_calories: healthData.target_calories || 2200,
-        daily_exercise_minutes: 60, // Puedes calcular esto también
-        is_rest_day: false
-      });
-    } else {
-      // Valores por defecto si no hay datos de salud
-      setTodayGoals({
-        daily_calories: 2200,
+        daily_calories: profile.daily_calories || 2200,
         daily_exercise_minutes: 60,
         is_rest_day: false
       });
-    }
-      
+
+      // También puedes usar los macros si están disponibles
+      if (profile.target_protein && profile.target_carbs && profile.target_fat) {
+        setMacros({
+          protein: profile.target_protein,
+          carbs: profile.target_carbs,
+          fat: profile.target_fat
+        });
+      }
+            
       const goalsData = await callSupabaseFunction(`goals/today?date=${selectedDate}`);
       setTodayGoals(goalsData.goals);
       

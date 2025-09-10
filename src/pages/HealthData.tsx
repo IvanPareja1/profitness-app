@@ -13,30 +13,69 @@ interface HealthData {
   bmr?: number;
   tdee?: number;
   target_calories?: number;
+  goal_weight?: number | null;
 }
 
 export default function HealthData() {
   const [healthData, setHealthData] = useState<HealthData>({
-    age: 0,
+    age: null,
     gender: 'male',
-    height: 0,
-    weight: 0,
+    height: null,
+    weight: null,
     goal: 'maintain',
     activity_level: 'moderate',
-    daily_steps: 0
+    daily_steps: 0,
+    goal_weight: null
   });
+
   const [loading, setLoading] = useState(false);
   const [connectedDevices, setConnectedDevices] = useState<string[]>([]);
   
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  const { error } = await supabase
+        .from('profiles')
+        .update({
+          age: healthData.age,
+          gender: healthData.gender,
+          height: healthData.height,
+          weight: healthData.weight,
+          goal: healthData.goal,
+          activity_level: healthData.activity_level,
+          goal_weight: healthData.goal_weight,
+          daily_calories: calculations.targetCalories,
+          // Puedes agregar campos para macros si lo deseas
+          target_protein: macros.protein,
+          target_carbs: macros.carbs,
+          target_fat: macros.fat,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+
+      alert('Datos de salud guardados exitosamente!');
+      navigate('/profile');
+
+    } catch (error) {
+      console.error('Error saving health data:', error);
+      alert('Error al guardar los datos');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+
   useEffect(() => {
     if (user) {
-      loadHealthData();
-      checkConnectedDevices();
+      const timer = setTimeout(() => {
+        loadHealthData();
+      }, 500);
+      
+      return () => clearTimeout(timer);
     }
-  }, [user]);
+  }, [user?.id]);
 
   const loadHealthData = async () => {
     try {

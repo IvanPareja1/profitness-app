@@ -41,7 +41,7 @@ const routes: RouteObject[] = [
   },
   {
     path: "/health-data",
-    element: <HealthDataForm />,
+    element: <HealthData />,
   }
 ];
 
