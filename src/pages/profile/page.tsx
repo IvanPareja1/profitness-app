@@ -267,23 +267,19 @@ export default function Profile() {
     );
   }
 
-  return (
+   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 pb-20">
       {/* Header */}
       <div className="fixed top-0 w-full bg-white/90 backdrop-blur-md shadow-sm z-50">
         <div className="px-4 py-4">
           <div className="flex items-center justify-between">
             <h1 className="text-lg font-bold text-gray-800">Perfil</h1>
-            <button 
-              onClick={() => navigate('/settings')} 
-              className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors"
-            >
+            <button className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
               <i className="ri-settings-line text-gray-600 text-lg"></i>
             </button>
           </div>
         </div>
-
-    
+      </div>
 
       {/* Content */}
       <div className="pt-20 px-4">
@@ -359,7 +355,7 @@ export default function Profile() {
           </div>
         </div>
 
-              {/* Health Data */}
+        {/* Health Data */}
         <div className="bg-white rounded-xl p-4 shadow-sm mb-6">
           <h3 className="font-semibold text-gray-800 mb-4">Datos de salud</h3>
           <div className="grid grid-cols-2 gap-4">
@@ -427,7 +423,7 @@ export default function Profile() {
         </button>
       </div>
 
-              {/* Bottom Navigation */}
+      {/* Bottom Navigation */}
       <div className="fixed bottom-0 w-full bg-white shadow-lg">
         <div className="grid grid-cols-4 h-16">
           <button 
@@ -466,8 +462,6 @@ export default function Profile() {
         </div>
       </div>
     </div>
-    
-  </div>
   );
 }
 
