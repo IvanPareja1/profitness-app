@@ -24,6 +24,15 @@ interface ExerciseTotals {
   totalReps: number;
 }
 
+interface CompletedExercise {
+  id: string;
+  name: string;
+  sets: number;
+  reps: number;
+  weight?: number;
+  completed_at: string;
+}
+
 interface ExerciseTemplate {
   name: string;
   type: string;
@@ -193,11 +202,19 @@ export default function Exercise() {
     }
   };
 
-  useEffect(() => {
-    if (user) {
-      loadExercises();
-    }
-  }, [selectedDate, user]);
+// ✅ NUEVO CÓDIGO 
+useEffect(() => {
+  if (user) {
+    loadExercises();
+  }
+}, [selectedDate]); 
+
+// ✅  useEffect PARA INICIALIZACIÓN
+useEffect(() => {
+  if (user) {
+    loadExercises();
+  }
+}, [user?.id]); 
 
   useEffect(() => {
     if (searchQuery) {
@@ -241,6 +258,7 @@ export default function Exercise() {
         });
       }
     }
+    
     
     // Visual reminder
     const reminder = document.createElement('div');

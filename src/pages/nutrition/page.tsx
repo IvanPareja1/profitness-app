@@ -14,6 +14,9 @@ interface Meal {
   unit: string;
   meal_type: string;
   created_at: string;
+  confidence_score?: number;    // Para comidas detectadas por IA
+  ingredients?: string;         // Ingredientes detectados
+  barcode?: string;            // Código de barras escaneado
 }
 
 interface FoodItem {
