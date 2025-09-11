@@ -29,6 +29,7 @@ interface TodayGoals {
 }
 
 export default function Dashboard() {
+    console.log('🔵 Dashboard component rendering');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [dayTotals, setDayTotals] = useState<DayTotals>({ calories: 0, carbs: 0, protein: 0, fat: 0 });
   const [recentMeals, setRecentMeals] = useState<Meal[]>([]);
@@ -125,7 +126,11 @@ export default function Dashboard() {
   };
   
 
+  
+
   const debouncedLoadDashboard = debounce(loadDashboardData, 500);
+   console.log('🔵 Auth state:', { user, authLoading });
+   
 
   // ✅ useEffect para cargar datos
   useEffect(() => {
