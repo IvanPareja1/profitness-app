@@ -35,6 +35,7 @@ export default function Dashboard() {
   const [exerciseStats, setExerciseStats] = useState({ totalDuration: 0, totalCalories: 0, totalExercises: 0 });
   const [todayGoals, setTodayGoals] = useState<TodayGoals>({ daily_calories: 2200, daily_exercise_minutes: 60, is_rest_day: false });
   const [loading, setLoading] = useState(false);
+  const [macros, setMacros] = useState({ protein: 0, carbs: 0, fat: 0 });
   
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -115,6 +116,7 @@ export default function Dashboard() {
         totalCalories: exercisesData.totals?.totalCalories || 0,
         totalExercises: exercisesData.totals?.totalExercises || 0
       });
+      }
 
        } catch (error) {
       console.error('Error loading dashboard data:', error);
@@ -122,6 +124,7 @@ export default function Dashboard() {
       setLoading(false);
     }
   };
+
 
   const debouncedLoadDashboard = debounce(loadDashboardData, 500);
 
