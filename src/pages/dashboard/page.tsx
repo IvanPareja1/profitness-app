@@ -36,9 +36,16 @@ export default function Dashboard() {
   const [todayGoals, setTodayGoals] = useState<TodayGoals>({ daily_calories: 2200, daily_exercise_minutes: 60, is_rest_day: false });
   const [loading, setLoading] = useState(false);
   const [macros, setMacros] = useState({ protein: 0, carbs: 0, fat: 0 });
-  
+  const [error, setError] = useState<string | null>(null);
+
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+
+    useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/login');
+    }
+  }, [user, authLoading, navigate]);
 
   const callSupabaseFunction = async (functionName: string, options: any = {}) => {
     console.log('🔍 Llamando a:', functionName);
@@ -76,98 +83,108 @@ export default function Dashboard() {
   };
 
 
-  const loadDashboardData = async () => {
+ const loadDashboardData = async () => {
   try {
     setLoading(true);
+    setError(null);
     
-    // Cargar datos del perfil (que incluyen las metas calculadas)
-    const { data: profile } = await supabase
+    if (!user?.id) {
+      throw new Error('Usuario no autenticado');
+    }
+
+    // Cargar datos del perfil
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('*')
-      .eq('user_id', user?.id)
+      .eq('user_id', user.id)
       .single();
 
-    if (profile) {
-      setTodayGoals({
-        daily_calories: profile.daily_calories || 2200,
-        daily_exercise_minutes: 60,
-        is_rest_day: false
-      });
-
-      // También puedes usar los macros si están disponibles
-      if (profile.target_protein && profile.target_carbs && profile.target_fat) {
-        setMacros({
-          protein: profile.target_protein,
-          carbs: profile.target_carbs,
-          fat: profile.target_fat
-        });
-      }
-            
-      const goalsData = await callSupabaseFunction(`goals/today?date=${selectedDate}`);
-      setTodayGoals(goalsData.goals);
-      
-      const mealsData = await callSupabaseFunction(`meals?date=${selectedDate}`);
-      setDayTotals(mealsData.totals || { calories: 0, carbs: 0, protein: 0, fat: 0 });
-      setRecentMeals((mealsData.meals || []).slice(0, 3));
-      
-      const exercisesData = await callSupabaseFunction(`exercises?date=${selectedDate}`);
-      setExerciseStats({
-        totalDuration: exercisesData.totals?.totalDuration || 0,
-        totalCalories: exercisesData.totals?.totalCalories || 0,
-        totalExercises: exercisesData.totals?.totalExercises || 0
-      });
-      }
-
-       } catch (error) {
-      console.error('Error loading dashboard data:', error);
-    } finally {
-      setLoading(false);
+    if (profileError) {
+      console.warn('Error cargando perfil:', profileError);
     }
-  };
+
+    let goalsData, mealsData, exercisesData;
+
+    try {
+      goalsData = await callSupabaseFunction(`goals/today?date=${selectedDate}`);
+      setTodayGoals(goalsData.goals);
+    } catch (e) {
+      console.warn('Error cargando goals:', e);
+    }
+
+    try {
+      mealsData = await callSupabaseFunction(`meals?date=${selectedDate}`);
+      setDayTotals(mealsData?.totals || { calories: 0, carbs: 0, protein: 0, fat: 0 });
+      setRecentMeals((mealsData?.meals || []).slice(0, 3));
+    } catch (e) {
+      console.warn('Error cargando meals:', e);
+    }
+
+    try {
+      exercisesData = await callSupabaseFunction(`exercises?date=${selectedDate}`);
+      setExerciseStats({
+        totalDuration: exercisesData?.totals?.totalDuration || 0,
+        totalCalories: exercisesData?.totals?.totalCalories || 0,
+        totalExercises: exercisesData?.totals?.totalExercises || 0
+      });
+    } catch (e) {
+      console.warn('Error cargando exercises:', e);
+    }
+
+  } catch (error) {
+    console.error('Error loading dashboard data:', error);
+    setError('Error cargando datos: ' + (error as Error).message);
+  } finally {
+    setLoading(false);
+  }
+};
 
 
   const debouncedLoadDashboard = debounce(loadDashboardData, 500);
 
-  // ✅ useEffect para cargar datos
+      // ✅ useEffect para user.id
   useEffect(() => {
-    if (user) {
-      debouncedLoadDashboard();
-    }
-  }, [selectedDate]);
-
-   useEffect(() => {
-    if (user) {
+    if (user?.id) {
       debouncedLoadDashboard();
     }
   }, [user?.id]);
 
- useEffect(() => {
-    if (user && (dayTotals.calories > 0 || exerciseStats.totalDuration > 0)) {
-      console.log('📊 Actualizando achievements...');
-      
-      const updateAchievements = async () => {
-        try {
-          await callSupabaseFunction('goals/achievement', {
-            method: 'PUT',
-            body: {
-              date: selectedDate,
-              calories_achieved: dayTotals.calories,
-              protein_achieved: dayTotals.protein,
-              carbs_achieved: dayTotals.carbs,
-              fat_achieved: dayTotals.fat,
-              exercise_achieved: exerciseStats.totalDuration,
-              water_achieved: 0,
-              streak_maintained: true
-            }
-          });
-          console.log('✅ Achievements actualizados');
-        } catch (error) {
-          console.error('Error updating achievements:', error);
-        }
-      };
-       }
-      }, [dayTotals, exerciseStats.totalDuration, selectedDate, user]);
+  // ✅ useEffect para selectedDate
+  useEffect(() => {
+    if (user?.id) {
+      debouncedLoadDashboard();
+    }
+  }, [selectedDate, user?.id]);
 
+
+useEffect(() => {
+  if (user && (dayTotals.calories > 0 || exerciseStats.totalDuration > 0)) {
+    console.log('📊 Actualizando achievements...');
+    
+    const updateAchievements = async () => {
+      try {
+        await callSupabaseFunction('goals/achievement', {
+          method: 'PUT',
+          body: {
+            date: selectedDate,
+            calories_achieved: dayTotals.calories,
+            protein_achieved: dayTotals.protein,
+            carbs_achieved: dayTotals.carbs,
+            fat_achieved: dayTotals.fat,
+            exercise_achieved: exerciseStats.totalDuration,
+            water_achieved: 0,
+            streak_maintained: true
+          }
+        });
+        console.log('✅ Achievements actualizados');
+      } catch (error) {
+        console.error('Error updating achievements:', error);
+      }
+    };
+    
+    updateAchievements(); 
+  }
+}, [dayTotals, exerciseStats.totalDuration, selectedDate, user]);
 
   const calorieProgress = Math.min((dayTotals.calories / todayGoals.daily_calories) * 100, 100);
   const exerciseProgress = Math.min((exerciseStats.totalDuration / todayGoals.daily_exercise_minutes) * 100, 100);
@@ -186,8 +203,19 @@ export default function Dashboard() {
     return 'Cena';
   };
 
+ if (authLoading) {
+  return (
+    <div className="w-8 h-8 border-2 border-green-500 border-t-transparent rounded-full animate-spin"></div>
+  );
+}
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 pb-20">
+      {error && (
+  <div className="fixed top-20 left-1/2 transform -translate-x-1/2 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded z-50">
+    <span className="block sm:inline">{error}</span>
+    <button onClick={() => setError(null)} className="ml-4">×</button>
+  </div>
+)}
       {/* Header */}
       <div className="fixed top-0 w-full bg-white/90 backdrop-blur-md shadow-sm z-50">
         <div className="px-4 py-4">
