@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, supabase } from '../../hooks/useAuth';
 
+
 interface DayTotals {
   calories: number;
   carbs: number;
@@ -30,6 +31,8 @@ interface TodayGoals {
 
 export default function Dashboard() {
     console.log('🔵 Dashboard component rendering');
+  
+  const [macros, setMacros] = useState({ protein: 0, carbs: 0, fat: 0 });
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [dayTotals, setDayTotals] = useState<DayTotals>({ calories: 0, carbs: 0, protein: 0, fat: 0 });
   const [recentMeals, setRecentMeals] = useState<Meal[]>([]);
@@ -38,7 +41,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(false);
   
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   const callSupabaseFunction = async (functionName: string, options: any = {}) => {
     console.log('🔍 Llamando a:', functionName);
@@ -130,7 +133,7 @@ export default function Dashboard() {
 
   const debouncedLoadDashboard = debounce(loadDashboardData, 500);
    console.log('🔵 Auth state:', { user, authLoading });
-   
+
 
   // ✅ useEffect para cargar datos
   useEffect(() => {
@@ -168,8 +171,10 @@ export default function Dashboard() {
         } catch (error) {
           console.error('Error updating achievements:', error);
         }
-      };
+      };    
+          updateAchievements(); 
        }
+       
       }, [dayTotals, exerciseStats.totalDuration, selectedDate, user]);
 
 
