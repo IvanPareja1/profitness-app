@@ -14,14 +14,16 @@ interface HealthData {
   tdee?: number;
   target_calories?: number;
   goal_weight?: number | null;
-}
+   target_protein?: number;    
+  target_carbs?: number;      
+  target_fat?: number;
 
 export default function HealthData() {
   const [healthData, setHealthData] = useState<HealthData>({
-    age: null,
+    age: 0,
     gender: 'male',
-    height: null,
-    weight: null,
+    height: 0,
+    weight: 0,
     goal: 'maintain',
     activity_level: 'moderate',
     daily_steps: 0,
@@ -202,47 +204,58 @@ export default function HealthData() {
   };
 
   const saveHealthData = async () => {
-    try {
-      setLoading(true);
-      
-      const calculations = calculateCalories();
-      const macros = calculateMacros(calculations.targetCalories);
+  try {
+    setLoading(true);
+    
+    const calculations = calculateCalories();
+    const macros = calculateMacros(calculations.targetCalories);
 
-      const { error } = await supabase
-        .from('health_data')
-        .upsert({
-          user_id: user?.id,
-          ...healthData,
-          ...calculations,
-          target_protein: macros.protein,
-          target_carbs: macros.carbs,
-          target_fat: macros.fat,
-          updated_at: new Date().toISOString()
-        });
+    // Guardar en health_data
+    const { error: healthError } = await supabase
+      .from('health_data')
+      .upsert({
+        user_id: user?.id,
+        ...healthData,
+        ...calculations,
+        target_protein: macros.protein,
+        target_carbs: macros.carbs,
+        target_fat: macros.fat,
+        updated_at: new Date().toISOString()
+      });
 
-      if (error) throw error;
+    if (healthError) throw healthError;
 
-      // Actualizar también el perfil del usuario
-      await supabase
-        .from('profiles')
-        .update({
-          daily_calories: calculations.targetCalories,
-          weight: healthData.weight,
-          height: healthData.height,
-          age: healthData.age
-        })
-        .eq('user_id', user?.id);
+    
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({
+        age: healthData.age,
+        gender: healthData.gender,
+        height: healthData.height,
+        weight: healthData.weight,
+        goal: healthData.goal,
+        activity_level: healthData.activity_level,
+        goal_weight: healthData.goal_weight,
+        daily_calories: calculations.targetCalories,
+        target_protein: macros.protein,
+        target_carbs: macros.carbs,
+        target_fat: macros.fat,
+        updated_at: new Date().toISOString()
+      })
+      .eq('user_id', user?.id);
 
-      alert('Datos de salud guardados exitosamente!');
-      navigate('/profile');
+    if (profileError) throw profileError;
 
-    } catch (error) {
-      console.error('Error saving health data:', error);
-      alert('Error al guardar los datos');
-    } finally {
-      setLoading(false);
-    }
-  };
+    alert('Datos de salud guardados exitosamente!');
+    navigate('/profile');
+
+  } catch (error) {
+    console.error('Error saving health data:', error);
+    alert('Error al guardar los datos');
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
