@@ -1,4 +1,3 @@
-
 {
   "name": "ProFitness - Seguimiento nutricional y ejercicio",
   "short_name": "ProFitness",
@@ -14,13 +13,13 @@
       "src": "/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": ["any", "maskable"]
     },
     {
       "src": "/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": ["any", "maskable"]
     }
   ],
   "shortcuts": [
@@ -29,14 +28,26 @@
       "short_name": "Añadir comida",
       "description": "Registra rápidamente una nueva comida",
       "url": "/nutrition",
-      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/icon-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     },
     {
       "name": "Nuevo entrenamiento",
       "short_name": "Entrenar",
       "description": "Inicia un nuevo entrenamiento",
       "url": "/exercise",
-      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/icon-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     }
   ]
 }
