@@ -132,7 +132,7 @@ export default function Dashboard() {
   
 
   const debouncedLoadDashboard = debounce(loadDashboardData, 500);
-   console.log('🔵 Auth state:', { user, authLoading });
+   //console.log('🔵 Auth state:', { user, authLoading });
 
 
   // ✅ useEffect para cargar datos
