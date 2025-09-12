@@ -67,15 +67,6 @@ const routes: RouteObject[] = [
       </ProtectedRoute>
     ),
   },
-  // Agrega rutas públicas (login, register, etc.) si las tienes
-  {
-    path: "/login",
-    element: <LoginPage />, // ← Si tienes página de login
-  },
-  {
-    path: "/register", 
-    element: <RegisterPage />, // ← Si tienes página de registro
-  },
   {
     path: "*",
     element: <NotFound />,
