@@ -79,39 +79,73 @@ export default function Goals() {
   try {
     setLoading(true);
     
-    // ✅ 1. Primero obtener los goals de la base de datos
-    const data = await callSupabaseFunction('goals');
-    
-    // ✅ 2. Obtener el origen de las metas
+    // ✅ 1. Obtener goals desde user_goals
+    const { data, error } = await supabase
+      .from('user_goals')
+      .select('*')
+      .eq('user_id', user?.id)
+      .single();
+
+    if (error && error.code !== 'PGRST116') {
+      throw error;
+    }
+
+    // ✅ 2. Si no existe, crear uno por defecto
+    if (!data) {
+      const { data: newGoals, error: insertError } = await supabase
+        .from('user_goals')
+        .insert({
+          user_id: user?.id,
+          daily_calories: 2200,
+          daily_protein: 100,
+          daily_carbs: 275,
+          daily_fat: 73,
+          daily_exercise_minutes: 60,
+          daily_water_glasses: 8,
+          weekly_exercise_days: 5,
+          rest_days: [],
+          auto_adjust_rest_days: true
+        })
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+
+      setGoals(newGoals);
+      setOriginalGoals(newGoals);
+      setSelectedRestDays(newGoals?.rest_days || []);
+    } else {
+      // ✅ 3. Si existe, usar los datos
+      setGoals(data);
+      setOriginalGoals(data);
+      setSelectedRestDays(data.rest_days || []);
+    }
+
+    // ✅ 4. Obtener el origen de las metas
     const { data: profile } = await supabase
       .from('profiles')
       .select('goals_origin')
       .eq('user_id', user?.id)
       .single();
 
-    // ✅ 3. Guardar los datos iniciales UNA SOLA VEZ
-    setGoals(data.goals);
-    setOriginalGoals(data.goals);
-    setSelectedRestDays(data.goals.rest_days || []);
-    
-    // ✅ 4. Solo recalcular si el origen es automático
+    // ✅ 5. Solo recalcular si el origen es automático
     if (profile?.goals_origin === 'auto') {
       await recalculateGoalsBasedOnHealthData();
     }
 
-    // ✅ 5. Cargar estadísticas
-    const today = new Date();
-    const startOfWeek = new Date(today.setDate(today.getDate() - today.getDay() + 1));
-    const endOfWeek = new Date(today.setDate(today.getDate() - today.getDay() + 7));
-    
-    setTimeout(async () => {
-      try {
-        const progressData = await callSupabaseFunction(`goals/progress?start_date=${startOfWeek.toISOString().split('T')[0]}&end_date=${endOfWeek.toISOString().split('T')[0]}`);
-        setProgressStats(progressData.stats);
-      } catch (error) {
-        console.error('Error loading progress:', error);
-      }
-    }, 300);
+    // ✅ 6. Cargar estadísticas (si necesitas esta función)
+    // NOTA: Si 'goals/progress' no existe, esto fallará
+    try {
+      const today = new Date();
+      const startOfWeek = new Date(today.setDate(today.getDate() - today.getDay() + 1));
+      const endOfWeek = new Date(today.setDate(today.getDate() - today.getDay() + 7));
+      
+      const progressData = await callSupabaseFunction(`goals/progress?start_date=${startOfWeek.toISOString().split('T')[0]}&end_date=${endOfWeek.toISOString().split('T')[0]}`);
+      setProgressStats(progressData.stats);
+    } catch (error) {
+      console.error('Error loading progress stats:', error);
+      // Puedes omitir esto si no es crítico
+    }
 
   } catch (error) {
     console.error('Error loading goals:', error);
@@ -119,7 +153,6 @@ export default function Goals() {
     setLoading(false);
   }
 };
-
    // En Goals.tsx - Agregar esta función
 const recalculateGoalsBasedOnHealthData = async () => {
   try {
@@ -234,13 +267,13 @@ const recalculateGoalsBasedOnHealthData = async () => {
       debouncedLoadGoals();
     }
   }, [user?.id]);
-const handleSaveGoals = async () => {
+ const handleSaveGoals = async () => {
   if (!goals) return;
   
   try {
     setSaving(true);
     
-    // ✅ ACTUALIZAR EL ORIGEN A MANUAL
+    // ✅ 1. Actualizar el origen a manual
     const { error: updateError } = await supabase
       .from('profiles')
       .update({
@@ -251,34 +284,49 @@ const handleSaveGoals = async () => {
 
     if (updateError) throw updateError;
 
-    // ✅ Si hay cambios en días de descanso, recalcular
-    if (JSON.stringify(selectedRestDays) !== JSON.stringify(originalGoals?.rest_days || [])) {
-      await recalculateGoalsBasedOnHealthData();
-    }
+    // ✅ 2. Guardar en user_goals
+    const { error } = await supabase
+      .from('user_goals')
+      .upsert({
+        user_id: user?.id,
+        daily_calories: goals.daily_calories,
+        daily_protein: goals.daily_protein,
+        daily_carbs: goals.daily_carbs,
+        daily_fat: goals.daily_fat,
+        daily_exercise_minutes: goals.daily_exercise_minutes,
+        daily_water_glasses: goals.daily_water_glasses,
+        weekly_exercise_days: goals.weekly_exercise_days,
+        rest_days: selectedRestDays,
+        auto_adjust_rest_days: goals.auto_adjust_rest_days,
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'user_id'
+      });
 
-    await callSupabaseFunction('goals', {
-      method: 'PUT',
-      body: {
-        ...goals,
-        rest_days: selectedRestDays
-      }
-    });
+    if (error) throw error;
     
+    // ✅ 3. Actualizar estado local
     setOriginalGoals({ ...goals, rest_days: selectedRestDays });
     setIsEditing(false);
     
-    // ✅ NOTIFICAR A OTROS COMPONENTES
+    // ✅ 4. Notificar a otros componentes
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('goalsUpdated'));
     }
+
+    setOriginalGoals({ ...goals, rest_days: selectedRestDays });
+    setIsEditing(false);
+    
     
   } catch (error) {
     console.error('Error saving goals:', error);
+    alert('Error al guardar las metas. Intenta nuevamente.');
   } finally {
     setSaving(false);
   }
-};
-
+};   
+    
+   
   const resetToDefaults = () => {
     setGoals({
       daily_calories: 2200,

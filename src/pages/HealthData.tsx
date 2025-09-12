@@ -230,7 +230,7 @@ export default function HealthDataPage() {
   const updateGoalsBasedOnHealthData = async (targetCalories: number, macros: any) => {
   try {
     const { error } = await supabase
-      .from('goals')
+      .from('user_goals')
       .upsert({
         user_id: user?.id,
         daily_calories: targetCalories,
