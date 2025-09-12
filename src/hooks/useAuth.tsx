@@ -62,10 +62,18 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     );
 
     return () => subscription.unsubscribe();
-  }, [user]);
+  }, []);
 
   const createUserProfile = async (userProfile: User) => {
-    try {
+  try {
+    // Verificar si el perfil ya existe primero
+    const { data: existingProfile } = await supabase
+      .from('profiles')
+      .select('user_id')
+      .eq('user_id', userProfile.id)
+      .single();
+
+    if (!existingProfile) {
       const { error } = await supabase
         .from('profiles')
         .upsert({
@@ -77,10 +85,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         });
 
       if (error) throw error;
-    } catch (error) {
-      console.error('Error creating user profile:', error);
+      console.log('Perfil de usuario creado exitosamente');
     }
-  };
+  } catch (error) {
+    console.error('Error creating user profile:', error);
+  }
+};
 
   const signInWithGoogle = async () => {
     try {
