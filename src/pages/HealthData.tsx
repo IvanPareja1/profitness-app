@@ -13,12 +13,13 @@ interface HealthData {
   bmr?: number;
   tdee?: number;
   target_calories?: number;
-  goal_weight?: number | null;
-   target_protein?: number;    
-  target_carbs?: number;      
+  goal_weight?: number;
+  target_protein?: number;
+  target_carbs?: number;
   target_fat?: number;
+}
 
-export default function HealthData() {
+export default function HealthDataPage() {
   const [healthData, setHealthData] = useState<HealthData>({
     age: 0,
     gender: 'male',
@@ -27,7 +28,7 @@ export default function HealthData() {
     goal: 'maintain',
     activity_level: 'moderate',
     daily_steps: 0,
-    goal_weight: null
+    goal_weight: 0
   });
 
   const [loading, setLoading] = useState(false);
@@ -35,39 +36,6 @@ export default function HealthData() {
   
   const { user } = useAuth();
   const navigate = useNavigate();
-
-  const { error } = await supabase
-        .from('profiles')
-        .update({
-          age: healthData.age,
-          gender: healthData.gender,
-          height: healthData.height,
-          weight: healthData.weight,
-          goal: healthData.goal,
-          activity_level: healthData.activity_level,
-          goal_weight: healthData.goal_weight,
-          daily_calories: calculations.targetCalories,
-          // Puedes agregar campos para macros si lo deseas
-          target_protein: macros.protein,
-          target_carbs: macros.carbs,
-          target_fat: macros.fat,
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', user?.id);
-
-      if (error) throw error;
-
-      alert('Datos de salud guardados exitosamente!');
-      navigate('/profile');
-
-    } catch (error) {
-      console.error('Error saving health data:', error);
-      alert('Error al guardar los datos');
-    } finally {
-      setLoading(false);
-    }
-  };
-  
 
   useEffect(() => {
     if (user) {
@@ -96,7 +64,6 @@ export default function HealthData() {
   };
 
   const checkConnectedDevices = async () => {
-    // Verificar dispositivos conectados
     try {
       if ('health' in navigator) {
         const devices = await (navigator as any).health.getConnectedDevices();
@@ -108,7 +75,10 @@ export default function HealthData() {
   };
 
   const calculateCalories = () => {
-    // Fórmula de Mifflin-St Jeor para BMR
+    if (!healthData.age || !healthData.weight || !healthData.height) {
+      return { bmr: 0, tdee: 0, targetCalories: 0 };
+    }
+
     let bmr;
     if (healthData.gender === 'male') {
       bmr = 10 * healthData.weight + 6.25 * healthData.height - 5 * healthData.age + 5;
@@ -116,7 +86,6 @@ export default function HealthData() {
       bmr = 10 * healthData.weight + 6.25 * healthData.height - 5 * healthData.age - 161;
     }
 
-    // Multiplicador de actividad
     const activityMultipliers = {
       sedentary: 1.2,
       light: 1.375,
@@ -125,16 +94,15 @@ export default function HealthData() {
       very_active: 1.9
     };
 
-    const tdee = bmr * activityMultipliers[healthData.activity_level];
+    const tdee = bmr * activityMultipliers[healthData.activity_level as keyof typeof activityMultipliers];
 
-    // Ajustar según objetivo
     let targetCalories;
     switch (healthData.goal) {
       case 'lose_weight':
-        targetCalories = tdee - 500; // Déficit de 500 calorías
+        targetCalories = tdee - 500;
         break;
       case 'gain_muscle':
-        targetCalories = tdee + 300; // Superávit de 300 calorías
+        targetCalories = tdee + 300;
         break;
       default:
         targetCalories = tdee;
@@ -148,12 +116,12 @@ export default function HealthData() {
 
     switch (healthData.goal) {
       case 'lose_weight':
-        protein = healthData.weight * 2.2; // 2.2g por kg de peso
-        fat = (calories * 0.25) / 9; // 25% de calorías de grasa
+        protein = healthData.weight * 2.2;
+        fat = (calories * 0.25) / 9;
         carbs = (calories - (protein * 4) - (fat * 9)) / 4;
         break;
       case 'gain_muscle':
-        protein = healthData.weight * 2.5; // 2.5g por kg de peso
+        protein = healthData.weight * 2.5;
         fat = (calories * 0.25) / 9;
         carbs = (calories - (protein * 4) - (fat * 9)) / 4;
         break;
@@ -172,7 +140,6 @@ export default function HealthData() {
 
   const connectGoogleFit = async () => {
     try {
-      // Integración con Google Fit
       if ('health' in navigator) {
         await (navigator as any).health.requestAuthorization([
           { name: 'steps', access: 'read' },
@@ -182,7 +149,7 @@ export default function HealthData() {
         
         const steps = await (navigator as any).health.query({
           dataType: 'steps',
-          startDate: new Date(Date.now() - 86400000), // Últimas 24h
+          startDate: new Date(Date.now() - 86400000),
           endDate: new Date()
         });
 
@@ -199,63 +166,60 @@ export default function HealthData() {
   };
 
   const connectAppleHealth = async () => {
-    // Lógica similar para Apple HealthKit
     console.log('Conectando Apple Health...');
   };
 
   const saveHealthData = async () => {
-  try {
-    setLoading(true);
-    
-    const calculations = calculateCalories();
-    const macros = calculateMacros(calculations.targetCalories);
+    try {
+      setLoading(true);
+      
+      const calculations = calculateCalories();
+      const macros = calculateMacros(calculations.targetCalories);
 
-    // Guardar en health_data
-    const { error: healthError } = await supabase
-      .from('health_data')
-      .upsert({
-        user_id: user?.id,
-        ...healthData,
-        ...calculations,
-        target_protein: macros.protein,
-        target_carbs: macros.carbs,
-        target_fat: macros.fat,
-        updated_at: new Date().toISOString()
-      });
+      const { error: healthError } = await supabase
+        .from('health_data')
+        .upsert({
+          user_id: user?.id,
+          ...healthData,
+          ...calculations,
+          target_protein: macros.protein,
+          target_carbs: macros.carbs,
+          target_fat: macros.fat,
+          updated_at: new Date().toISOString()
+        });
 
-    if (healthError) throw healthError;
+      if (healthError) throw healthError;
 
-    
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .update({
-        age: healthData.age,
-        gender: healthData.gender,
-        height: healthData.height,
-        weight: healthData.weight,
-        goal: healthData.goal,
-        activity_level: healthData.activity_level,
-        goal_weight: healthData.goal_weight,
-        daily_calories: calculations.targetCalories,
-        target_protein: macros.protein,
-        target_carbs: macros.carbs,
-        target_fat: macros.fat,
-        updated_at: new Date().toISOString()
-      })
-      .eq('user_id', user?.id);
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          age: healthData.age,
+          gender: healthData.gender,
+          height: healthData.height,
+          weight: healthData.weight,
+          goal: healthData.goal,
+          activity_level: healthData.activity_level,
+          goal_weight: healthData.goal_weight,
+          daily_calories: calculations.targetCalories,
+          target_protein: macros.protein,
+          target_carbs: macros.carbs,
+          target_fat: macros.fat,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', user?.id);
 
-    if (profileError) throw profileError;
+      if (profileError) throw profileError;
 
-    alert('Datos de salud guardados exitosamente!');
-    navigate('/profile');
+      alert('Datos de salud guardados exitosamente!');
+      navigate('/profile');
 
-  } catch (error) {
-    console.error('Error saving health data:', error);
-    alert('Error al guardar los datos');
-  } finally {
-    setLoading(false);
-  }
-};
+    } catch (error) {
+      console.error('Error saving health data:', error);
+      alert('Error al guardar los datos');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -281,8 +245,8 @@ export default function HealthData() {
               <label className="block text-sm font-medium text-gray-700 mb-2">Edad</label>
               <input
                 type="number"
-                value={healthData.age}
-                onChange={(e) => setHealthData({...healthData, age: parseInt(e.target.value) || 0})}
+                value={healthData.age || ''}
+                onChange={(e) => setHealthData({...healthData, age: e.target.value ? parseInt(e.target.value) : 0})}
                 className="w-full p-3 bg-gray-50 rounded-lg border-none text-sm"
                 placeholder="30"
               />
@@ -306,8 +270,8 @@ export default function HealthData() {
               <label className="block text-sm font-medium text-gray-700 mb-2">Altura (cm)</label>
               <input
                 type="number"
-                value={healthData.height}
-                onChange={(e) => setHealthData({...healthData, height: parseInt(e.target.value) || 0})}
+                value={healthData.height || ''}
+                onChange={(e) => setHealthData({...healthData, height: e.target.value ? parseInt(e.target.value) : 0})}
                 className="w-full p-3 bg-gray-50 rounded-lg border-none text-sm"
                 placeholder="175"
               />
@@ -317,8 +281,8 @@ export default function HealthData() {
               <label className="block text-sm font-medium text-gray-700 mb-2">Peso (kg)</label>
               <input
                 type="number"
-                value={healthData.weight}
-                onChange={(e) => setHealthData({...healthData, weight: parseInt(e.target.value) || 0})}
+                value={healthData.weight || ''}
+                onChange={(e) => setHealthData({...healthData, weight: e.target.value ? parseInt(e.target.value) : 0})}
                 className="w-full p-3 bg-gray-50 rounded-lg border-none text-sm"
                 placeholder="70"
               />
@@ -387,7 +351,7 @@ export default function HealthData() {
             </button>
           </div>
 
-          {healthData.daily_steps > 0 && (
+          {healthData.daily_steps && healthData.daily_steps > 0 && (
             <div className="mt-4 p-3 bg-green-50 rounded-lg">
               <div className="flex items-center space-x-2">
                 <i className="ri-walk-line text-green-600"></i>
@@ -400,7 +364,7 @@ export default function HealthData() {
         </div>
 
         {/* Resumen de Cálculos */}
-        {healthData.age > 0 && healthData.weight > 0 && healthData.height > 0 && (
+        {healthData.age && healthData.age > 0 && healthData.weight && healthData.weight > 0 && healthData.height && healthData.height > 0 && (
           <div className="bg-white rounded-xl p-4 shadow-sm">
             <h2 className="font-semibold text-gray-800 mb-4">Resumen de tu Plan</h2>
             

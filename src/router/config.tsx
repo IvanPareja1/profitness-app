@@ -36,14 +36,13 @@ const routes: RouteObject[] = [
     element: <Goals />,
   },
   {
-    path: "*",
-    element: <NotFound />,
+    path: "/health-data",
+    element: <HealthDataForm />, 
   },
   {
-    path: "/health-data",
-    element: <HealthData />,
+    path: "*",
+    element: <NotFound />,
   }
 ];
 
-// ✅ AÑADE ESTA LÍNEA - Exportación por defecto
 export default routes;
