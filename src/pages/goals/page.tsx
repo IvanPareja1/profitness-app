@@ -79,10 +79,21 @@ export default function Goals() {
     try {
       setLoading(true);
       const data = await callSupabaseFunction('goals');
+      
+
+     // ✅ PRIMERO cargar goals desde la base de datos
+     setGoals(data.goals);
+     setOriginalGoals(data.goals);
+     setSelectedRestDays(data.goals.rest_days || []);
+
+     await recalculateGoalsBasedOnHealthData();
+      
+      
       setGoals(data.goals);
       setOriginalGoals(data.goals);
       setSelectedRestDays(data.goals.rest_days || []);
-      
+
+
       // Cargar estadísticas de la semana actual
        const today = new Date();
       const startOfWeek = new Date(today.setDate(today.getDate() - today.getDay() + 1));
@@ -102,6 +113,100 @@ export default function Goals() {
       setLoading(false);
     }
   };
+
+   // En Goals.tsx - Agregar esta función
+const recalculateGoalsBasedOnHealthData = async () => {
+  try {
+    // Obtener datos de salud actualizados
+    const { data: healthData } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('user_id', user?.id)
+      .single();
+
+    if (!healthData) return;
+
+    // Recalcular basado en health data
+    const calculateCalories = () => {
+      if (!healthData.age || !healthData.weight || !healthData.height) {
+        return { targetCalories: 2200 };
+      }
+
+      let bmr;
+      if (healthData.gender === 'male') {
+        bmr = 10 * healthData.weight + 6.25 * healthData.height - 5 * healthData.age + 5;
+      } else {
+        bmr = 10 * healthData.weight + 6.25 * healthData.height - 5 * healthData.age - 161;
+      }
+
+      const activityMultipliers = {
+        sedentary: 1.2,
+        light: 1.375,
+        moderate: 1.55,
+        active: 1.725,
+        very_active: 1.9
+      };
+
+      const tdee = bmr * activityMultipliers[healthData.activity_level as keyof typeof activityMultipliers];
+
+      let targetCalories;
+      switch (healthData.goal) {
+        case 'lose_weight':
+          targetCalories = tdee - 500;
+          break;
+        case 'gain_muscle':
+          targetCalories = tdee + 300;
+          break;
+        default:
+          targetCalories = tdee;
+      }
+
+      return { targetCalories: Math.round(targetCalories) };
+    };
+
+    const calculateMacros = (calories: number) => {
+      let protein, carbs, fat;
+
+      switch (healthData.goal) {
+        case 'lose_weight':
+          protein = healthData.weight * 2.2;
+          fat = (calories * 0.25) / 9;
+          carbs = (calories - (protein * 4) - (fat * 9)) / 4;
+          break;
+        case 'gain_muscle':
+          protein = healthData.weight * 2.5;
+          fat = (calories * 0.25) / 9;
+          carbs = (calories - (protein * 4) - (fat * 9)) / 4;
+          break;
+        default:
+          protein = healthData.weight * 1.8;
+          fat = (calories * 0.25) / 9;
+          carbs = (calories - (protein * 4) - (fat * 9)) / 4;
+      }
+
+      return {
+        protein: Math.round(protein),
+        carbs: Math.round(carbs),
+        fat: Math.round(fat)
+      };
+    };
+
+    const calculations = calculateCalories();
+    const macros = calculateMacros(calculations.targetCalories);
+
+    // Actualizar goals
+    setGoals(prev => prev ? {
+      ...prev,
+      daily_calories: calculations.targetCalories,
+      daily_protein: macros.protein,
+      daily_carbs: macros.carbs,
+      daily_fat: macros.fat
+    } : null);
+
+  } catch (error) {
+    console.error('Error recalculating goals:', error);
+  }
+};
     const debouncedLoadGoals = debounce(loadGoals, 500);
 
    useEffect(() => {
@@ -110,35 +215,39 @@ export default function Goals() {
     }
   }, [user?.id]);
 
-  const handleSaveGoals = async () => {
-    if (!goals) return;
+const handleSaveGoals = async () => {
+  if (!goals) return;
+  
+  try {
+    setSaving(true);
     
-    try {
-      setSaving(true);
-      await callSupabaseFunction('goals', {
-        method: 'PUT',
-        body: {
-          ...goals,
-          rest_days: selectedRestDays
-        }
-      });
-      
-      setOriginalGoals({ ...goals, rest_days: selectedRestDays });
-      setIsEditing(false);
-    } catch (error) {
-      console.error('Error saving goals:', error);
-    } finally {
-      setSaving(false);
+    // ✅ PRIMERO: Si hay cambios en días de descanso, recalcular
+    if (JSON.stringify(selectedRestDays) !== JSON.stringify(originalGoals?.rest_days || [])) {
+      await recalculateGoalsBasedOnHealthData();
     }
-  };
 
-  const handleRestDayToggle = (day: string) => {
-    setSelectedRestDays(prev => 
-      prev.includes(day) 
-        ? prev.filter(d => d !== day)
-        : [...prev, day]
-    );
-  };
+    await callSupabaseFunction('goals', {
+      method: 'PUT',
+      body: {
+        ...goals,
+        rest_days: selectedRestDays
+      }
+    });
+    
+    setOriginalGoals({ ...goals, rest_days: selectedRestDays });
+    setIsEditing(false);
+    
+    // ✅ NOTIFICAR A OTROS COMPONENTES
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('goalsUpdated'));
+    }
+    
+  } catch (error) {
+    console.error('Error saving goals:', error);
+  } finally {
+    setSaving(false);
+  }
+};
 
   const resetToDefaults = () => {
     setGoals({

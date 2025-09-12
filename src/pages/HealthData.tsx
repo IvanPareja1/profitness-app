@@ -211,6 +211,9 @@ export default function HealthDataPage() {
 
       if (error) throw error;
 
+      await updateGoalsBasedOnHealthData(calculations.targetCalories, macros);
+    
+
       alert('Datos de salud guardados exitosamente!');
       navigate('/profile');
 
@@ -221,6 +224,28 @@ export default function HealthDataPage() {
       setLoading(false);
     }
   };
+
+  const updateGoalsBasedOnHealthData = async (targetCalories: number, macros: any) => {
+  try {
+    const { error } = await supabase
+      .from('goals')
+      .upsert({
+        user_id: user?.id,
+        daily_calories: targetCalories,
+        daily_protein: macros.protein,
+        daily_carbs: macros.carbs,
+        daily_fat: macros.fat,
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'user_id'
+      });
+
+    if (error) throw error;
+    console.log('✅ Goals actualizados automáticamente basado en health data');
+  } catch (error) {
+    console.error('Error updating goals:', error);
+  }
+};
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
