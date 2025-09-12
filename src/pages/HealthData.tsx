@@ -7,8 +7,8 @@ interface HealthData {
   gender: string;
   height: number;
   weight: number;
-  goal: 'lose_weight' | 'gain_muscle' | 'maintain';
-  activity_level: 'sedentary' | 'light' | 'moderate' | 'active' | 'very_active';
+  goal: string;
+  activity_level: string;
   daily_steps?: number;
   bmr?: number;
   tdee?: number;
@@ -39,24 +39,34 @@ export default function HealthDataPage() {
 
   useEffect(() => {
     if (user) {
-      const timer = setTimeout(() => {
-        loadHealthData();
-      }, 500);
-      
-      return () => clearTimeout(timer);
+      loadHealthData();
     }
   }, [user?.id]);
 
   const loadHealthData = async () => {
     try {
-      const { data } = await supabase
-        .from('health_data')
+      if (!user?.id) return;
+      
+      const { data, error } = await supabase
+        .from('profiles')
         .select('*')
-        .eq('user_id', user?.id)
+        .eq('user_id', user.id)
         .single();
 
+      if (error) throw error;
+
       if (data) {
-        setHealthData(data);
+        setHealthData(prev => ({
+          ...prev,
+          ...data,
+          age: data.age || 0,
+          height: data.height || 0,
+          weight: data.weight || 0,
+          goal: data.goal || 'maintain',
+          activity_level: data.activity_level || 'moderate',
+          goal_weight: data.goal_weight || 0,
+          daily_steps: data.daily_steps || 0
+        }));
       }
     } catch (error) {
       console.error('Error loading health data:', error);
@@ -169,30 +179,19 @@ export default function HealthDataPage() {
     console.log('Conectando Apple Health...');
   };
 
-  const saveHealthData = async () => {
+ const saveHealthData = async () => {
     try {
+      if (!user?.id) return;
+      
       setLoading(true);
       
       const calculations = calculateCalories();
       const macros = calculateMacros(calculations.targetCalories);
 
-      const { error: healthError } = await supabase
-        .from('health_data')
-        .upsert({
-          user_id: user?.id,
-          ...healthData,
-          ...calculations,
-          target_protein: macros.protein,
-          target_carbs: macros.carbs,
-          target_fat: macros.fat,
-          updated_at: new Date().toISOString()
-        });
-
-      if (healthError) throw healthError;
-
-      const { error: profileError } = await supabase
+      const { error } = await supabase
         .from('profiles')
-        .update({
+        .upsert({
+          user_id: user.id,
           age: healthData.age,
           gender: healthData.gender,
           height: healthData.height,
@@ -200,15 +199,17 @@ export default function HealthDataPage() {
           goal: healthData.goal,
           activity_level: healthData.activity_level,
           goal_weight: healthData.goal_weight,
+          daily_steps: healthData.daily_steps,
+          bmr: calculations.bmr,
+          tdee: calculations.tdee,
           daily_calories: calculations.targetCalories,
           target_protein: macros.protein,
           target_carbs: macros.carbs,
           target_fat: macros.fat,
           updated_at: new Date().toISOString()
-        })
-        .eq('user_id', user?.id);
+        });
 
-      if (profileError) throw profileError;
+      if (error) throw error;
 
       alert('Datos de salud guardados exitosamente!');
       navigate('/profile');
