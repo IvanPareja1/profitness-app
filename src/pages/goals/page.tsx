@@ -76,58 +76,78 @@ export default function Goals() {
   };
 
   const loadGoals = async () => {
-    try {
-      setLoading(true);
-      const data = await callSupabaseFunction('goals');
-      
+  try {
+    setLoading(true);
+    
+    // ✅ 1. Primero obtener los goals de la base de datos
+    const data = await callSupabaseFunction('goals');
+    
+    // ✅ 2. Obtener el origen de las metas
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('goals_origin')
+      .eq('user_id', user?.id)
+      .single();
 
-     // ✅ PRIMERO cargar goals desde la base de datos
-     setGoals(data.goals);
-     setOriginalGoals(data.goals);
-     setSelectedRestDays(data.goals.rest_days || []);
-
-     await recalculateGoalsBasedOnHealthData();
-      
-      
-      setGoals(data.goals);
-      setOriginalGoals(data.goals);
-      setSelectedRestDays(data.goals.rest_days || []);
-
-
-      // Cargar estadísticas de la semana actual
-       const today = new Date();
-      const startOfWeek = new Date(today.setDate(today.getDate() - today.getDay() + 1));
-      const endOfWeek = new Date(today.setDate(today.getDate() - today.getDay() + 7));
-      
-      setTimeout(async () => {
-        try {
-          const progressData = await callSupabaseFunction(`goals/progress?start_date=${startOfWeek.toISOString().split('T')[0]}&end_date=${endOfWeek.toISOString().split('T')[0]}`);
-          setProgressStats(progressData.stats);
-        } catch (error) {
-          console.error('Error loading progress:', error);
-        }
-      }, 300);
-    } catch (error) {
-      console.error('Error loading goals:', error);
-    } finally {
-      setLoading(false);
+    // ✅ 3. Guardar los datos iniciales UNA SOLA VEZ
+    setGoals(data.goals);
+    setOriginalGoals(data.goals);
+    setSelectedRestDays(data.goals.rest_days || []);
+    
+    // ✅ 4. Solo recalcular si el origen es automático
+    if (profile?.goals_origin === 'auto') {
+      await recalculateGoalsBasedOnHealthData();
     }
-  };
+
+    // ✅ 5. Cargar estadísticas
+    const today = new Date();
+    const startOfWeek = new Date(today.setDate(today.getDate() - today.getDay() + 1));
+    const endOfWeek = new Date(today.setDate(today.getDate() - today.getDay() + 7));
+    
+    setTimeout(async () => {
+      try {
+        const progressData = await callSupabaseFunction(`goals/progress?start_date=${startOfWeek.toISOString().split('T')[0]}&end_date=${endOfWeek.toISOString().split('T')[0]}`);
+        setProgressStats(progressData.stats);
+      } catch (error) {
+        console.error('Error loading progress:', error);
+      }
+    }, 300);
+
+  } catch (error) {
+    console.error('Error loading goals:', error);
+  } finally {
+    setLoading(false);
+  }
+};
 
    // En Goals.tsx - Agregar esta función
 const recalculateGoalsBasedOnHealthData = async () => {
   try {
+
     // Obtener datos de salud actualizados
-    const { data: healthData } = await supabase
+    const { data: currentProfile } = await supabase
       .from('profiles')
       .select('*')
       .eq('user_id', user?.id)
       .single();
 
+       // ✅ 2. Verificar si es manual ANTES de hacer nada
+    if (currentProfile?.goals_origin === 'manual') {
+      console.log('Metas manuales - no recalculando automáticamente');
+      return;
+    }
+
+    // ✅ 3. Obtener health data COMPLETA
+    const { data: healthData } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('user_id', user?.id)
+      .single(); // ← AGREGAR .single(
+
+
     if (!healthData) return;
 
-    // Recalcular basado en health data
-    const calculateCalories = () => {
+      const calculateCalories = () => {
       if (!healthData.age || !healthData.weight || !healthData.height) {
         return { targetCalories: 2200 };
       }
@@ -214,14 +234,24 @@ const recalculateGoalsBasedOnHealthData = async () => {
       debouncedLoadGoals();
     }
   }, [user?.id]);
-
 const handleSaveGoals = async () => {
   if (!goals) return;
   
   try {
     setSaving(true);
     
-    // ✅ PRIMERO: Si hay cambios en días de descanso, recalcular
+    // ✅ ACTUALIZAR EL ORIGEN A MANUAL
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({
+        goals_origin: 'manual',
+        updated_at: new Date().toISOString()
+      })
+      .eq('user_id', user?.id);
+
+    if (updateError) throw updateError;
+
+    // ✅ Si hay cambios en días de descanso, recalcular
     if (JSON.stringify(selectedRestDays) !== JSON.stringify(originalGoals?.rest_days || [])) {
       await recalculateGoalsBasedOnHealthData();
     }

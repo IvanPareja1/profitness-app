@@ -206,7 +206,9 @@ export default function HealthDataPage() {
           target_protein: macros.protein,
           target_carbs: macros.carbs,
           target_fat: macros.fat,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
+          goals_origin: 'auto', // ← MARCAR COMO AUTOMÁTICO
+         
         });
 
       if (error) throw error;
