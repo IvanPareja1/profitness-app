@@ -92,7 +92,7 @@ export default function Dashboard() {
 
     if (profile) {
       setTodayGoals({
-        daily_calories: profile.daily_calories || 2200,
+        daily_calories: profile.daily_calories || 2400,
         daily_exercise_minutes: 60,
         is_rest_day: false
       });
