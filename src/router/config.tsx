@@ -8,16 +8,9 @@ import Progress from '../pages/progress/page';
 import Profile from '../pages/profile/page';
 import Goals from '../pages/goals/page';
 import HealthDataPage from "../pages/HealthData";
-import LoginScreen from "../components/auth/LoginScreen"; 
 import ProtectedRoute from '../components/auth/ProtectedRoute';
 
 const routes: RouteObject[] = [
-  
-  {
-    path: "/login",
-    element: <LoginScreen />,
-  },
-  // ✅ Rutas PROTEGIDAS
   {
     path: "/",
     element: (
@@ -73,6 +66,15 @@ const routes: RouteObject[] = [
         <HealthDataPage />
       </ProtectedRoute>
     ),
+  },
+  // Agrega rutas públicas (login, register, etc.) si las tienes
+  {
+    path: "/login",
+    element: <LoginPage />, // ← Si tienes página de login
+  },
+  {
+    path: "/register", 
+    element: <RegisterPage />, // ← Si tienes página de registro
   },
   {
     path: "*",
