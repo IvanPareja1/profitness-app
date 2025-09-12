@@ -8,6 +8,7 @@ import Exercise from "../pages/exercise/page";
 import Progress from '../pages/progress/page';
 import Profile from '../pages/profile/page';
 import Goals from '../pages/goals/page';
+import HealthDataPage from "../pages/HealthData";
 
 
 const routes: RouteObject[] = [
@@ -34,6 +35,10 @@ const routes: RouteObject[] = [
   {
     path: "/goals",
     element: <Goals />,
+  },
+  {
+    path: "/health-data",
+    element: <HealthDataPage/>,
   },
   {
     path: "*",

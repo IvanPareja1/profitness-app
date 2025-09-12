@@ -30,7 +30,7 @@ interface TodayGoals {
 }
 
 export default function Dashboard() {
-    console.log('🔵 Dashboard component rendering');
+    //console.log('🔵 Dashboard component rendering');
   
   const [macros, setMacros] = useState({ protein: 0, carbs: 0, fat: 0 });
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
