@@ -8,9 +8,16 @@ import Progress from '../pages/progress/page';
 import Profile from '../pages/profile/page';
 import Goals from '../pages/goals/page';
 import HealthDataPage from "../pages/HealthData";
-import ProtectedRoute from '../components/ProtectedRoute';
+import LoginScreen from "../components/auth/LoginScreen"; 
+import ProtectedRoute from '../components/auth/ProtectedRoute';
 
 const routes: RouteObject[] = [
+  
+  {
+    path: "/login",
+    element: <LoginScreen />,
+  },
+  // ✅ Rutas PROTEGIDAS
   {
     path: "/",
     element: (
