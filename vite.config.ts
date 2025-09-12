@@ -1,5 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react-swc';
+import path from 'path';
+
 
 export default defineConfig({
   plugins: [react()],
@@ -17,7 +19,13 @@ export default defineConfig({
       },
     },
   },
+  // ✅ Configuración correcta para SPA en Vite
   server: {
-    historyApiFallback: true,
+    // Vite maneja las rutas automáticamente en desarrollo
   },
+  // ✅ Opcional: Configuración para el preview (producción)
+  preview: {
+    port: 5173,
+    strictPort: true,
+  }
 });
