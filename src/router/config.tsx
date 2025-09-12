@@ -1,7 +1,6 @@
 // src/router/config.tsx
 import type { RouteObject } from "react-router-dom";
 import NotFound from "../pages/NotFound";
-import Home from "../pages/home/page";
 import Dashboard from "../pages/dashboard/page";
 import Nutrition from "../pages/nutrition/page";
 import Exercise from "../pages/exercise/page";
@@ -9,36 +8,64 @@ import Progress from '../pages/progress/page';
 import Profile from '../pages/profile/page';
 import Goals from '../pages/goals/page';
 import HealthDataPage from "../pages/HealthData";
-
+import ProtectedRoute from '../components/ProtectedRoute';
 
 const routes: RouteObject[] = [
   {
     path: "/",
-    element: <Dashboard />,
+    element: (
+      <ProtectedRoute>
+        <Dashboard />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "/nutrition",
-    element: <Nutrition />,
+    element: (
+      <ProtectedRoute>
+        <Nutrition />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "/exercise",
-    element: <Exercise />,
+    element: (
+      <ProtectedRoute>
+        <Exercise />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "/progress",
-    element: <Progress />
+    element: (
+      <ProtectedRoute>
+        <Progress />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "/profile",
-    element: <Profile />,
+    element: (
+      <ProtectedRoute>
+        <Profile />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "/goals",
-    element: <Goals />,
+    element: (
+      <ProtectedRoute>
+        <Goals />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "/health-data",
-    element: <HealthDataPage/>,
+    element: (
+      <ProtectedRoute>
+        <HealthDataPage />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "*",
