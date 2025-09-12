@@ -86,7 +86,7 @@ export default function Dashboard() {
     // Cargar datos del perfil (que incluyen las metas calculadas)
     const { data: profile } = await supabase
       .from('profiles')
-      .select('*')
+      .select('daily_calories, target_protein, target_carbs, target_fat')
       .eq('user_id', user?.id)
       .single();
 
