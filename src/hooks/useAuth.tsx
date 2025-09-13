@@ -9,6 +9,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  isReloading: boolean;
   signInWithGoogle: () => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<void>;
   signUpWithEmail: (email: string, password: string, fullName: string) => Promise<void>;
@@ -18,6 +19,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
+  isReloading: false,
   signInWithGoogle: async () => {},
   signInWithEmail: async () => {},
   signUpWithEmail: async () => {},
@@ -39,6 +41,7 @@ interface AuthProviderProps {
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isReloading, setIsReloading] = useState(false);
 
   const createUserProfile = async (userProfile: User) => {
     try {
@@ -69,9 +72,18 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   };
 
   useEffect(() => {
+    // Detectar si es una recarga de página
+    const navigationEntries = performance.getEntriesByType('navigation');
+    if (navigationEntries.length > 0) {
+      const navEntry = navigationEntries[0] as PerformanceNavigationTiming;
+      if (navEntry.type === 'reload') {
+        setIsReloading(true);
+      }
+    }
+
     let mounted = true;
 
-    const initializeAuth = async () => {
+    const getInitialSession = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
         
@@ -79,21 +91,23 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
         if (error) {
           console.error('Error getting session:', error);
-          if (mounted) setLoading(false);
+          setLoading(false);
+          setIsReloading(false);
           return;
         }
 
-        if (mounted) {
-          setUser(session?.user ?? null);
-          setLoading(false);
-        }
+        setUser(session?.user ?? null);
+        setLoading(false);
+        setIsReloading(false);
+        
       } catch (error) {
         console.error('Error in auth initialization:', error);
-        if (mounted) setLoading(false);
+        setLoading(false);
+        setIsReloading(false);
       }
     };
 
-    initializeAuth();
+    getInitialSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
@@ -101,8 +115,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
         setUser(session?.user ?? null);
         setLoading(false);
+        setIsReloading(false);
 
-        // Crear perfil si es un nuevo usuario
         if (event === 'SIGNED_IN' && session?.user) {
           await createUserProfile(session.user);
         }
@@ -174,6 +188,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const value = {
     user,
     loading,
+    isReloading,
     signInWithGoogle,
     signInWithEmail,
     signUpWithEmail,

@@ -8,44 +8,32 @@ interface ProtectedRouteProps {
 }
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { user, loading } = useAuth();
+  const { user, loading, isReloading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [isChecking, setIsChecking] = useState(true);
+  const [showContent, setShowContent] = useState(false);
 
   useEffect(() => {
-    // Solo procesar cuando la autenticación haya terminado de cargar
     if (!loading) {
-      setIsChecking(false);
-      
       if (!user) {
         // Redirigir al login, guardando la ubicación actual para volver después
         navigate('/login', { 
           state: { from: location },
           replace: true 
         });
+      } else {
+        setShowContent(true);
       }
     }
-  }, [user, loading, navigate, location]);
 
-  useEffect(() => {
-    // Timeout de seguridad para evitar loops infinitos
-    const timer = setTimeout(() => {
-      if (loading) {
-        console.warn('Auth loading timeout - forcing check completion');
-        setIsChecking(false);
-        
-        if (!user) {
-          navigate('/login', { replace: true });
-        }
-      }
-    }, 8000); // 8 segundos es más que suficiente
+    // Permitir mostrar contenido durante recarga
+    if (isReloading && user) {
+      setShowContent(true);
+    }
+  }, [user, loading, isReloading, navigate, location]);
 
-    return () => clearTimeout(timer);
-  }, [loading, user, navigate]);
-
-  // Mostrar spinner mientras se verifica la autenticación
-  if (loading || isChecking) {
+  // Mostrar spinner mientras se verifica la autenticación (solo si no es recarga)
+  if (loading && !isReloading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
@@ -62,5 +50,14 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   }
 
   // Renderizar children si está autenticado
-  return <>{children}</>;
+  return (
+    <>
+      {showContent && children}
+      {isReloading && (
+        <div className="fixed inset-0 bg-white bg-opacity-80 flex items-center justify-center z-50">
+          <div className="w-8 h-8 border-2 border-green-500 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      )}
+    </>
+  );
 }

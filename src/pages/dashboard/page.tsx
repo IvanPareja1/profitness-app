@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, supabase } from '../../hooks/useAuth';
-
 
 interface DayTotals {
   calories: number;
@@ -30,8 +29,6 @@ interface TodayGoals {
 }
 
 export default function Dashboard() {
-    //console.log('🔵 Dashboard component rendering');
-  
   const [macros, setMacros] = useState({ protein: 0, carbs: 0, fat: 0 });
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [dayTotals, setDayTotals] = useState<DayTotals>({ calories: 0, carbs: 0, protein: 0, fat: 0 });
@@ -42,8 +39,11 @@ export default function Dashboard() {
   
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
+  const [dataLoading, setDataLoading] = useState(true);
+  const [hasHandledReload, setHasHandledReload] = useState(false);
 
-  const callSupabaseFunction = async (functionName: string, options: any = {}) => {
+  // Función para llamar a funciones de Supabase
+  const callSupabaseFunction = useCallback(async (functionName: string, options: any = {}) => {
     console.log('🔍 Llamando a:', functionName);
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) throw new Error('No authenticated session');
@@ -64,9 +64,10 @@ export default function Dashboard() {
     }
 
     return response.json();
-  };
+  }, []);
 
-  const debounce = (func: Function, wait: number) => {
+  // Debounce function
+  const debounce = useCallback((func: Function, wait: number) => {
     let timeout: NodeJS.Timeout;
     return function executedFunction(...args: any[]) {
       const later = () => {
@@ -76,83 +77,94 @@ export default function Dashboard() {
       clearTimeout(timeout);
       timeout = setTimeout(later, wait);
     };
-  };
+  }, []);
 
+  // ✅ 1. Manejar específicamente el caso de recarga
+  useEffect(() => {
+    if (hasHandledReload) return;
 
-  const loadDashboardData = async () => {
-  try {
-    setLoading(true);
-    
-    // Cargar datos del perfil (que incluyen las metas calculadas)
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('daily_calories, target_protein, target_carbs, target_fat')
-      .eq('user_id', user?.id)
-      .single();
+    const timer = setTimeout(() => {
+      if (user && authLoading) {
+        console.log('🔄 Detected page reload - forcing state update');
+        setHasHandledReload(true);
+        // Forzar la carga de datos aunque authLoading siga true
+        loadDashboardData();
+      }
+    }, 1000);
 
-    if (profile) {
-      setTodayGoals({
-        daily_calories: profile.daily_calories || 2400,
-        daily_exercise_minutes: 60,
-        is_rest_day: false
-      });
+    return () => clearTimeout(timer);
+  }, [user, authLoading, hasHandledReload]);
 
-      // También puedes usar los macros si están disponibles
-      if (profile.target_protein && profile.target_carbs && profile.target_fat) {
-        setMacros({
-          protein: profile.target_protein,
-          carbs: profile.target_carbs,
-          fat: profile.target_fat
+  // ✅ 2. Cargar datos normalmente cuando authLoading termina
+  useEffect(() => {
+    if (!authLoading && user) {
+      loadDashboardData();
+    }
+  }, [authLoading, user]);
+
+  // ✅ 3. Redirigir solo si authLoading terminó y no hay usuario
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/login');
+    }
+  }, [authLoading, user, navigate]);
+
+  // Función principal para cargar datos
+  const loadDashboardData = useCallback(async () => {
+    try {
+      setLoading(true);
+      
+      // Cargar datos del perfil (que incluyen las metas calculadas)
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('daily_calories, target_protein, target_carbs, target_fat')
+        .eq('user_id', user?.id)
+        .single();
+
+      if (profile) {
+        setTodayGoals({
+          daily_calories: profile.daily_calories || 2400,
+          daily_exercise_minutes: 60,
+          is_rest_day: false
+        });
+
+        // También puedes usar los macros si están disponibles
+        if (profile.target_protein && profile.target_carbs && profile.target_fat) {
+          setMacros({
+            protein: profile.target_protein,
+            carbs: profile.target_carbs,
+            fat: profile.target_fat
+          });
+        }
+              
+        const goalsData = await callSupabaseFunction(`goals/today?date=${selectedDate}`);
+        setTodayGoals(prev => ({ ...prev, ...goalsData.goals }));
+        
+        const mealsData = await callSupabaseFunction(`meals?date=${selectedDate}`);
+        setDayTotals(mealsData.totals || { calories: 0, carbs: 0, protein: 0, fat: 0 });
+        setRecentMeals((mealsData.meals || []).slice(0, 3));
+        
+        const exercisesData = await callSupabaseFunction(`exercises?date=${selectedDate}`);
+        setExerciseStats({
+          totalDuration: exercisesData.totals?.totalDuration || 0,
+          totalCalories: exercisesData.totals?.totalCalories || 0,
+          totalExercises: exercisesData.totals?.totalExercises || 0
         });
       }
-            
-      const goalsData = await callSupabaseFunction(`goals/today?date=${selectedDate}`);
-      setTodayGoals(goalsData.goals);
-      
-      const mealsData = await callSupabaseFunction(`meals?date=${selectedDate}`);
-      setDayTotals(mealsData.totals || { calories: 0, carbs: 0, protein: 0, fat: 0 });
-      setRecentMeals((mealsData.meals || []).slice(0, 3));
-      
-      const exercisesData = await callSupabaseFunction(`exercises?date=${selectedDate}`);
-      setExerciseStats({
-        totalDuration: exercisesData.totals?.totalDuration || 0,
-        totalCalories: exercisesData.totals?.totalCalories || 0,
-        totalExercises: exercisesData.totals?.totalExercises || 0
-      });
-       }
-
-     } catch (error) { 
+    } catch (error) { 
       console.error('Error loading dashboard data:', error);
     } finally {
       setLoading(false);
+      setDataLoading(false);
     }
-  };
-  
+  }, [user, selectedDate, callSupabaseFunction]);
 
-  
-
-  const debouncedLoadDashboard = debounce(loadDashboardData, 500);
-   //console.log('🔵 Auth state:', { user, authLoading });
-
-
-  // ✅ useEffect para cargar datos
+  // Actualizar achievements
   useEffect(() => {
-    if (user) {
-      debouncedLoadDashboard();
-    }
-  }, [selectedDate]);
-
-   useEffect(() => {
-    if (user) {
-      debouncedLoadDashboard();
-    }
-  }, [user?.id]);
-
- useEffect(() => {
-    if (user && (dayTotals.calories > 0 || exerciseStats.totalDuration > 0)) {
-      console.log('📊 Actualizando achievements...');
-      
-      const updateAchievements = async () => {
+    const updateAchievements = async () => {
+      if (user && (dayTotals.calories > 0 || exerciseStats.totalDuration > 0)) {
+        console.log('📊 Actualizando achievements...');
+        
         try {
           await callSupabaseFunction('goals/achievement', {
             method: 'PUT',
@@ -171,12 +183,32 @@ export default function Dashboard() {
         } catch (error) {
           console.error('Error updating achievements:', error);
         }
-      };    
-          updateAchievements(); 
-       }
-       
-      }, [dayTotals, exerciseStats.totalDuration, selectedDate, user]);
+      }
+    };
+    
+    updateAchievements();
+  }, [dayTotals, exerciseStats.totalDuration, selectedDate, user, callSupabaseFunction]);
 
+  // ✅ useEffect para cargar datos cuando cambia la fecha
+  useEffect(() => {
+    if (user) {
+      const debouncedLoad = debounce(loadDashboardData, 500);
+      debouncedLoad();
+    }
+  }, [selectedDate, user, debounce, loadDashboardData]);
+
+  // ✅ 4. Mostrar loading solo si es necesario
+  if (authLoading && !user && !hasHandledReload) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null; // Se redirigirá a login
+  }
 
   const calorieProgress = Math.min((dayTotals.calories / todayGoals.daily_calories) * 100, 100);
   const exerciseProgress = Math.min((exerciseStats.totalDuration / todayGoals.daily_exercise_minutes) * 100, 100);
@@ -197,7 +229,8 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 pb-20">
-      {/* Header */}
+    
+{/* Header */}
       <div className="fixed top-0 w-full bg-white/90 backdrop-blur-md shadow-sm z-50">
         <div className="px-4 py-4">
           <div className="flex items-center justify-between">
@@ -479,5 +512,7 @@ export default function Dashboard() {
         </div>
       </div>
     </div>
+
   );
 }
+

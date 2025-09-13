@@ -5,16 +5,16 @@ import { useNavigate } from 'react-router-dom';
 interface UserProfile {
   full_name: string;
   email: string;
-  age?: number;
-  height?: number;
-  weight?: number;
-  goal_weight?: number;
-  daily_calories?: number;
+  age?: number | null;
+  height?: number | null;
+  weight?: number | null;
+  goal_weight?: number | null;
+  daily_calories?: number | null;
   avatar_url?: string;
 }
 
 export default function Profile() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -34,10 +34,41 @@ export default function Profile() {
     goal_weight: '',
     daily_calories: ''
   });
+  const [hasHandledReload, setHasHandledReload] = useState(false);
   
   // Usar useRef para trackear si ya hemos hecho fetch
   const hasFetchedProfile = useRef(false);
   const hasFetchedStats = useRef(false);
+
+  // ✅ 1. Manejar específicamente el caso de recarga
+  useEffect(() => {
+    if (hasHandledReload) return;
+
+    const timer = setTimeout(() => {
+      if (user && authLoading) {
+        console.log('🔄 Profile reload detected');
+        setHasHandledReload(true);
+        // Forzar carga de datos del perfil
+        fetchProfile();
+      }
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [user, authLoading, hasHandledReload]);
+
+  // ✅ 2. Cargar datos normalmente cuando authLoading termina
+  useEffect(() => {
+    if (!authLoading && user) {
+      fetchProfile();
+    }
+  }, [authLoading, user]);
+
+  // ✅ 3. Redirigir solo si authLoading terminó y no hay usuario
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/login');
+    }
+  }, [authLoading, user, navigate]);
 
   const fetchProfile = useCallback(async () => {
     if (hasFetchedProfile.current) return;
@@ -148,17 +179,17 @@ export default function Profile() {
     }
   }, [user, profile]);
 
-  const saveProfileData = async () => {
-    setSaving(true);
-    try {
-      const updates = {
-        age: formData.age ? parseInt(formData.age) : null,
-        height: formData.height ? parseFloat(formData.height) : null,
-        weight: formData.weight ? parseFloat(formData.weight) : null,
-        goal_weight: formData.goal_weight ? parseFloat(formData.goal_weight) : null,
-        daily_calories: formData.daily_calories ? parseInt(formData.daily_calories) : 2200,
-        updated_at: new Date().toISOString()
-      };
+const saveProfileData = async () => {
+  setSaving(true);
+  try {
+    const updates = {
+      age: formData.age ? parseInt(formData.age) : undefined,
+      height: formData.height ? parseFloat(formData.height) : undefined,
+      weight: formData.weight ? parseFloat(formData.weight) : undefined,
+      goal_weight: formData.goal_weight ? parseFloat(formData.goal_weight) : undefined,
+      daily_calories: formData.daily_calories ? parseInt(formData.daily_calories) : undefined,
+      updated_at: new Date().toISOString()
+    };
 
       const { error } = await supabase
         .from('profiles')
@@ -207,12 +238,6 @@ export default function Profile() {
   };
 
   useEffect(() => {
-    if (user && !hasFetchedProfile.current) {
-      fetchProfile();
-    }
-  }, [user, fetchProfile]);
-
-  useEffect(() => {
     if (user && profile && !hasFetchedStats.current) {
       fetchStats();
     }
@@ -256,7 +281,8 @@ export default function Profile() {
     return caloriesProgress;
   };
 
-  if (loading) {
+  // ✅ 4. Mostrar loading solo si es necesario
+  if (authLoading && !user && !hasHandledReload) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center">
         <div className="text-center">
@@ -267,7 +293,11 @@ export default function Profile() {
     );
   }
 
-   return (
+  if (!user) {
+    return null; // Se redirigirá a login
+  }
+
+  return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 pb-20">
       {/* Header */}
       <div className="fixed top-0 w-full bg-white/90 backdrop-blur-md shadow-sm z-50">
@@ -461,7 +491,13 @@ export default function Profile() {
           </button>
         </div>
       </div>
+
+      {/* ✅ 5. Mostrar overlay de carga durante recarga */}
+      {(authLoading && hasHandledReload) && (
+        <div className="fixed inset-0 bg-white bg-opacity-80 flex items-center justify-center z-50">
+          <div className="w-8 h-8 border-2 border-green-500 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      )}
     </div>
   );
 }
-
